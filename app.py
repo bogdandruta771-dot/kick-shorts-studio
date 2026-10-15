@@ -74,6 +74,7 @@ watchdog = UniversalWatchdogManager()
 # In-Memory Background Job Store
 export_jobs: Dict[str, Dict[str, Any]] = {}
 youtube_upload_jobs: Dict[str, Dict[str, Any]] = {}
+_RENDER_SEMAPHORE = threading.Semaphore(1)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -557,22 +558,23 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
                 export_jobs[job_id]["percent"] = 0.35 + (frac * 0.55)
                 export_jobs[job_id]["message"] = msg
 
-            final_file = processor.process_short(
-                input_video_path=downloaded,
-                output_video_path=out_path,
-                gameplay_crop=gp,
-                facecam_crop=fc,
-                enable_subtitles=True,
-                subtitle_options={
-                    "font_name": DEFAULT_FONT_NAME,
-                    "font_size": DEFAULT_FONT_SIZE,
-                    "primary_color": DEFAULT_PRIMARY_COLOR,
-                    "highlight_color": DEFAULT_HIGHLIGHT_COLOR,
-                    "y_position": DEFAULT_SUBTITLE_Y_OFFSET,
-                },
-                enable_anti_shadowban=bool(req.enable_anti_shadowban if req.enable_anti_shadowban is not None else True),
-                progress_cb=_prog,
-            )
+            with _RENDER_SEMAPHORE:
+                final_file = processor.process_short(
+                    input_video_path=downloaded,
+                    output_video_path=out_path,
+                    gameplay_crop=gp,
+                    facecam_crop=fc,
+                    enable_subtitles=True,
+                    subtitle_options={
+                        "font_name": DEFAULT_FONT_NAME,
+                        "font_size": DEFAULT_FONT_SIZE,
+                        "primary_color": DEFAULT_PRIMARY_COLOR,
+                        "highlight_color": DEFAULT_HIGHLIGHT_COLOR,
+                        "y_position": DEFAULT_SUBTITLE_Y_OFFSET,
+                    },
+                    enable_anti_shadowban=bool(req.enable_anti_shadowban if req.enable_anti_shadowban is not None else True),
+                    progress_cb=_prog,
+                )
 
             export_jobs[job_id]["message"] = "Generating safe high-CTR metadata..."
             export_jobs[job_id]["percent"] = 0.95
@@ -979,20 +981,21 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
                     })
 
     try:
-        final_file = processor.process_short(
-            input_video_path=Path(payload.video_path),
-            output_video_path=out_path,
-            gameplay_crop=gameplay_crop,
-            facecam_crop=facecam_crop,
-            enable_subtitles=bool(sub_opts.get("enabled", True)),
-            subtitle_options=subtitle_options,
-            outro_video_path=outro_file,
-            trim_start=payload.trim_start,
-            trim_end=payload.trim_end,
-            overlays=resolved_overlays,
-            enable_anti_shadowban=bool(payload.enable_anti_shadowban if payload.enable_anti_shadowban is not None else True),
-            progress_cb=_prog,
-        )
+        with _RENDER_SEMAPHORE:
+            final_file = processor.process_short(
+                input_video_path=Path(payload.video_path),
+                output_video_path=out_path,
+                gameplay_crop=gameplay_crop,
+                facecam_crop=facecam_crop,
+                enable_subtitles=bool(sub_opts.get("enabled", True)),
+                subtitle_options=subtitle_options,
+                outro_video_path=outro_file,
+                trim_start=payload.trim_start,
+                trim_end=payload.trim_end,
+                overlays=resolved_overlays,
+                enable_anti_shadowban=bool(payload.enable_anti_shadowban if payload.enable_anti_shadowban is not None else True),
+                progress_cb=_prog,
+            )
 
         export_jobs[job_id].update({
             "percent": 1.0,

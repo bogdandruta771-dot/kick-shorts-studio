@@ -2,6 +2,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -119,6 +120,11 @@ def run_command_safe(
     if env:
         exec_env.update(env)
 
+    # Run background subprocesses with below-normal CPU priority on Windows to keep system responsive
+    extra_run_kwargs = {}
+    if sys.platform == "win32":
+        extra_run_kwargs["creationflags"] = getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0x00004000)
+
     try:
         result = subprocess.run(
             cmd,
@@ -131,6 +137,7 @@ def run_command_safe(
             cwd=str(cwd) if cwd else None,
             env=exec_env,
             check=False,
+            **extra_run_kwargs,
         )
         return result
     except subprocess.TimeoutExpired as exc:

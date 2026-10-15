@@ -1,4 +1,5 @@
 """Video processing engine: 9:16 vertical composition, crop layout stacking, blurred background, subtitle burning, hardware encoding, and anti-shadowban protection."""
+import os
 import random
 import sys
 import uuid
@@ -272,10 +273,11 @@ class VideoProcessor:
             # Blurred background mirror fills 1080x1920
             filter_chains = []
 
-            # Background stream
+            # Background stream - optimized low-res proxy ambient blur (downscale -> light blur -> upscale)
+            # Consumes >95% less CPU than full-res boxblur while rendering smoother bokeh background
             filter_chains.append(
-                f"[0:v]scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=increase,"
-                f"crop={TARGET_WIDTH}:{TARGET_HEIGHT},boxblur=25:10,setsar=1,fps={DEFAULT_FPS}[bg]"
+                f"[0:v]scale=180:320:force_original_aspect_ratio=increase,crop=180:320,"
+                f"boxblur=4:1,scale={TARGET_WIDTH}:{TARGET_HEIGHT}:flags=fast_bilinear,setsar=1,fps={DEFAULT_FPS}[bg]"
             )
 
             # Cropped Gameplay (Top) - max height 1100, centered horizontally
@@ -419,6 +421,10 @@ class VideoProcessor:
             # Dynamic Hardware Encoder Auto-Detection (NVIDIA -> AMD -> Intel -> CPU)
             encoder_info = detect_optimal_video_encoder(self.ffmpeg_bin)
             render_cmd.extend(encoder_info["args"])
+
+            # CPU thread consumption safeguard: leave cores free for smooth multitasking
+            cpu_threads = max(1, min(4, (os.cpu_count() or 4) // 2))
+            render_cmd.extend(["-threads", str(cpu_threads)])
 
             # High Quality Audio Output
             render_cmd.extend([

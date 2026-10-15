@@ -1227,7 +1227,8 @@
                 </div>
 
                 <!-- ========================================================================= -->
-                <!-- SECTION: VIRAL AI TITLES & DESCRIPTIONS (100% FREE / MULTI-VARIANTS)      -->
+                <!-- ========================================================================= -->
+                <!-- SECTION: VIRAL AI TITLES & DESCRIPTIONS (MULTI-PROVIDER & OFFLINE)        -->
                 <!-- ========================================================================= -->
                 <div class="mt-6 p-5 rounded-2xl bg-brand-surface border border-brand-border text-left space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-border">
@@ -1238,18 +1239,36 @@
                             <div>
                                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                                     <span>AI Shorts Copywriter</span>
-                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" id="ai-active-badge">100% Free Engine</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" id="ai-active-badge">Smart Auto Engine</span>
                                 </h3>
                                 <p class="text-[11px] text-zinc-400">Generates 5 viral title hooks and 3 complete description variants with hashtags.</p>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
-                            <!-- Toggle AI Key Settings -->
-                            <button type="button" onclick="toggleAiSettingsDrawer()" class="px-3 py-1.5 rounded-lg bg-brand-bg hover:bg-brand-border text-xs text-zinc-300 border border-brand-border flex items-center gap-1.5 transition-colors">
-                                <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
-                                <span>API Key (Optional)</span>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Provider Selector Dropdown -->
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-[11px] font-semibold text-zinc-400 hidden sm:inline">AI Tool:</label>
+                                <select id="select-ai-provider" onchange="handleAiProviderChange()" class="bg-brand-bg px-2.5 py-1.5 rounded-lg border border-brand-border text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">
+                                    <option value="auto">⚡ Auto-Detect (Smart Routing)</option>
+                                    <option value="gemini">🌟 Google Gemini (Free Tier)</option>
+                                    <option value="groq">⚡ Groq (Ultra-Fast Free)</option>
+                                    <option value="ollama">🦙 Ollama (Local / Free / No Key)</option>
+                                    <option value="openai">🤖 OpenAI (GPT-4o Mini / 4o)</option>
+                                    <option value="claude">🎭 Anthropic Claude (Haiku / 3.5)</option>
+                                    <option value="deepseek">🐳 DeepSeek (Chat / V3)</option>
+                                    <option value="openrouter">🌐 OpenRouter (100+ Models)</option>
+                                    <option value="custom">⚙️ Custom Endpoint (LM Studio / vLLM)</option>
+                                    <option value="offline">📝 Smart Offline Engine (Instant)</option>
+                                </select>
+                            </div>
+
+                            <!-- Toggle AI Key / Provider Settings -->
+                            <button type="button" onclick="toggleAiSettingsDrawer()" id="btn-toggle-ai-settings" class="px-2.5 py-1.5 rounded-lg bg-brand-bg hover:bg-brand-border text-xs text-zinc-300 border border-brand-border flex items-center gap-1.5 transition-colors">
+                                <i data-lucide="settings-2" class="w-3.5 h-3.5 text-amber-400"></i>
+                                <span>Settings</span>
                             </button>
+
                             <!-- Generate Button -->
                             <button type="button" onclick="generateAiMetadataNow()" id="btn-generate-ai" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all">
                                 <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
@@ -1269,20 +1288,56 @@
                         </div>
                     </div>
 
-                    <!-- Collapsible AI API Key Settings Drawer -->
-                    <div id="ai-settings-drawer" class="hidden p-3.5 rounded-xl bg-brand-bg border border-brand-border space-y-2.5 text-xs animate-fade-in">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-zinc-300">Free AI Provider Configuration</span>
-                            <span class="text-[10px] text-emerald-400 font-mono">No credit card or payment needed</span>
+                    <!-- Dynamic AI Provider Settings Drawer -->
+                    <div id="ai-settings-drawer" class="hidden p-4 rounded-xl bg-brand-bg border border-brand-border space-y-3 text-xs animate-fade-in">
+                        <div class="flex items-center justify-between pb-1 border-b border-brand-border">
+                            <span class="font-bold text-zinc-200 flex items-center gap-1.5" id="ai-provider-title">
+                                <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span>AI Tool Configuration</span>
+                            </span>
+                            <span class="text-[10px] text-emerald-400 font-mono" id="ai-provider-badge">100% Free / Local</span>
                         </div>
-                        <p class="text-[11px] text-zinc-400 leading-relaxed">
-                            Works 100% free out-of-the-box using the built-in offline casino copywriter. To supercharge with dynamic LLM generation, paste a free key from 
-                            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-400 underline font-semibold">Google AI Studio (Gemini Free)</a> or 
-                            <a href="https://console.groq.com/keys" target="_blank" class="text-amber-400 underline font-semibold">Groq (Free)</a>.
+
+                        <p class="text-[11px] text-zinc-400 leading-relaxed" id="ai-provider-desc">
+                            Select your preferred AI tool above. Gemini & Groq provide free keys, Ollama runs completely offline on your own GPU/CPU with no API keys, and Offline Templates work instantly out of the box.
                         </p>
-                        <div class="flex gap-2">
-                            <input type="password" id="input-ai-api-key" placeholder="Paste free Gemini key (AIza...) or Groq key (gsk_...)" class="flex-1 bg-brand-surface px-3 py-2 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
-                            <button type="button" onclick="saveAiKey()" class="px-3 py-2 rounded-lg bg-brand-surface hover:bg-brand-border text-white text-xs font-semibold border border-brand-border">Save Key</button>
+
+                        <!-- Key input (shown for key-based providers) -->
+                        <div id="ai-key-group" class="space-y-1">
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span class="text-zinc-400 font-semibold" id="ai-key-label">API Key</span>
+                                <a id="ai-key-link" href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-400 underline font-semibold flex items-center gap-0.5">
+                                    <span>Get Key</span>
+                                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                                </a>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="password" id="input-ai-api-key" placeholder="Paste your API key here..." class="flex-1 bg-brand-surface px-3 py-2 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
+                                <button type="button" onclick="saveAiKey()" class="px-3 py-2 rounded-lg bg-brand-surface hover:bg-brand-border text-white text-xs font-semibold border border-brand-border">Save Key</button>
+                            </div>
+                        </div>
+
+                        <!-- Endpoint Base URL & Model input (for Ollama, Custom, DeepSeek, OpenRouter) -->
+                        <div id="ai-endpoint-group" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <label class="block text-[10px] text-zinc-400 font-semibold mb-1">Base URL / Endpoint</label>
+                                <input type="text" id="input-ai-base-url" placeholder="http://localhost:11434/v1" class="w-full bg-brand-surface px-3 py-1.5 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-zinc-400 font-semibold mb-1">Model Name</label>
+                                <input type="text" id="input-ai-model" placeholder="llama3" class="w-full bg-brand-surface px-3 py-1.5 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <!-- Ollama Quick Probe Status -->
+                        <div id="ollama-probe-box" class="hidden p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-[11px]">
+                            <span class="text-emerald-300 flex items-center gap-1.5">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span id="ollama-status-text">Ollama ready on localhost:11434</span>
+                            </span>
+                            <button type="button" onclick="testOllamaConnection()" class="px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-[10px] border border-emerald-500/30">
+                                Re-check
+                            </button>
                         </div>
                     </div>
 
@@ -1291,7 +1346,7 @@
                         <!-- Placeholder when not generated yet -->
                         <div id="ai-empty-placeholder" class="p-4 rounded-xl bg-brand-bg/50 border border-brand-border text-center text-zinc-500 space-y-1">
                             <p class="text-xs font-medium text-zinc-300">Click "Generate Copy" to create multiple viral title & description options</p>
-                            <p class="text-[11px]">Automatically incorporates your clip title, big win amount, and promo code</p>
+                            <p class="text-[11px]">Automatically incorporates your clip title, stream climax context, and promo code</p>
                         </div>
 
                         <!-- 5 Title Options -->
@@ -1311,8 +1366,8 @@
                             </label>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="ai-desc-tabs">
                                 <button type="button" onclick="selectDescVariant(0)" id="btn-desc-var-0" class="p-2.5 rounded-lg border border-indigo-500 bg-indigo-500/10 text-left transition-all">
-                                    <span class="text-xs font-bold text-white block">🎁 Promo Focused</span>
-                                    <span class="text-[10px] text-zinc-400">Affiliate code & bonus</span>
+                                    <span class="text-xs font-bold text-white block">🎁 Action / Highlight</span>
+                                    <span class="text-[10px] text-zinc-400">Stream credits & promo</span>
                                 </button>
                                 <button type="button" onclick="selectDescVariant(1)" id="btn-desc-var-1" class="p-2.5 rounded-lg border border-brand-border bg-brand-bg text-left transition-all">
                                     <span class="text-xs font-bold text-white block">💬 High Engagement</span>
@@ -1334,7 +1389,7 @@
                 </div>
 
                 <!-- ========================================================================= -->
-                <!-- SECTION: ONE-CLICK YOUTUBE SHORTS DIRECT UPLOAD                           -->
+                <!-- SECTION: MULTI-ACCOUNT ONE-CLICK YOUTUBE SHORTS DIRECT UPLOAD             -->
                 <!-- ========================================================================= -->
                 <div class="mt-6 p-5 rounded-2xl bg-brand-surface border border-brand-border text-left space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-border">
@@ -1347,22 +1402,22 @@
                                     <span>Direct YouTube Shorts Upload</span>
                                     <span id="yt-channel-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-600/30 text-zinc-400 border border-brand-border">Not Connected</span>
                                 </h3>
-                                <p class="text-[11px] text-zinc-400">Publish your 1080x1920 Short directly to your YouTube channel in 1 click.</p>
+                                <p class="text-[11px] text-zinc-400">Publish your 1080x1920 Short to one channel or broadcast simultaneously across multiple accounts.</p>
                             </div>
                         </div>
 
                         <!-- YouTube Auth Actions -->
-                        <div class="flex items-center gap-2" id="yt-auth-controls">
+                        <div class="flex flex-wrap items-center gap-2" id="yt-auth-controls">
                             <button type="button" onclick="toggleYtSetupGuide()" class="px-3 py-1.5 rounded-lg bg-brand-bg hover:bg-brand-border text-xs text-zinc-300 border border-brand-border flex items-center gap-1.5 transition-colors">
                                 <i data-lucide="help-circle" class="w-3.5 h-3.5 text-zinc-400"></i>
                                 <span>Setup Guide</span>
                             </button>
                             <button type="button" onclick="connectYouTubeChannel()" id="btn-yt-connect" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-red-600/25 transition-all">
-                                <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
-                                <span>Connect YouTube</span>
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                <span id="yt-connect-btn-label">Connect YouTube</span>
                             </button>
-                            <button type="button" onclick="disconnectYouTubeChannel()" id="btn-yt-disconnect" class="hidden px-2.5 py-1.5 rounded-lg bg-brand-bg hover:bg-rose-500/20 text-xs text-rose-400 border border-brand-border transition-colors">
-                                <span>Disconnect</span>
+                            <button type="button" onclick="disconnectAllYouTubeChannels()" id="btn-yt-disconnect" class="hidden px-2.5 py-1.5 rounded-lg bg-brand-bg hover:bg-rose-500/20 text-xs text-rose-400 border border-brand-border transition-colors">
+                                <span>Disconnect All</span>
                             </button>
                         </div>
                     </div>
@@ -1391,7 +1446,7 @@
                         </div>
                     </div>
 
-                    <!-- Web Client Redirect URI Notice (Auto-detected if user used Web Application instead of Desktop App) -->
+                    <!-- Web Client Redirect URI Notice -->
                     <div id="yt-web-client-notice" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2 animate-fade-in">
                         <div class="flex items-center justify-between">
                             <span class="font-bold text-amber-400 flex items-center gap-1.5">
@@ -1441,6 +1496,34 @@
                         </div>
                     </div>
 
+                    <!-- Connected Accounts Manager Card -->
+                    <div id="yt-accounts-panel" class="hidden p-3.5 rounded-xl bg-brand-bg border border-brand-border space-y-3">
+                        <div class="flex items-center justify-between pb-1 border-b border-brand-border">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i data-lucide="users" class="w-3.5 h-3.5 text-red-400"></i>
+                                <span>Connected Channels</span>
+                                <span id="yt-accounts-count-badge" class="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-400 text-[10px] font-mono">1</span>
+                            </span>
+                            <div class="flex items-center gap-2 text-[11px]">
+                                <label class="flex items-center gap-1.5 text-zinc-300 cursor-pointer select-none">
+                                    <input type="checkbox" id="yt-select-all-channels" onchange="toggleSelectAllChannels(this.checked)" checked class="rounded border-brand-border bg-brand-surface text-red-600 focus:ring-0">
+                                    <span class="font-semibold text-zinc-300">Broadcast to All</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Channel Cards List -->
+                        <div id="yt-accounts-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+
+                        <div class="flex justify-between items-center pt-1 text-[11px] text-zinc-400">
+                            <span id="yt-targets-summary-txt">Uploading to 1 channel</span>
+                            <button type="button" onclick="connectYouTubeChannel()" class="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i>
+                                <span>+ Add Another Channel</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- YouTube Upload Form (Pre-filled from AI Generator) -->
                     <div class="space-y-3 pt-1">
                         <div>
@@ -1468,7 +1551,7 @@
                             <div class="flex items-end">
                                 <button type="button" onclick="uploadToYouTubeNow()" id="btn-start-yt-upload" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 transition-all">
                                     <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                                    <span>🚀 Upload to YouTube Shorts</span>
+                                    <span id="yt-upload-btn-label">🚀 Upload to YouTube Shorts</span>
                                 </button>
                             </div>
                         </div>
@@ -1487,21 +1570,25 @@
                             </div>
                         </div>
 
-                        <!-- Upload Success Celebration Card -->
-                        <div id="yt-upload-success-card" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 animate-fade-in">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
-                                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        <!-- Multi-Account Upload Success Celebration Container -->
+                        <div id="yt-upload-success-card" class="hidden space-y-2 animate-fade-in">
+                            <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-xs font-bold text-white" id="yt-success-headline">Published to YouTube Shorts!</h4>
+                                        <p class="text-[11px] text-emerald-300 truncate" id="yt-success-link-txt">https://youtube.com/shorts/...</p>
+                                    </div>
                                 </div>
-                                <div class="min-w-0">
-                                    <h4 class="text-xs font-bold text-white">Published to YouTube Shorts!</h4>
-                                    <p class="text-[11px] text-emerald-300 truncate" id="yt-success-link-txt">https://youtube.com/shorts/...</p>
-                                </div>
+                                <a id="yt-success-open-btn" href="#" target="_blank" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center gap-1 flex-shrink-0 shadow transition-colors">
+                                    <span>Watch</span>
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                </a>
                             </div>
-                            <a id="yt-success-open-btn" href="#" target="_blank" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center gap-1 flex-shrink-0 shadow transition-colors">
-                                <span>Watch</span>
-                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            </a>
+                            <!-- Extra broadcast links list if multiple accounts were uploaded -->
+                            <div id="yt-multi-success-list" class="hidden space-y-1.5"></div>
                         </div>
                     </div>
                 </div>
@@ -1892,6 +1979,8 @@
                     initDefaultDemoSnapshot();
                 }
             }
+            initAiProvider();
+            checkYouTubeAuthStatus();
         });
 
         // Toast Helper
@@ -4333,34 +4422,279 @@
         }
 
         // =========================================================================
-        // AI SHORTS COPYWRITER LOGIC (100% FREE ENGINE / GEMINI / GROQ)
+        // MULTI-PROVIDER AI SHORTS COPYWRITER LOGIC
         // =========================================================================
+
+        const AI_PROVIDER_PRESETS = {
+            'auto': {
+                name: 'Auto-Detect (Smart Routing)',
+                badge: 'Smart Auto Engine',
+                desc: 'Automatically chooses the fastest free engine based on your saved API keys or local Ollama.',
+                showKey: true,
+                keyLabel: 'API Key (Optional)',
+                keyLink: 'https://aistudio.google.com/app/apikey',
+                keyLinkText: 'Get Free Gemini Key',
+                keyPlaceholder: 'Paste Gemini (AIza...), Groq (gsk_...), Claude (sk-ant-), or OpenAI key...',
+                showEndpoint: false,
+                isFree: true
+            },
+            'gemini': {
+                name: 'Google Gemini',
+                badge: '100% Free Daily Tier',
+                desc: 'Google Gemini 1.5 / 2.0 Flash with generous free daily request quotas and elite creative copy.',
+                showKey: true,
+                keyLabel: 'Gemini API Key',
+                keyLink: 'https://aistudio.google.com/app/apikey',
+                keyLinkText: 'Get Free Gemini Key',
+                keyPlaceholder: 'AIzaSy...',
+                showEndpoint: false,
+                isFree: true
+            },
+            'groq': {
+                name: 'Groq',
+                badge: 'Ultra-Fast 500+ tok/s',
+                desc: 'Near-instantaneous inference on Llama 3.3 70B via Groq high-speed LPU cloud.',
+                showKey: true,
+                keyLabel: 'Groq API Key',
+                keyLink: 'https://console.groq.com/keys',
+                keyLinkText: 'Get Free Groq Key',
+                keyPlaceholder: 'gsk_...',
+                showEndpoint: false,
+                isFree: true
+            },
+            'ollama': {
+                name: 'Ollama (Local LLM)',
+                badge: '100% Free & Private',
+                desc: 'Zero API keys and zero cost! Runs locally on your GPU/CPU via Ollama with 100% data privacy.',
+                showKey: false,
+                showEndpoint: true,
+                defaultBaseUrl: 'http://localhost:11434/v1',
+                defaultModel: 'llama3',
+                isFree: true
+            },
+            'openai': {
+                name: 'OpenAI (GPT-4o Mini)',
+                badge: 'High CTR Specialist',
+                desc: 'High-converting viral hooks powered by OpenAI GPT-4o Mini or GPT-4o.',
+                showKey: true,
+                keyLabel: 'OpenAI API Key',
+                keyLink: 'https://platform.openai.com/api-keys',
+                keyLinkText: 'OpenAI Dashboard',
+                keyPlaceholder: 'sk-proj-...',
+                showEndpoint: false,
+                isFree: false
+            },
+            'claude': {
+                name: 'Anthropic Claude',
+                badge: 'Elite Tone & Nuance',
+                desc: 'Known for punchy, authentic conversational hooks powered by Claude 3.5 Haiku or Sonnet.',
+                showKey: true,
+                keyLabel: 'Anthropic API Key',
+                keyLink: 'https://console.anthropic.com/settings/keys',
+                keyLinkText: 'Anthropic Console',
+                keyPlaceholder: 'sk-ant-...',
+                showEndpoint: false,
+                isFree: false
+            },
+            'deepseek': {
+                name: 'DeepSeek',
+                badge: 'Cost-Effective AI',
+                desc: 'DeepSeek-V3 / Chat for high-quality metadata at ultra-affordable rates.',
+                showKey: true,
+                keyLabel: 'DeepSeek API Key',
+                keyLink: 'https://platform.deepseek.com/api_keys',
+                keyLinkText: 'DeepSeek Platform',
+                keyPlaceholder: 'sk-...',
+                showEndpoint: true,
+                defaultBaseUrl: 'https://api.deepseek.com/v1',
+                defaultModel: 'deepseek-chat',
+                isFree: false
+            },
+            'openrouter': {
+                name: 'OpenRouter',
+                badge: '100+ Models in 1 Key',
+                desc: 'Access dozens of free and paid models (Llama 3.1, Gemini Flash, Mistral) through one unified key.',
+                showKey: true,
+                keyLabel: 'OpenRouter API Key',
+                keyLink: 'https://openrouter.ai/keys',
+                keyLinkText: 'OpenRouter Keys',
+                keyPlaceholder: 'sk-or-...',
+                showEndpoint: true,
+                defaultBaseUrl: 'https://openrouter.ai/api/v1',
+                defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
+                isFree: true
+            },
+            'custom': {
+                name: 'Custom Endpoint',
+                badge: 'LM Studio / vLLM',
+                desc: 'Connect to LM Studio (localhost:1234), LocalAI, vLLM, or any custom OpenAI-compatible server.',
+                showKey: true,
+                keyLabel: 'API Key (Optional)',
+                keyLink: '#',
+                keyLinkText: 'Local Server',
+                keyPlaceholder: 'Optional bearer token',
+                showEndpoint: true,
+                defaultBaseUrl: 'http://localhost:1234/v1',
+                defaultModel: 'local-model',
+                isFree: true
+            },
+            'offline': {
+                name: 'Offline Templates',
+                badge: 'Instant / Built-in',
+                desc: '100% free heuristic engine tuned for Gaming, Casino, and Just Chatting clips. Zero setup needed.',
+                showKey: false,
+                showEndpoint: false,
+                isFree: true
+            }
+        };
+
+        function initAiProvider() {
+            const savedProvider = localStorage.getItem('kick_ai_provider') || 'auto';
+            const selectEl = document.getElementById('select-ai-provider');
+            if (selectEl) {
+                selectEl.value = savedProvider;
+            }
+            handleAiProviderChange();
+        }
+
+        function handleAiProviderChange() {
+            const selectEl = document.getElementById('select-ai-provider');
+            const provId = (selectEl ? selectEl.value : 'auto') || 'auto';
+            localStorage.setItem('kick_ai_provider', provId);
+
+            const preset = AI_PROVIDER_PRESETS[provId] || AI_PROVIDER_PRESETS['auto'];
+
+            // Update badge & title
+            const activeBadge = document.getElementById('ai-active-badge');
+            if (activeBadge) activeBadge.innerText = preset.badge;
+
+            const provTitle = document.getElementById('ai-provider-title');
+            if (provTitle) provTitle.innerHTML = `<i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i><span>${preset.name} Configuration</span>`;
+
+            const provBadge = document.getElementById('ai-provider-badge');
+            if (provBadge) provBadge.innerText = preset.isFree ? '100% Free / Local' : 'API Key Required';
+
+            const provDesc = document.getElementById('ai-provider-desc');
+            if (provDesc) provDesc.innerText = preset.desc;
+
+            // Key Group visibility & details
+            const keyGroup = document.getElementById('ai-key-group');
+            const keyLabel = document.getElementById('ai-key-label');
+            const keyLink = document.getElementById('ai-key-link');
+            const keyInput = document.getElementById('input-ai-api-key');
+
+            if (preset.showKey) {
+                if (keyGroup) keyGroup.classList.remove('hidden');
+                if (keyLabel) keyLabel.innerText = preset.keyLabel || 'API Key';
+                if (keyLink) {
+                    if (preset.keyLink && preset.keyLink !== '#') {
+                        keyLink.href = preset.keyLink;
+                        keyLink.classList.remove('hidden');
+                        keyLink.querySelector('span').innerText = preset.keyLinkText || 'Get Key';
+                    } else {
+                        keyLink.classList.add('hidden');
+                    }
+                }
+                if (keyInput) {
+                    keyInput.placeholder = preset.keyPlaceholder || 'Paste your API key here...';
+                    keyInput.value = localStorage.getItem(`kick_ai_key_${provId}`) || localStorage.getItem('kick_ai_api_key') || '';
+                }
+            } else {
+                if (keyGroup) keyGroup.classList.add('hidden');
+            }
+
+            // Endpoint Group visibility & details
+            const endpointGroup = document.getElementById('ai-endpoint-group');
+            const baseUrlInput = document.getElementById('input-ai-base-url');
+            const modelInput = document.getElementById('input-ai-model');
+
+            if (preset.showEndpoint) {
+                if (endpointGroup) endpointGroup.classList.remove('hidden');
+                if (baseUrlInput) {
+                    baseUrlInput.value = localStorage.getItem(`kick_ai_base_url_${provId}`) || preset.defaultBaseUrl || '';
+                }
+                if (modelInput) {
+                    modelInput.value = localStorage.getItem(`kick_ai_model_${provId}`) || preset.defaultModel || '';
+                }
+            } else {
+                if (endpointGroup) endpointGroup.classList.add('hidden');
+            }
+
+            // Ollama probe box
+            const ollamaBox = document.getElementById('ollama-probe-box');
+            if (provId === 'ollama') {
+                if (ollamaBox) {
+                    ollamaBox.classList.remove('hidden');
+                    testOllamaConnection();
+                }
+            } else {
+                if (ollamaBox) ollamaBox.classList.add('hidden');
+            }
+
+            lucide.createIcons();
+        }
+
+        async function testOllamaConnection() {
+            const statusTxt = document.getElementById('ollama-status-text');
+            if (statusTxt) statusTxt.innerText = 'Checking Ollama on localhost:11434...';
+
+            const baseUrlInput = document.getElementById('input-ai-base-url');
+            const baseUrl = (baseUrlInput ? baseUrlInput.value.trim() : '') || 'http://localhost:11434/v1';
+
+            try {
+                const probeUrl = baseUrl.replace('/v1', '').replace(/\/$/, '') + '/api/tags';
+                const res = await fetch(probeUrl);
+                if (res.ok) {
+                    const data = await res.json();
+                    const models = (data.models || []).map(m => m.name.split(':')[0]);
+                    if (statusTxt) {
+                        statusTxt.innerText = `Ollama running! Models: ${models.slice(0, 3).join(', ') || 'installed'}`;
+                    }
+                    if (models.length > 0 && document.getElementById('input-ai-model')) {
+                        const mInput = document.getElementById('input-ai-model');
+                        if (!mInput.value || mInput.value === 'llama3') {
+                            mInput.value = models[0];
+                        }
+                    }
+                } else {
+                    if (statusTxt) statusTxt.innerText = 'Ollama replied with error: ' + res.status;
+                }
+            } catch (err) {
+                if (statusTxt) statusTxt.innerText = 'Ollama not detected on port 11434 (start Ollama or install from ollama.com)';
+            }
+        }
 
         function toggleAiSettingsDrawer() {
             const drawer = document.getElementById('ai-settings-drawer');
             if (!drawer) return;
-            const isHidden = drawer.classList.contains('hidden');
-            if (isHidden) {
-                drawer.classList.remove('hidden');
-                const savedKey = localStorage.getItem('kick_ai_api_key') || '';
-                const input = document.getElementById('input-ai-api-key');
-                if (input && savedKey) input.value = savedKey;
-            } else {
-                drawer.classList.add('hidden');
-            }
+            drawer.classList.toggle('hidden');
             lucide.createIcons();
         }
 
         function saveAiKey() {
-            const input = document.getElementById('input-ai-api-key');
-            const key = input ? input.value.trim() : '';
+            const provId = document.getElementById('select-ai-provider')?.value || 'auto';
+            const keyInput = document.getElementById('input-ai-api-key');
+            const key = (keyInput ? keyInput.value : '').trim();
+
+            const baseUrlInput = document.getElementById('input-ai-base-url');
+            const modelInput = document.getElementById('input-ai-model');
+
             if (key) {
+                localStorage.setItem(`kick_ai_key_${provId}`, key);
                 localStorage.setItem('kick_ai_api_key', key);
-                showToast('API key saved! Will be used for enhanced dynamic copy.');
             } else {
-                localStorage.removeItem('kick_ai_api_key');
-                showToast('Removed custom API key. Using 100% Free Offline Engine.');
+                localStorage.removeItem(`kick_ai_key_${provId}`);
             }
+
+            if (baseUrlInput && baseUrlInput.value) {
+                localStorage.setItem(`kick_ai_base_url_${provId}`, baseUrlInput.value.trim());
+            }
+
+            if (modelInput && modelInput.value) {
+                localStorage.setItem(`kick_ai_model_${provId}`, modelInput.value.trim());
+            }
+
+            showToast(`Settings saved for ${provId.toUpperCase()}!`);
             toggleAiSettingsDrawer();
         }
 
@@ -4380,13 +4714,16 @@
             if (btn) {
                 btn.setAttribute('disabled', 'true');
                 btn.classList.add('opacity-75');
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Writing Viral Copy...</span>';
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Generating Viral Copy...</span>';
                 lucide.createIcons();
             }
 
             const promoCode = extractPromoCodeFromOverlays();
-            const apiKey = localStorage.getItem('kick_ai_api_key') || null;
-            const clipName = appState.meta.filename || 'Big Win Stream Cut';
+            const provId = document.getElementById('select-ai-provider')?.value || 'auto';
+            const apiKey = localStorage.getItem(`kick_ai_key_${provId}`) || localStorage.getItem('kick_ai_api_key') || null;
+            const baseUrl = document.getElementById('input-ai-base-url')?.value || null;
+            const model = document.getElementById('input-ai-model')?.value || null;
+            const clipName = appState.meta.filename || 'Stream Highlight Cut';
 
             try {
                 const res = await fetch('/api/ai/generate-metadata', {
@@ -4399,7 +4736,10 @@
                         win_amount: null,
                         multiplier: null,
                         promo_code: promoCode || null,
-                        api_key: apiKey
+                        api_key: apiKey,
+                        provider: provId,
+                        model: model,
+                        base_url: baseUrl
                     })
                 });
 
@@ -4408,10 +4748,10 @@
 
                 appState.aiData = data;
                 renderAiResults(data);
-                showToast('🔥 5 Viral Titles & 3 Descriptions Generated!');
+                showToast(`🔥 5 Viral Titles & 3 Descriptions Generated via ${data.provider || 'AI'}!`);
             } catch (err) {
                 console.error('AI generation error:', err);
-                showToast('Copywriter note: ' + err.message);
+                showToast('Copywriter notice: ' + err.message);
             } finally {
                 if (btn) {
                     btn.removeAttribute('disabled');
@@ -4444,7 +4784,7 @@
             const titlesList = document.getElementById('ai-titles-list');
             if (titlesList && data.titles && data.titles.length > 0) {
                 let html = '';
-                const hookTypes = ['⚡ High Shock / Reaction', '🔥 Curiosity Hook', '💰 Big Money Proof', '🎯 Punchy Question', '🚀 Algorithm Maximizer'];
+                const hookTypes = ['⚡ High Shock / Reaction', '🔥 Curiosity Hook', '💰 Climax Proof', '🎯 Punchy Question', '🚀 Algorithm Maximizer'];
                 data.titles.forEach((title, idx) => {
                     const hookLabel = hookTypes[idx] || `Option #${idx + 1}`;
                     html += `
@@ -4466,7 +4806,7 @@
                 selectTitleOption(0);
             }
 
-            // Select initial description variant (Promo)
+            // Select initial description variant (Action/Promo)
             selectDescVariant(0);
 
             // Render Hashtags
@@ -4491,7 +4831,6 @@
             if (!appState.aiData || !appState.aiData.titles || !appState.aiData.titles[idx]) return;
             const chosenTitle = appState.aiData.titles[idx];
 
-            // Update title cards highlight
             for (let i = 0; i < appState.aiData.titles.length; i++) {
                 const card = document.getElementById(`ai-title-card-${i}`);
                 if (!card) continue;
@@ -4504,7 +4843,6 @@
                 }
             }
 
-            // Sync into YouTube Shorts Title Input
             const ytTitleInput = document.getElementById('yt-upload-title');
             if (ytTitleInput) {
                 ytTitleInput.value = chosenTitle;
@@ -4516,7 +4854,6 @@
             if (!appState.aiData || !appState.aiData.descriptions || !appState.aiData.descriptions[idx]) return;
             const chosenDesc = appState.aiData.descriptions[idx];
 
-            // Update tab styles
             for (let i = 0; i < 3; i++) {
                 const tab = document.getElementById(`btn-desc-var-i`.replace('i', i));
                 if (!tab) continue;
@@ -4529,7 +4866,6 @@
                 }
             }
 
-            // Sync into YouTube Shorts Description Input
             const ytDescInput = document.getElementById('yt-upload-desc');
             if (ytDescInput) {
                 ytDescInput.value = chosenDesc;
@@ -4564,8 +4900,10 @@
         }
 
         // =========================================================================
-        // ONE-CLICK YOUTUBE DIRECT UPLOAD LOGIC (OFFICIAL YOUTUBE DATA API V3)
+        // MULTI-ACCOUNT DIRECT YOUTUBE SHORTS UPLOAD & BROADCAST LOGIC
         // =========================================================================
+
+        let connectedYouTubeAccounts = [];
 
         function toggleYtSetupGuide() {
             const guide = document.getElementById('yt-setup-guide');
@@ -4655,10 +4993,11 @@
 
         async function checkYouTubeAuthStatus() {
             const badge = document.getElementById('yt-channel-badge');
-            const btnConnect = document.getElementById('btn-yt-connect');
+            const connectBtnLabel = document.getElementById('yt-connect-btn-label');
             const btnDisconnect = document.getElementById('btn-yt-disconnect');
             const secretsTxt = document.getElementById('yt-secrets-status-txt');
             const webNotice = document.getElementById('yt-web-client-notice');
+            const accountsPanel = document.getElementById('yt-accounts-panel');
 
             try {
                 const res = await fetch('/api/youtube/status');
@@ -4684,36 +5023,136 @@
                     }
                 }
 
-                if (data.authenticated) {
-                    const title = data.channel_title || 'YouTube Channel';
+                connectedYouTubeAccounts = data.accounts || [];
+
+                if (data.authenticated && connectedYouTubeAccounts.length > 0) {
+                    const count = connectedYouTubeAccounts.length;
+                    const primaryName = data.channel_title || connectedYouTubeAccounts[0].channel_title || 'Channel';
+
                     if (badge) {
-                        badge.innerText = `Connected: ${title}`;
+                        badge.innerText = count > 1 ? `Connected: ${count} Channels` : `Connected: ${primaryName}`;
                         badge.classList.remove('bg-zinc-600/30', 'text-zinc-400');
                         badge.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
                     }
-                    if (btnConnect) btnConnect.classList.add('hidden');
+                    if (connectBtnLabel) connectBtnLabel.innerText = '+ Add Channel';
                     if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+                    if (accountsPanel) accountsPanel.classList.remove('hidden');
+
+                    renderYouTubeAccountsList(connectedYouTubeAccounts);
                 } else {
                     if (badge) {
                         badge.innerText = 'Not Connected';
                         badge.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
                         badge.classList.add('bg-zinc-600/30', 'text-zinc-400');
                     }
-                    if (btnConnect) btnConnect.classList.remove('hidden');
+                    if (connectBtnLabel) connectBtnLabel.innerText = 'Connect YouTube';
                     if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                    if (accountsPanel) accountsPanel.classList.add('hidden');
                 }
             } catch (err) {
                 console.warn('YouTube status check warning:', err);
             }
         }
 
-        async function connectYouTubeChannel() {
-            const badge = document.getElementById('yt-channel-badge');
-            if (badge && badge.innerText.includes('Connected')) {
-                showToast('YouTube Channel is already connected!');
-                return;
+        function renderYouTubeAccountsList(accounts) {
+            const listEl = document.getElementById('yt-accounts-list');
+            const countBadge = document.getElementById('yt-accounts-count-badge');
+            if (countBadge) countBadge.innerText = `${accounts.length}`;
+
+            if (!listEl) return;
+            let html = '';
+
+            accounts.forEach((acc, idx) => {
+                const avatarImg = acc.channel_avatar
+                    ? `<img src="${acc.channel_avatar}" class="w-8 h-8 rounded-full object-cover border border-brand-border flex-shrink-0">`
+                    : `<div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0"><i data-lucide="youtube" class="w-4 h-4"></i></div>`;
+
+                const handle = acc.channel_custom_url || `@${acc.channel_id.substring(0, 10)}`;
+
+                html += `
+                    <div class="p-2.5 rounded-xl border border-brand-border bg-brand-surface/70 flex items-center justify-between gap-2.5 group">
+                        <label class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer select-none">
+                            <input type="checkbox" name="yt-target-channel" value="${acc.channel_id}" checked onchange="updateSelectedChannelsCount()" class="rounded border-brand-border bg-brand-bg text-red-600 focus:ring-0">
+                            ${avatarImg}
+                            <div class="min-w-0 flex-1">
+                                <h4 class="text-xs font-bold text-white truncate group-hover:text-red-300 transition-colors">${acc.channel_title}</h4>
+                                <span class="text-[10px] text-zinc-500 font-mono truncate block">${handle}</span>
+                            </div>
+                        </label>
+                        <button type="button" onclick="disconnectSpecificAccount('${acc.channel_id}')" class="w-6 h-6 rounded-md bg-brand-bg hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400 flex items-center justify-center flex-shrink-0 transition-colors" title="Remove this channel">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            updateSelectedChannelsCount();
+            lucide.createIcons();
+        }
+
+        function toggleSelectAllChannels(checked) {
+            const boxes = document.querySelectorAll('input[name="yt-target-channel"]');
+            boxes.forEach(b => b.checked = checked);
+            updateSelectedChannelsCount();
+        }
+
+        function updateSelectedChannelsCount() {
+            const boxes = Array.from(document.querySelectorAll('input[name="yt-target-channel"]:checked'));
+            const count = boxes.length;
+            const summaryTxt = document.getElementById('yt-targets-summary-txt');
+            const uploadBtnLabel = document.getElementById('yt-upload-btn-label');
+
+            if (summaryTxt) {
+                if (count === 0) {
+                    summaryTxt.innerText = 'No channels selected';
+                    summaryTxt.classList.add('text-rose-400');
+                } else if (count === 1) {
+                    summaryTxt.innerText = 'Publishing to 1 channel';
+                    summaryTxt.classList.remove('text-rose-400');
+                } else {
+                    summaryTxt.innerText = `Broadcasting simultaneously to ${count} channels`;
+                    summaryTxt.classList.remove('text-rose-400');
+                }
             }
 
+            if (uploadBtnLabel) {
+                if (count > 1) {
+                    uploadBtnLabel.innerText = `🚀 Broadcast to ${count} YouTube Channels`;
+                } else {
+                    uploadBtnLabel.innerText = `🚀 Upload to YouTube Shorts`;
+                }
+            }
+        }
+
+        async function disconnectSpecificAccount(channelId) {
+            try {
+                const res = await fetch('/api/youtube/disconnect-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel_id: channelId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to disconnect channel');
+                showToast('Channel disconnected.');
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function disconnectAllYouTubeChannels() {
+            try {
+                const res = await fetch('/api/youtube/disconnect', { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to disconnect');
+                showToast('All YouTube accounts disconnected.');
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('Error: ' + err.message);
+            }
+        }
+
+        async function connectYouTubeChannel() {
             const secretsTxt = document.getElementById('yt-secrets-status-txt');
             if (secretsTxt && secretsTxt.innerText.includes('not found')) {
                 showToast('⚠️ Please upload client_secret.json first!');
@@ -4721,7 +5160,6 @@
                 return;
             }
 
-            // Probe OAuth configuration first to detect redirect_uri_mismatch before opening popup
             try {
                 const diagRes = await fetch('/api/youtube/diagnose-oauth');
                 const diagData = await diagRes.json();
@@ -4737,33 +5175,30 @@
         }
 
         function triggerGoogleOAuthWindow() {
-            // Open redirect endpoint synchronously in a new window/tab to guarantee zero popup blocking
             const authWin = window.open('/api/youtube/authorize-redirect', '_blank', 'width=600,height=720,menubar=no,toolbar=no');
-            showToast('Opening Google sign-in window. Please approve permissions in the popup or new tab...');
+            showToast('Opening Google Account Chooser. Select your YouTube channel or brand account in the popup...');
 
             const codeBox = document.getElementById('yt-manual-code-box');
             if (codeBox) codeBox.classList.remove('hidden');
 
-            // Fallback notice if browser blocked popup
             if (!authWin || authWin.closed || typeof authWin.closed === 'undefined') {
                 showToast('Popup may have been blocked. Click "Authorize Directly" below.');
             }
 
-            // Start polling for auth completion
             let attempts = 0;
+            const initialCount = connectedYouTubeAccounts.length;
             const poll = setInterval(async () => {
                 attempts++;
                 await checkYouTubeAuthStatus();
-                const updatedBadge = document.getElementById('yt-channel-badge');
-                if (updatedBadge && updatedBadge.innerText.includes('Connected')) {
+                if (connectedYouTubeAccounts.length > initialCount) {
                     clearInterval(poll);
-                    showToast('🎉 YouTube Channel connected successfully!');
+                    showToast('🎉 New YouTube Channel added successfully!');
                     if (codeBox) codeBox.classList.add('hidden');
                     if (authWin && !authWin.closed) {
                         try { authWin.close(); } catch(e) {}
                     }
                 }
-                if (attempts > 45) { // 90 seconds
+                if (attempts > 50) {
                     clearInterval(poll);
                 }
             }, 2000);
@@ -4853,24 +5288,12 @@
             }
         }
 
-        async function disconnectYouTubeChannel() {
-            try {
-                const res = await fetch('/api/youtube/disconnect', { method: 'POST' });
-                if (!res.ok) throw new Error('Failed to disconnect');
-                showToast('YouTube account disconnected.');
-                checkYouTubeAuthStatus();
-            } catch (err) {
-                showToast('Error: ' + err.message);
-            }
-        }
-
         async function uploadToYouTubeNow() {
-            // Guard: Check if YouTube account is authenticated first!
-            const badge = document.getElementById('yt-channel-badge');
-            const isConnected = badge && badge.innerText.includes('Connected');
-            if (!isConnected) {
-                showToast('⚠️ YouTube channel is not connected yet! Please click "Connect YouTube" first.');
-                toggleYtSetupGuide();
+            const selectedCheckboxes = Array.from(document.querySelectorAll('input[name="yt-target-channel"]:checked'));
+            const selectedCids = selectedCheckboxes.map(cb => cb.value);
+
+            if (selectedCids.length === 0) {
+                showToast('⚠️ Please select at least one channel to upload to (or click "+ Add Channel").');
                 return;
             }
 
@@ -4919,7 +5342,8 @@
                         video_path: videoPath,
                         title: title,
                         description: desc,
-                        privacy_status: privacy
+                        privacy_status: privacy,
+                        channel_ids: selectedCids
                     })
                 });
 
@@ -4969,10 +5393,39 @@
                             const successCard = document.getElementById('yt-upload-success-card');
                             if (successCard) successCard.classList.remove('hidden');
 
+                            const headline = document.getElementById('yt-success-headline');
                             const linkTxt = document.getElementById('yt-success-link-txt');
                             const openBtn = document.getElementById('yt-success-open-btn');
-                            if (linkTxt) linkTxt.innerText = status.shorts_url || `Video ID: ${status.video_id}`;
-                            if (openBtn && status.shorts_url) openBtn.href = status.shorts_url;
+                            const multiList = document.getElementById('yt-multi-success-list');
+
+                            const results = status.results || [];
+                            if (results.length > 1) {
+                                if (headline) headline.innerText = `Published across ${results.length} Channels!`;
+                                if (linkTxt) linkTxt.innerText = `${results[0].channel_title}: ${results[0].shorts_url}`;
+                                if (openBtn) openBtn.href = results[0].shorts_url;
+
+                                if (multiList) {
+                                    multiList.classList.remove('hidden');
+                                    let html = '';
+                                    results.forEach((r, i) => {
+                                        html += `
+                                            <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                                                <span class="text-zinc-300 font-semibold truncate">${r.channel_title}</span>
+                                                <a href="${r.shorts_url}" target="_blank" class="text-emerald-400 font-bold hover:underline flex items-center gap-1">
+                                                    <span>View Short #${i+1}</span>
+                                                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                                                </a>
+                                            </div>
+                                        `;
+                                    });
+                                    multiList.innerHTML = html;
+                                }
+                            } else {
+                                if (headline) headline.innerText = 'Published to YouTube Shorts!';
+                                if (linkTxt) linkTxt.innerText = status.shorts_url || `Video ID: ${status.video_id}`;
+                                if (openBtn && status.shorts_url) openBtn.href = status.shorts_url;
+                                if (multiList) multiList.classList.add('hidden');
+                            }
 
                             if (btnUpload) {
                                 btnUpload.removeAttribute('disabled');

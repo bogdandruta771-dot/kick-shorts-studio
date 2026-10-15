@@ -1,6 +1,7 @@
-"""AI Title, Description & Hashtags generator supporting free Gemini API, Groq API, and offline heuristics."""
+"""AI Title, Description & Hashtags generator supporting Gemini, Groq, OpenAI, Claude, DeepSeek, Ollama, OpenRouter, and offline heuristics."""
 import re
 import json
+import time
 from typing import Dict, Any, Optional, List
 import requests
 
@@ -16,6 +17,116 @@ KNOWN_GAMES = [
     "Valorant", "Counter-Strike 2", "CS2", "Fortnite", "Warzone", "Call of Duty",
     "Minecraft", "GTA V", "GTA RP", "Apex Legends", "League of Legends", "Dota 2",
     "Overwatch 2", "Elden Ring", "Rocket League", "Rainbow Six Siege", "Roblox"
+]
+
+
+SUPPORTED_AI_PROVIDERS = [
+    {
+        "id": "auto",
+        "name": "Auto-Detect (Smart Routing)",
+        "badge": "Smart Auto",
+        "free": True,
+        "requires_key": False,
+        "description": "Automatically selects the best available engine based on your key or local Ollama setup.",
+    },
+    {
+        "id": "gemini",
+        "name": "Google Gemini (Free Tier)",
+        "badge": "100% Free",
+        "free": True,
+        "requires_key": True,
+        "default_model": "gemini-1.5-flash-latest",
+        "models": ["gemini-1.5-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro"],
+        "docs_url": "https://aistudio.google.com/app/apikey",
+        "description": "Fast multimodal Google AI model with generous free daily tier.",
+    },
+    {
+        "id": "groq",
+        "name": "Groq (Ultra-Fast Free)",
+        "badge": "Ultra-Fast Free",
+        "free": True,
+        "requires_key": True,
+        "default_model": "llama-3.3-70b-versatile",
+        "models": ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "llama-3.1-8b-instant"],
+        "docs_url": "https://console.groq.com/keys",
+        "description": "Near-instantaneous inference (500+ tokens/sec) on Llama 3.3 70B.",
+    },
+    {
+        "id": "ollama",
+        "name": "Ollama (Local LLM / Private / No Key)",
+        "badge": "100% Free & Offline",
+        "free": True,
+        "requires_key": False,
+        "default_base_url": "http://localhost:11434/v1",
+        "default_model": "llama3",
+        "models": ["llama3", "mistral", "qwen2.5", "llama3.2", "phi3"],
+        "docs_url": "https://ollama.com",
+        "description": "Runs completely locally on your GPU/CPU with 100% privacy and zero API fees.",
+    },
+    {
+        "id": "openai",
+        "name": "OpenAI (GPT-4o Mini / GPT-4o)",
+        "badge": "High CTR",
+        "free": False,
+        "requires_key": True,
+        "default_model": "gpt-4o-mini",
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+        "docs_url": "https://platform.openai.com/api-keys",
+        "description": "Industry benchmark for high-CTR YouTube title hooks and copywriting.",
+    },
+    {
+        "id": "claude",
+        "name": "Anthropic Claude (3.5 Sonnet / Haiku)",
+        "badge": "Elite Nuance",
+        "free": False,
+        "requires_key": True,
+        "default_model": "claude-3-5-haiku-20241022",
+        "models": ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+        "docs_url": "https://console.anthropic.com/settings/keys",
+        "description": "Known for highly natural, non-generic conversational hooks and descriptions.",
+    },
+    {
+        "id": "deepseek",
+        "name": "DeepSeek (V3 / Chat)",
+        "badge": "Cost Effective",
+        "free": False,
+        "requires_key": True,
+        "default_base_url": "https://api.deepseek.com/v1",
+        "default_model": "deepseek-chat",
+        "models": ["deepseek-chat", "deepseek-reasoner"],
+        "docs_url": "https://platform.deepseek.com/api_keys",
+        "description": "High performance at ultra-low cost per token.",
+    },
+    {
+        "id": "openrouter",
+        "name": "OpenRouter (100+ Models)",
+        "badge": "Multi-Model Hub",
+        "free": True,
+        "requires_key": True,
+        "default_base_url": "https://openrouter.ai/api/v1",
+        "default_model": "meta-llama/llama-3.1-8b-instruct:free",
+        "models": ["meta-llama/llama-3.1-8b-instruct:free", "google/gemini-2.0-flash-exp:free", "openrouter/auto"],
+        "docs_url": "https://openrouter.ai/keys",
+        "description": "Unified gateway to dozens of free and paid open-source models.",
+    },
+    {
+        "id": "custom",
+        "name": "Custom OpenAI-Compatible Endpoint",
+        "badge": "LM Studio / vLLM",
+        "free": True,
+        "requires_key": False,
+        "default_base_url": "http://localhost:1234/v1",
+        "default_model": "local-model",
+        "description": "Connect to LM Studio, vLLM, LocalAI, or any custom API server.",
+    },
+    {
+        "id": "offline",
+        "name": "Smart Offline Template Engine",
+        "badge": "Zero Setup / Built-in",
+        "free": True,
+        "requires_key": False,
+        "description": "Instant heuristic copywriter tuned for Gaming, Casino, and Just Chatting streams.",
+    },
 ]
 
 
@@ -43,18 +154,18 @@ def generate_offline_shorts_copy(
     Generates 5 viral YouTube Shorts titles, 3 description variants, and trending hashtags.
     Supports Gaming, Just Chatting / IRL, Casino, and General streaming categories.
     """
-    # Clean inputs
     streamer_clean = streamer.strip() if streamer else "Streamer"
     promo = promo_code.strip() if promo_code else "PROMO100"
     inferred_game = extract_game_from_text(clip_title) or (extract_game_from_text(transcript or "") or "")
 
     cat = (category or "general").lower().strip()
     if cat == "general":
-        if any(g.lower() in (clip_title + " " + (transcript or "")).lower() for g in ["valorant", "cs2", "fortnite", "clutch", "ace", "headshot", "kill", "warzone", "minecraft", "apex"]):
+        text_lower = (clip_title + " " + (transcript or "")).lower()
+        if any(g.lower() in text_lower for g in ["valorant", "cs2", "fortnite", "clutch", "ace", "headshot", "kill", "warzone", "minecraft", "apex"]):
             cat = "gaming"
-        elif any(c.lower() in (clip_title + " " + (transcript or "")).lower() for c in ["slot", "casino", "bonus", "win", "spin", "multiplier", "$"]):
+        elif any(c.lower() in text_lower for c in ["slot", "casino", "bonus", "win", "spin", "multiplier", "$"]):
             cat = "casino"
-        elif any(i.lower() in (clip_title + " " + (transcript or "")).lower() for i in ["drama", "talking", "story", "irl", "reaction", "react"]):
+        elif any(i.lower() in text_lower for i in ["drama", "talking", "story", "irl", "reaction", "react"]):
             cat = "just_chatting"
 
     # --- CATEGORY: GAMING & ESPORTS ---
@@ -159,7 +270,7 @@ def generate_offline_shorts_copy(
         hashtags = ["#shorts", "#casino", "#bigwin", f"#{game_tag.lower().replace(' ', '')}", "#slots", "#gambling", "#jackpot"]
 
     return {
-        "provider": "offline",
+        "provider": "Offline Heuristics (Instant)",
         "engine": "offline_templates",
         "category": cat,
         "titles": titles,
@@ -168,7 +279,7 @@ def generate_offline_shorts_copy(
     }
 
 
-def _normalize_metadata(result: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_metadata(result: Dict[str, Any], fallback: Dict[str, Any], provider_name: str = "AI Engine") -> Dict[str, Any]:
     """Ensures exactly 5 titles, 3 description variants, and valid hashtags are present."""
     titles = result.get("titles") or []
     if not isinstance(titles, list):
@@ -187,11 +298,77 @@ def _normalize_metadata(result: Dict[str, Any], fallback: Dict[str, Any]) -> Dic
         hashtags = fallback.get("hashtags", [])
 
     return {
-        "provider": result.get("provider", fallback.get("provider", "offline")),
+        "provider": provider_name,
         "titles": [str(t) for t in titles[:5]],
         "descriptions": [str(d) for d in descriptions[:3]],
         "hashtags": [str(h) for h in hashtags],
     }
+
+
+def _parse_ai_json(raw_text: str) -> Optional[Dict[str, Any]]:
+    """Safely extracts JSON object from raw LLM output."""
+    if not raw_text or not raw_text.strip():
+        return None
+    # 1. Regex find outer braces
+    match = re.search(r"\{[\s\S]*\}", raw_text)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except Exception:
+            pass
+
+    # 2. Try markdown strip
+    clean = re.sub(r"^```(?:json)?", "", raw_text.strip(), flags=re.MULTILINE)
+    clean = re.sub(r"```$", "", clean.strip(), flags=re.MULTILINE).strip()
+    try:
+        return json.loads(clean)
+    except Exception:
+        return None
+
+
+def build_shorts_prompt(
+    clip_title: str,
+    win_amount: Optional[str] = None,
+    streamer: Optional[str] = None,
+    transcript: Optional[str] = None,
+    promo_code: Optional[str] = None,
+    category: str = "general",
+) -> str:
+    """Constructs prompt for viral YouTube Shorts metadata generation."""
+    cat_label = {
+        "gaming": "gaming, esports, clutches, and funny stream fails",
+        "just_chatting": "Just Chatting, IRL, podcast drama, and funny streamer reactions",
+        "casino": "casino slot big wins, multipliers, and jackpot moments",
+    }.get(category.lower(), "stream highlights, funny moments, and viral clips")
+
+    promo = promo_code.strip() if promo_code else "PROMO100"
+
+    return f"""You are an elite YouTube Shorts growth specialist and algorithm hacker for {cat_label}.
+Analyze this stream clip moment and generate viral metadata.
+
+DETAILS:
+- Content Category: {category.upper()}
+- Clip Title: {clip_title}
+- Context/Highlight: {win_amount or 'Stream Highlight'}
+- Streamer: {streamer or 'Streamer'}
+- Spoken Words / Transcript: {transcript or 'No dialogue recorded'}
+- Promo/Affiliate Code: {promo}
+
+OUTPUT REQUIREMENTS:
+Return strict, raw JSON with NO markdown formatting, NO backticks, and NO conversational text:
+{{
+  "titles": [
+    "5 catchy, high-CTR YouTube Shorts titles with emojis and #shorts (under 75 characters each)"
+  ],
+  "descriptions": [
+    "Variant 1: Action-packed highlight description with creator credits and hashtags",
+    "Variant 2: High engagement question-based description asking viewers to comment below",
+    "Variant 3: SEO-optimized description with game/topic keywords and subscribe CTA"
+  ],
+  "hashtags": [
+    "7-10 trending relevant hashtags including #shorts"
+  ]
+}}"""
 
 
 def generate_with_gemini_api(
@@ -202,46 +379,13 @@ def generate_with_gemini_api(
     transcript: Optional[str] = None,
     promo_code: Optional[str] = None,
     category: str = "general",
+    model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Calls free Google Gemini API with automated multi-model fallbacks for high-converting Shorts copy."""
+    """Calls Google Gemini API with multi-model failover."""
     clean_key = api_key.strip()
-    promo = promo_code.strip() if promo_code else "PROMO100"
-    fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo, category=category)
+    fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
+    prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
 
-    cat_label = {
-        "gaming": "gaming, esports, clutches, and funny stream fails",
-        "just_chatting": "Just Chatting, IRL, podcast drama, and funny streamer reactions",
-        "casino": "casino slot big wins, multipliers, and jackpot moments",
-    }.get(category.lower(), "stream highlights, funny moments, and viral clips")
-
-    prompt = f"""
-You are an elite YouTube Shorts growth specialist for {cat_label}.
-Analyze this stream clip moment and generate viral metadata.
-
-DETAILS:
-- Content Category: {category.upper()}
-- Clip Title: {clip_title}
-- Context/Highlight: {win_amount or 'Stream Highlight'}
-- Streamer: {streamer or 'Streamer'}
-- Spoken Words / Transcript: {transcript or 'No dialogue recorded'}
-- Active Promo Code (if relevant): {promo}
-
-OUTPUT REQUIREMENTS:
-Return strict, raw JSON with no markdown backticks and no preamble:
-{{
-  "titles": [
-    "5 catchy, high-CTR YouTube Shorts titles with emojis and #shorts (under 75 characters each)"
-  ],
-  "descriptions": [
-    "Variant 1: Action-packed highlight description with creator credits",
-    "Variant 2: High engagement question-based description asking viewers to comment",
-    "Variant 3: SEO-optimized description with game/topic keywords and subscribe CTA"
-  ],
-  "hashtags": [
-    "7-10 trending relevant hashtags including #shorts"
-  ]
-}}
-"""
     headers = {"Content-Type": "application/json"}
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -249,7 +393,7 @@ Return strict, raw JSON with no markdown backticks and no preamble:
     }
 
     candidate_models = [
-        ("v1beta", "gemini-1.5-flash-latest"),
+        ("v1beta", model or "gemini-1.5-flash-latest"),
         ("v1beta", "gemini-2.0-flash"),
         ("v1beta", "gemini-1.5-flash"),
         ("v1", "gemini-1.5-flash"),
@@ -261,36 +405,30 @@ Return strict, raw JSON with no markdown backticks and no preamble:
     for api_ver, model_name in candidate_models:
         url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent?key={clean_key}"
         try:
-            resp = requests.post(url, headers=headers, json=body, timeout=20)
+            resp = requests.post(url, headers=headers, json=body, timeout=18)
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])
                 if not candidates:
                     continue
                 raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                match = re.search(r"\{[\s\S]*\}", raw_text)
-                if match:
-                    parsed = json.loads(match.group(0))
-                else:
-                    clean = re.sub(r"^```(?:json)?", "", raw_text.strip(), flags=re.MULTILINE)
-                    clean = re.sub(r"```$", "", clean.strip(), flags=re.MULTILINE).strip()
-                    parsed = json.loads(clean)
-                parsed["provider"] = f"{model_name} (free)"
-                return _normalize_metadata(parsed, fallback_data)
+                parsed = _parse_ai_json(raw_text)
+                if parsed:
+                    return _normalize_metadata(parsed, fallback_data, f"Gemini ({model_name})")
             elif resp.status_code == 404:
-                last_err = f"Model {model_name} on {api_ver} not found (404)"
+                last_err = f"Model {model_name} (404)"
                 continue
             else:
-                last_err = f"Gemini API error ({resp.status_code}): {resp.text}"
+                last_err = f"Gemini error ({resp.status_code}): {resp.text}"
                 break
         except Exception as e:
             last_err = str(e)
             continue
 
-    raise ValueError(f"Gemini API error: {last_err}")
+    raise ValueError(f"Gemini API notice: {last_err}")
 
 
-def generate_with_groq_api(
+def generate_with_claude_api(
     api_key: str,
     clip_title: str,
     win_amount: Optional[str] = None,
@@ -298,56 +436,115 @@ def generate_with_groq_api(
     transcript: Optional[str] = None,
     promo_code: Optional[str] = None,
     category: str = "general",
+    model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Calls free Groq API (llama-3.3-70b-versatile) for high-converting Shorts copy."""
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    promo = promo_code.strip() if promo_code else "PROMO100"
-    fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo, category=category)
+    """Calls Anthropic Claude API (e.g. claude-3-5-haiku-20241022 or claude-3-5-sonnet)."""
+    clean_key = api_key.strip()
+    fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
+    prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
 
-    prompt = f"""
-You are an elite YouTube Shorts growth specialist for {category} stream highlights.
-Analyze this stream clip moment and generate viral metadata.
-
-DETAILS:
-- Category: {category.upper()}
-- Clip Title: {clip_title}
-- Context/Highlight: {win_amount or 'Stream Highlight'}
-- Streamer: {streamer or 'Streamer'}
-- Spoken Words: {transcript or 'None'}
-- Active Promo Code: {promo}
-
-Return valid JSON with:
-"titles": 5 viral YouTube Shorts titles with emojis and #shorts,
-"descriptions": 3 full description variants (Highlight-focused, Engagement, SEO),
-"hashtags": 8-10 trending hashtags.
-"""
+    target_model = model or "claude-3-5-haiku-20241022"
+    url = "https://api.anthropic.com/v1/messages"
     headers = {
-        "Authorization": f"Bearer {api_key.strip()}",
-        "Content-Type": "application/json",
+        "x-api-key": clean_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
     }
     body = {
-        "model": "llama-3.3-70b-versatile",
+        "model": target_model,
+        "max_tokens": 1000,
+        "system": "You are a professional YouTube Shorts growth copywriter. Output only valid raw JSON.",
         "messages": [
-            {"role": "system", "content": "You are a YouTube Shorts viral growth copywriter. Output only valid JSON."},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": prompt}
         ],
-        "response_format": {"type": "json_object"},
-        "temperature": 0.7,
     }
 
     resp = requests.post(url, headers=headers, json=body, timeout=20)
     if resp.status_code != 200:
-        raise ValueError(f"Groq API error ({resp.status_code}): {resp.text}")
+        raise ValueError(f"Claude API error ({resp.status_code}): {resp.text}")
 
     data = resp.json()
-    content = data["choices"][0]["message"]["content"]
-    match = re.search(r"\{[\s\S]*\}", content)
-    if match:
-        parsed = json.loads(match.group(0))
-    else:
-        parsed = json.loads(content)
-    parsed["provider"] = "groq-llama-3.3 (free)"
-    return _normalize_metadata(parsed, fallback_data)
+    content_parts = data.get("content", [])
+    raw_text = content_parts[0].get("text", "") if content_parts else ""
+    parsed = _parse_ai_json(raw_text)
+    if not parsed:
+        raise ValueError("Failed to parse valid JSON from Claude response.")
+
+    return _normalize_metadata(parsed, fallback_data, f"Claude ({target_model})")
+
+
+def generate_with_openai_compatible(
+    api_key: Optional[str],
+    base_url: str,
+    model: str,
+    clip_title: str,
+    win_amount: Optional[str] = None,
+    streamer: Optional[str] = None,
+    transcript: Optional[str] = None,
+    promo_code: Optional[str] = None,
+    category: str = "general",
+    provider_label: str = "OpenAI",
+) -> Dict[str, Any]:
+    """Universal caller for OpenAI, Groq, DeepSeek, Ollama, OpenRouter, LM Studio, etc."""
+    fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
+    prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
+
+    clean_url = base_url.strip().rstrip("/")
+    if not clean_url.endswith("/chat/completions"):
+        if clean_url.endswith("/v1"):
+            clean_url = f"{clean_url}/chat/completions"
+        else:
+            clean_url = f"{clean_url}/v1/chat/completions"
+
+    headers = {"Content-Type": "application/json"}
+    if api_key and api_key.strip():
+        headers["Authorization"] = f"Bearer {api_key.strip()}"
+
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a viral YouTube Shorts growth copywriter. Output only raw valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.7,
+    }
+
+    # If provider supports json_object response_format
+    if any(k in provider_label.lower() for k in ["groq", "openai", "deepseek"]):
+        body["response_format"] = {"type": "json_object"}
+
+    resp = requests.post(clean_url, headers=headers, json=body, timeout=25)
+    if resp.status_code != 200:
+        raise ValueError(f"{provider_label} error ({resp.status_code}): {resp.text}")
+
+    data = resp.json()
+    choices = data.get("choices", [])
+    if not choices:
+        raise ValueError(f"{provider_label} returned no response choices.")
+
+    content = choices[0].get("message", {}).get("content", "")
+    parsed = _parse_ai_json(content)
+    if not parsed:
+        raise ValueError(f"Could not parse valid JSON from {provider_label} output.")
+
+    return _normalize_metadata(parsed, fallback_data, f"{provider_label} ({model})")
+
+
+def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
+    """Checks if local Ollama server is running and accessible."""
+    try:
+        clean = base_url.strip().rstrip("/")
+        if clean.endswith("/v1"):
+            clean = clean[:-3]
+        resp = requests.get(f"{clean}/api/tags", timeout=1.0)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def get_available_ai_providers() -> List[Dict[str, Any]]:
+    """Returns registry of supported AI providers for studio UI."""
+    return SUPPORTED_AI_PROVIDERS
 
 
 def generate_shorts_metadata(
@@ -358,34 +555,174 @@ def generate_shorts_metadata(
     promo_code: Optional[str] = None,
     api_key: Optional[str] = None,
     provider: str = "auto",
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
     category: str = "general",
 ) -> Dict[str, Any]:
     """
-    Main dispatcher:
-    1. If user provided a Gemini key, uses free Google Gemini API.
-    2. If user provided a Groq key (starts with 'gsk_'), uses free Groq API.
-    3. If no key or API call fails, falls back instantly to the Smart Offline Copywriter.
-    Zero crashes, 100% reliable and free.
+    Unified AI Metadata Dispatcher:
+    Supports Gemini, Groq, OpenAI, Claude, DeepSeek, Ollama (Local), OpenRouter, Custom Endpoints.
+    Guaranteed zero-crash fallback to Smart Offline Heuristics engine.
     """
     clean_key = (api_key or "").strip()
+    clean_provider = (provider or "auto").lower().strip()
+    target_category = category or "general"
 
-    if clean_key:
-        if clean_key.startswith("gsk_") or provider == "groq":
-            try:
-                return generate_with_groq_api(
-                    clean_key, clip_title, win_amount, streamer, transcript, promo_code, category=category
-                )
-            except Exception as e:
-                print(f"Groq call notice: {e}; falling back to offline copywriter.")
+    # 1. Resolve Provider when set to 'auto'
+    if clean_provider == "auto":
+        if clean_key.startswith("gsk_"):
+            clean_provider = "groq"
+        elif clean_key.startswith("sk-ant-"):
+            clean_provider = "claude"
+        elif clean_key.startswith("sk-or-"):
+            clean_provider = "openrouter"
+        elif clean_key.startswith("sk-"):
+            clean_provider = "openai"
+        elif clean_key.startswith("AIza"):
+            clean_provider = "gemini"
+        elif base_url and ("11434" in base_url or "ollama" in base_url.lower()):
+            clean_provider = "ollama"
+        elif is_ollama_running():
+            clean_provider = "ollama"
+        elif clean_key:
+            clean_provider = "gemini"
         else:
-            try:
-                return generate_with_gemini_api(
-                    clean_key, clip_title, win_amount, streamer, transcript, promo_code, category=category
-                )
-            except Exception as e:
-                print(f"Gemini call notice: {e}; falling back to offline copywriter.")
+            clean_provider = "offline"
 
-    # Guaranteed 100% free fallback
+    # 2. Dispatch to designated provider with seamless error-handling
+    try:
+        if clean_provider == "gemini":
+            if not clean_key:
+                raise ValueError("Gemini API key is required.")
+            return generate_with_gemini_api(
+                api_key=clean_key,
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                model=model,
+            )
+
+        elif clean_provider == "groq":
+            if not clean_key:
+                raise ValueError("Groq API key is required.")
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url="https://api.groq.com/openai/v1",
+                model=model or "llama-3.3-70b-versatile",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="Groq",
+            )
+
+        elif clean_provider == "claude":
+            if not clean_key:
+                raise ValueError("Anthropic Claude API key is required.")
+            return generate_with_claude_api(
+                api_key=clean_key,
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                model=model or "claude-3-5-haiku-20241022",
+            )
+
+        elif clean_provider == "openai":
+            if not clean_key:
+                raise ValueError("OpenAI API key is required.")
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url="https://api.openai.com/v1",
+                model=model or "gpt-4o-mini",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="OpenAI",
+            )
+
+        elif clean_provider == "deepseek":
+            if not clean_key:
+                raise ValueError("DeepSeek API key is required.")
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url=base_url or "https://api.deepseek.com/v1",
+                model=model or "deepseek-chat",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="DeepSeek",
+            )
+
+        elif clean_provider == "openrouter":
+            if not clean_key:
+                raise ValueError("OpenRouter API key is required.")
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url=base_url or "https://openrouter.ai/api/v1",
+                model=model or "meta-llama/llama-3.1-8b-instruct:free",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="OpenRouter",
+            )
+
+        elif clean_provider == "ollama":
+            ollama_url = base_url or "http://localhost:11434/v1"
+            return generate_with_openai_compatible(
+                api_key=clean_key or "ollama",
+                base_url=ollama_url,
+                model=model or "llama3",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="Ollama Local",
+            )
+
+        elif clean_provider == "custom":
+            if not base_url:
+                raise ValueError("Base URL is required for custom endpoint.")
+            return generate_with_openai_compatible(
+                api_key=clean_key or "custom",
+                base_url=base_url,
+                model=model or "local-model",
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                provider_label="Custom Endpoint",
+            )
+
+    except Exception as exc:
+        print(f"Notice: {clean_provider} generation error ({exc}). Falling back to Offline Smart Copywriter.")
+
+    # Guaranteed fallback
     return generate_offline_shorts_copy(
-        clip_title, win_amount, streamer, transcript, promo_code, category=category
+        clip_title=clip_title,
+        win_amount=win_amount,
+        streamer=streamer,
+        transcript=transcript,
+        promo_code=promo_code,
+        category=target_category,
     )

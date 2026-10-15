@@ -19,13 +19,15 @@ from pydantic import BaseModel
 from PIL import Image
 
 from core.banner_generator import generate_promo_banner, process_uploaded_overlay
-from core.ai_copywriter import generate_shorts_metadata
+from core.ai_copywriter import generate_shorts_metadata, get_available_ai_providers
 from core.audio_detector import analyze_audio_climax
 from core.youtube_uploader import (
     get_youtube_auth_status,
     save_client_secrets_json,
     start_youtube_oauth_flow,
     disconnect_youtube,
+    disconnect_youtube_account,
+    list_youtube_accounts,
     upload_shorts_video,
     get_youtube_authorization_url,
     exchange_youtube_code,
@@ -152,6 +154,8 @@ class GenerateMetadataRequest(BaseModel):
     promo_code: Optional[str] = None
     api_key: Optional[str] = None
     provider: Optional[str] = "auto"
+    model: Optional[str] = None
+    base_url: Optional[str] = None
 
 
 class YouTubeUploadRequest(BaseModel):
@@ -161,6 +165,12 @@ class YouTubeUploadRequest(BaseModel):
     tags: Optional[List[str]] = None
     privacy_status: Optional[str] = "public"
     made_for_kids: Optional[bool] = False
+    channel_id: Optional[str] = None
+    channel_ids: Optional[List[str]] = None
+
+
+class DisconnectAccountRequest(BaseModel):
+    channel_id: str
 
 
 class ExchangeCodeRequest(BaseModel):
@@ -827,11 +837,17 @@ async def serve_output_video(filename: str):
     return FileResponse(path=str(target), media_type="video/mp4", filename=filename)
 
 
-# --- AI COPYWRITING ENDPOINTS (100% FREE TIER / OFFLINE) ---
+# --- AI COPYWRITING ENDPOINTS (MULTI-PROVIDER & OFFLINE) ---
+
+@app.get("/api/ai/providers")
+async def get_ai_providers_endpoint():
+    """Returns registry of supported AI providers for studio UI."""
+    return {"providers": get_available_ai_providers()}
+
 
 @app.post("/api/ai/generate-metadata")
 async def generate_ai_metadata(req: GenerateMetadataRequest):
-    """Generates 5 viral titles, 3 description variants, and hashtags using free Gemini/Groq or offline engine."""
+    """Generates 5 viral titles, 3 description variants, and hashtags using free Gemini/Groq, OpenAI, Claude, DeepSeek, Ollama, or offline engine."""
     try:
         win_str = req.win_amount
         if isinstance(win_str, (int, float)):
@@ -851,6 +867,8 @@ async def generate_ai_metadata(req: GenerateMetadataRequest):
             promo_code=req.promo_code,
             api_key=req.api_key,
             provider=req.provider or "auto",
+            model=req.model,
+            base_url=req.base_url,
         )
         return result
     except Exception as exc:
@@ -1104,9 +1122,22 @@ async def manual_exchange_code_endpoint(req: ExchangeCodeRequest, request: Reque
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+@app.get("/api/youtube/accounts")
+async def get_youtube_accounts_endpoint():
+    """Returns list of all connected YouTube channels."""
+    return {"accounts": list_youtube_accounts()}
+
+
+@app.post("/api/youtube/disconnect-account")
+async def disconnect_youtube_account_endpoint(req: DisconnectAccountRequest):
+    """Disconnects a specific YouTube channel while keeping other channels intact."""
+    removed = disconnect_youtube_account(req.channel_id)
+    return {"status": "ok", "removed": removed, "auth_status": get_youtube_auth_status()}
+
+
 @app.post("/api/youtube/disconnect")
 async def disconnect_youtube_endpoint():
-    """Disconnects YouTube channel by clearing stored OAuth token."""
+    """Disconnects all YouTube channels by clearing stored OAuth tokens."""
     ok = disconnect_youtube()
     return {"status": "ok", "disconnected": ok}
 
@@ -1133,6 +1164,8 @@ def _run_youtube_upload_thread(job_id: str, req: YouTubeUploadRequest):
             tags=req.tags,
             privacy_status=req.privacy_status or "public",
             made_for_kids=bool(req.made_for_kids),
+            channel_id=req.channel_id,
+            channel_ids=req.channel_ids,
             progress_cb=_prog,
         )
 
@@ -1145,6 +1178,8 @@ def _run_youtube_upload_thread(job_id: str, req: YouTubeUploadRequest):
             "shorts_url": result["shorts_url"],
             "watch_url": result["watch_url"],
             "title": result["title"],
+            "results": result.get("results", []),
+            "total_uploaded": result.get("total_uploaded", 1),
         })
     except Exception as exc:
         youtube_upload_jobs[job_id].update({

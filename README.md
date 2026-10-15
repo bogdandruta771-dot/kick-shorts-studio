@@ -73,18 +73,28 @@ Supports all major stream categories:
   - `✨ Minimal`: Clean modern subtitles.
 - **Pixel-Perfect ASS Subtitle Positioning**: Drag and adjust height ($200\text{px}$ to $1800\text{px}$) with instant placement pills (Top Reels, Center Gap, Over Cam, Bottom Safe).
 
-### 🤖 4. Multi-Category AI Shorts Copywriter
-- **Niche-Specific Copy Generation**: Generates 5 viral title hooks and 3 complete description variants with hashtags tailored to:
+### 🤖 4. Multi-Provider AI Shorts Copywriting Suite
+- **10 Integrated AI Engines & Zero Crashes**:
+  - 🌟 **Google Gemini**: Generous free daily tier with elite multimodal creativity.
+  - ⚡ **Groq**: 500+ tokens/sec ultra-fast generation on Llama 3.3 70B.
+  - 🦙 **Ollama (Local LLM)**: 100% free, runs offline on your GPU/CPU with zero API keys and 100% privacy (`llama3`, `mistral`, `qwen2.5`).
+  - 🤖 **OpenAI**: Industry benchmark for high-CTR title hooks (`gpt-4o-mini`, `gpt-4o`).
+  - 🎭 **Anthropic Claude**: Nuanced, authentic conversational hooks (`claude-3-5-haiku`, `claude-3-5-sonnet`).
+  - 🐳 **DeepSeek**: Ultra-affordable, powerful copywriting (`deepseek-chat`).
+  - 🌐 **OpenRouter**: Access 100+ free and paid models with one unified API key.
+  - ⚙️ **Custom Endpoints**: Connect to LM Studio (`localhost:1234`), vLLM, or LocalAI.
+  - 📝 **Smart Offline Engine**: Built-in heuristic copywriter working instantly with zero internet or keys.
+- **Niche-Specific Viral Optimization**: Generates 5 viral title hooks and 3 complete description variants with hashtags tailored to:
   - 🎮 **Gaming & Esports** (Clutch, Ace, Pog, Ranked Highlights)
   - 💬 **Just Chatting & IRL** (Drama, Reactions, Unfiltered moments)
   - 🎰 **Casino & Slots** (Multipliers, Jackpot, High Roller)
   - 🌐 **General Streams**
-- **100% Free Offline Engine**: Operates locally out-of-the-box. Optional free Google Gemini or Groq API keys can be added for extra variety.
 
-### 🚀 5. 1-Click Direct YouTube Shorts Publishing
-- **Built-in Google OAuth 2.0 Client**: Connect your YouTube channel and publish vertical shorts directly from the studio.
-- **Zero-Config Desktop Mode**: Drop in a Desktop Application `client_secret.json` from Google Cloud Console with zero redirect URI configuration needed.
-- **Built-in Diagnostic Probe**: Pre-validates redirect URIs to prevent `redirect_uri_mismatch` errors.
+### 🚀 5. Multi-Account YouTube Shorts Publishing & Broadcast
+- **Multi-Channel Management**: Connect and manage multiple YouTube channels and brand accounts from one unified dashboard.
+- **Simultaneous Broadcast Posting**: Post your rendered 9:16 vertical Short to a single target channel or broadcast simultaneously across multiple connected channels in one click.
+- **Zero-Config Google OAuth 2.0**: Supports both Desktop and Web Client IDs with automatic redirect URI validation and built-in diagnostic probes.
+- **Safe Account Switching**: Google Account Chooser consent flow lets you connect secondary, clip, and brand channels without overwriting primary accounts.
 
 ---
 
@@ -133,6 +143,9 @@ Run the test suites verifying Twitch ingestion, Kick sentinels, AI copywriter, a
 ```bash
 # Run Universal Stream & Twitch test suite
 python -m pytest test_universal_and_twitch.py
+
+# Run Multi-Account YouTube & Multi-Provider AI test suite
+python -m unittest test_multi_account_and_ai.py -v
 
 # Run AI Copywriter & YouTube OAuth diagnostics
 python test_ai_and_youtube_flow.py

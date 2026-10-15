@@ -59,6 +59,9 @@ from core.video_ingest import (
     download_stream_clip,
     detect_stream_platform,
     fetch_twitch_channel_clips,
+    fetch_kick_clips,
+    fetch_twitch_clips,
+    search_unified_clips,
     extract_preview_frame,
 )
 from core.video_processor import VideoProcessor
@@ -118,6 +121,33 @@ class SelectWinRequest(BaseModel):
     clip_url: str
     clip_id: Optional[str] = None
     title: Optional[str] = None
+
+
+class SearchClipsRequest(BaseModel):
+    query: Optional[str] = ""
+    platform: Optional[str] = "all"  # "all", "kick", "twitch"
+    category: Optional[str] = "all"
+    time_filter: Optional[str] = "all"  # "day", "week", "month", "all"
+    sort: Optional[str] = "view"  # "view", "date"
+    limit: Optional[int] = 24
+
+
+class ImportClipRequest(BaseModel):
+    clip_url: str
+    clip_id: Optional[str] = None
+    title: Optional[str] = None
+    platform: Optional[str] = None
+    category: Optional[str] = None
+    streamer: Optional[str] = None
+
+
+class OneClickShortRequest(BaseModel):
+    clip_url: str
+    title: Optional[str] = None
+    streamer: Optional[str] = None
+    category: Optional[str] = None
+    preset: Optional[str] = "auto"
+    enable_anti_shadowban: Optional[bool] = True
 
 
 class FrameExtractRequest(BaseModel):
@@ -345,6 +375,235 @@ async def select_detector_win(req: SelectWinRequest):
         }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# --- 🔍 VIRAL CLIP EXPLORER & INSTANT CLIPPER ENDPOINTS ---
+
+@app.post("/api/clips/search")
+async def search_clips_endpoint(req: SearchClipsRequest):
+    """Searches and discovers top clips across Kick and Twitch with category and time filters."""
+    try:
+        results = search_unified_clips(
+            query=req.query or "",
+            platform=req.platform or "all",
+            category=req.category or "all",
+            time_filter=req.time_filter or "all",
+            sort=req.sort or "view",
+            limit=req.limit or 24,
+        )
+        return {
+            "count": len(results),
+            "clips": results,
+            "query": req.query,
+            "platform": req.platform,
+            "category": req.category,
+            "time_filter": req.time_filter,
+            "sort": req.sort,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/clips/search")
+async def search_clips_get(
+    query: Optional[str] = "",
+    platform: Optional[str] = "all",
+    category: Optional[str] = "all",
+    time_filter: Optional[str] = "all",
+    sort: Optional[str] = "view",
+    limit: Optional[int] = 24,
+):
+    """GET variant for instant URL query searching."""
+    req = SearchClipsRequest(
+        query=query,
+        platform=platform,
+        category=category,
+        time_filter=time_filter,
+        sort=sort,
+        limit=limit,
+    )
+    return await search_clips_endpoint(req)
+
+
+@app.get("/api/clips/trending")
+async def get_trending_clips(
+    platform: Optional[str] = "all",
+    time_filter: Optional[str] = "day",
+    limit: Optional[int] = 18,
+):
+    """Returns hottest trending clips right now from Kick and Twitch."""
+    req = SearchClipsRequest(
+        query="",
+        platform=platform,
+        category="all",
+        time_filter=time_filter or "day",
+        sort="view",
+        limit=limit or 18,
+    )
+    return await search_clips_endpoint(req)
+
+
+@app.post("/api/clips/import")
+async def import_clip_endpoint(req: ImportClipRequest):
+    """Imports any discovered clip from Kick or Twitch directly into Step 2 Framing."""
+    url = req.clip_url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing clip URL.")
+
+    platform = req.platform or detect_stream_platform(url)
+    ts = int(time.time())
+    dest_path = TEMP_DIR / f"{platform}_clip_{ts}_{uuid.uuid4().hex[:4]}.mp4"
+
+    try:
+        active_path = download_stream_clip(url, dest_path)
+        meta = validate_media_file(active_path)
+
+        preview_img_path = TEMP_DIR / f"snap_{active_path.stem}.jpg"
+        extract_preview_frame(active_path, preview_img_path, timestamp=2.0)
+        img = Image.open(preview_img_path)
+        b64 = pil_to_base64(img)
+
+        # Smart preset determination
+        cat = (req.category or "").lower()
+        if "slot" in cat or "casino" in cat:
+            suggested_preset = "center_slot"
+        elif "chatting" in cat or "irl" in cat or "react" in cat:
+            suggested_preset = "reaction_standard"
+        elif "fps" in cat or "valorant" in cat or "shooter" in cat or platform == "twitch":
+            suggested_preset = "gaming_fps"
+        else:
+            suggested_preset = "ambient_blur_16_9"
+
+        return {
+            "path": str(active_path),
+            "filename": active_path.name,
+            "video_url": f"/temp_media/{active_path.name}",
+            "platform": platform,
+            "suggested_preset": suggested_preset,
+            "title": req.title or f"{platform.capitalize()} Clip",
+            "streamer": req.streamer or "",
+            "category": req.category or "",
+            "width": meta["width"],
+            "height": meta["height"],
+            "duration": meta["duration"],
+            "fps": meta["fps"],
+            "has_audio": meta["has_audio"],
+            "preview_base64": b64,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/clips/one-click-short")
+async def one_click_short_endpoint(req: OneClickShortRequest):
+    """
+    1-Click End-to-End Automation:
+    Downloads clip -> Auto-frames layout -> Whisper Speech-to-Text with anti-shadowban NLP sanitizer ->
+    GPU-accelerated hardware encoding with anti-shadowban layer -> High-CTR titles/hashtags generation.
+    """
+    url = req.clip_url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing clip URL.")
+
+    job_id = f"auto_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+    export_jobs[job_id] = {
+        "job_id": job_id,
+        "percent": 0.05,
+        "message": "Initializing 1-click clip pipeline...",
+        "done": False,
+        "error": None,
+        "output_path": None,
+        "output_filename": None,
+        "output_url": None,
+        "metadata": None,
+    }
+
+    def _worker():
+        try:
+            platform = detect_stream_platform(url)
+            ts = int(time.time())
+            dest_path = TEMP_DIR / f"{platform}_auto_{ts}_{uuid.uuid4().hex[:4]}.mp4"
+
+            export_jobs[job_id]["message"] = f"Downloading {platform.capitalize()} clip..."
+            export_jobs[job_id]["percent"] = 0.15
+
+            downloaded = download_stream_clip(url, dest_path)
+            meta = validate_media_file(downloaded)
+
+            # Choose optimal preset
+            cat = (req.category or "").lower()
+            preset_key = req.preset or "auto"
+            if preset_key == "auto":
+                if "slot" in cat or "casino" in cat:
+                    preset_key = "center_slot"
+                elif "chatting" in cat or "irl" in cat:
+                    preset_key = "reaction_standard"
+                elif platform == "twitch" or "gaming" in cat or "valorant" in cat:
+                    preset_key = "gaming_fps"
+                else:
+                    preset_key = "ambient_blur_16_9"
+
+            preset_cfg = CROP_PRESETS.get(preset_key, CROP_PRESETS["ambient_blur_16_9"])
+            gp = preset_cfg["gameplay"]
+            fc = preset_cfg["facecam"]
+
+            export_jobs[job_id]["message"] = "Processing video, generating subtitles & anti-shadowban FX..."
+            export_jobs[job_id]["percent"] = 0.35
+
+            out_filename = f"short_auto_{ts}_{uuid.uuid4().hex[:6]}.mp4"
+            out_path = OUTPUT_DIR / out_filename
+
+            def _prog(frac, msg):
+                export_jobs[job_id]["percent"] = 0.35 + (frac * 0.55)
+                export_jobs[job_id]["message"] = msg
+
+            final_file = processor.process_short(
+                input_video_path=downloaded,
+                output_video_path=out_path,
+                gameplay_crop=gp,
+                facecam_crop=fc,
+                enable_subtitles=True,
+                subtitle_options={
+                    "font_name": DEFAULT_FONT_NAME,
+                    "font_size": DEFAULT_FONT_SIZE,
+                    "primary_color": DEFAULT_PRIMARY_COLOR,
+                    "highlight_color": DEFAULT_HIGHLIGHT_COLOR,
+                    "y_position": DEFAULT_SUBTITLE_Y_OFFSET,
+                },
+                enable_anti_shadowban=bool(req.enable_anti_shadowban if req.enable_anti_shadowban is not None else True),
+                progress_cb=_prog,
+            )
+
+            export_jobs[job_id]["message"] = "Generating safe high-CTR metadata..."
+            export_jobs[job_id]["percent"] = 0.95
+
+            meta_res = generate_shorts_metadata(
+                clip_title=req.title or f"{platform.capitalize()} Highlight Moment",
+                category=req.category or "general",
+                streamer=req.streamer,
+                provider="offline",
+            )
+
+            export_jobs[job_id].update({
+                "percent": 1.0,
+                "message": "Viral Short created successfully!",
+                "done": True,
+                "error": None,
+                "output_path": str(final_file),
+                "output_filename": final_file.name,
+                "output_url": f"/outputs/{final_file.name}",
+                "metadata": meta_res,
+            })
+            cleanup_stale_temp_dirs(max_age_hours=2.0)
+        except Exception as exc:
+            export_jobs[job_id].update({
+                "done": True,
+                "error": str(exc),
+                "message": f"Pipeline failed: {exc}",
+            })
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return {"job_id": job_id, "status": "started"}
 
 
 

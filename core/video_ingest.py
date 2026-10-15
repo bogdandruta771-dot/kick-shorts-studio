@@ -4,9 +4,14 @@ import re
 import sys
 import urllib.request
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
-from core.config import DOWNLOAD_TIMEOUT, DEFAULT_TIMEOUT
+from core.config import (
+    DOWNLOAD_TIMEOUT,
+    DEFAULT_TIMEOUT,
+    TWITCH_GQL_URL,
+    TWITCH_GQL_CLIENT_ID,
+)
 from core.utils import (
     resolve_binary_paths,
     run_command_safe,
@@ -107,86 +112,356 @@ def detect_stream_platform(url: str) -> str:
     return "generic"
 
 
+def fetch_kick_clips(
+    channel_slug: Optional[str] = None,
+    category_slug: Optional[str] = None,
+    sort: str = "view",
+    time_filter: str = "day",
+    limit: int = 20,
+) -> List[Dict[str, Any]]:
+    """
+    Fetches clips from Kick's public API without authentication.
+    Supports channel filtering, category filtering (e.g. slots, gaming, irl), and time filters.
+    """
+    time_map = {"24h": "day", "day": "day", "week": "week", "month": "month", "all": "all"}
+    clean_time = time_map.get(str(time_filter).lower(), "day")
+    clean_sort = "date" if str(sort).lower() == "date" else "view"
+
+    # Category normalization for Kick API slugs
+    cat_aliases = {
+        "casino": "slots",
+        "gambling": "slots",
+        "slots": "slots",
+        "just_chatting": "just-chatting",
+        "just chatting": "just-chatting",
+        "irl": "irl",
+        "gta": "grand-theft-auto-v",
+        "grand theft auto v": "grand-theft-auto-v",
+        "valorant": "valorant",
+        "fortnite": "fortnite",
+        "cs2": "counter-strike-2",
+        "counter-strike": "counter-strike-2",
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    }
+
+    if channel_slug and channel_slug.strip():
+        slug = channel_slug.strip().lower()
+        slug = re.sub(r"^https?://(?:www\.)?kick\.com/", "", slug)
+        slug = slug.split("/")[0].split("?")[0].lstrip("@#")
+        url = f"https://kick.com/api/v2/channels/{slug}/clips?sort={clean_sort}&time={clean_time}"
+    elif category_slug and category_slug.strip() and category_slug.lower() not in ("all", "general"):
+        raw_cat = category_slug.strip().lower()
+        cat = cat_aliases.get(raw_cat, raw_cat.replace(" ", "-"))
+        url = f"https://kick.com/api/v2/categories/{cat}/clips?sort={clean_sort}&time={clean_time}"
+    else:
+        url = f"https://kick.com/api/v2/clips?sort={clean_sort}&time={clean_time}"
+
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            raw_clips = data.get("clips", [])
+            clips = []
+            for item in raw_clips[:limit]:
+                channel = item.get("channel") or {}
+                category = item.get("category") or {}
+                creator = item.get("creator") or {}
+                clip_id = str(item.get("id") or "")
+                ch_slug = channel.get("slug") or channel.get("username") or "streamer"
+                clip_page = f"https://kick.com/{ch_slug}?clip={clip_id}" if clip_id else f"https://kick.com/{ch_slug}"
+
+                clips.append({
+                    "id": clip_id,
+                    "title": item.get("title") or f"{ch_slug} Moment",
+                    "url": clip_page,
+                    "stream_url": item.get("clip_url") or item.get("video_url") or "",
+                    "thumbnail_url": item.get("thumbnail_url") or "",
+                    "platform": "kick",
+                    "streamer": channel.get("username") or ch_slug,
+                    "streamer_slug": ch_slug,
+                    "streamer_avatar": channel.get("profile_picture") or "",
+                    "creator": creator.get("username") or "Viewer",
+                    "views": int(item.get("views") or item.get("view_count") or 0),
+                    "duration": float(item.get("duration") or 30.0),
+                    "category": category.get("name") or "Kick Stream",
+                    "created_at": item.get("created_at") or "",
+                })
+            return clips
+    except Exception:
+        return []
+
+
+def fetch_twitch_clips(
+    channel_slug: Optional[str] = None,
+    category_name: Optional[str] = None,
+    time_filter: str = "LAST_WEEK",
+    limit: int = 20,
+) -> List[Dict[str, Any]]:
+    """
+    Fetches top clips from Twitch using Twitch's public GQL endpoint without user tokens.
+    Handles channel filtering, game/category filtering, and time ranges.
+    """
+    time_map = {
+        "24h": "LAST_DAY",
+        "day": "LAST_DAY",
+        "week": "LAST_WEEK",
+        "month": "LAST_MONTH",
+        "all": "ALL_TIME",
+        "LAST_DAY": "LAST_DAY",
+        "LAST_WEEK": "LAST_WEEK",
+        "LAST_MONTH": "LAST_MONTH",
+        "ALL_TIME": "ALL_TIME",
+    }
+    gql_filter = time_map.get(str(time_filter), "ALL_TIME")
+
+    headers = {
+        "Client-ID": TWITCH_GQL_CLIENT_ID,
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    }
+
+    clips: List[Dict[str, Any]] = []
+
+    if channel_slug and channel_slug.strip():
+        slug = channel_slug.strip().lower()
+        slug = re.sub(r"^https?://(?:www\.)?twitch\.tv/", "", slug)
+        slug = slug.split("/")[0].split("?")[0].lstrip("@#")
+
+        # Query user clips using UserClipsInput
+        def _query_user(filt: str) -> List[Dict[str, Any]]:
+            query = """
+            query GetChannelClips($login: String!, $first: Int!, $criteria: UserClipsInput) {
+              user(login: $login) {
+                displayName
+                profileImageURL(width: 70)
+                clips(first: $first, criteria: $criteria) {
+                  edges {
+                    node {
+                      id
+                      slug
+                      title
+                      viewCount
+                      durationSeconds
+                      createdAt
+                      url
+                      thumbnailURL
+                      curator { displayName }
+                      game { name }
+                    }
+                  }
+                }
+              }
+            }
+            """
+            payload = json.dumps({
+                "query": query,
+                "variables": {
+                    "login": slug,
+                    "first": max(1, min(limit, 40)),
+                    "criteria": {"filter": filt},
+                },
+            }).encode("utf-8")
+            req = urllib.request.Request(TWITCH_GQL_URL, data=payload, headers=headers)
+            with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                user_data = data.get("data", {}).get("user") or {}
+                streamer_name = user_data.get("displayName") or slug
+                streamer_avatar = user_data.get("profileImageURL") or ""
+                edges = user_data.get("clips", {}).get("edges", [])
+                out = []
+                for edge in edges:
+                    node = edge.get("node") or {}
+                    out.append({
+                        "id": node.get("id") or node.get("slug") or "",
+                        "title": node.get("title") or "Twitch Clip",
+                        "url": node.get("url") or f"https://clips.twitch.tv/{node.get('slug')}",
+                        "stream_url": node.get("url") or "",
+                        "thumbnail_url": node.get("thumbnailURL") or "",
+                        "platform": "twitch",
+                        "streamer": streamer_name,
+                        "streamer_slug": slug,
+                        "streamer_avatar": streamer_avatar,
+                        "creator": (node.get("curator") or {}).get("displayName") or "Viewer",
+                        "views": int(node.get("viewCount") or 0),
+                        "duration": float(node.get("durationSeconds") or 30.0),
+                        "category": (node.get("game") or {}).get("name") or "Twitch Stream",
+                        "created_at": node.get("createdAt") or "",
+                    })
+                return out
+
+        try:
+            clips = _query_user(gql_filter)
+            # If 0 clips found in requested narrow filter, fall back to ALL_TIME
+            if not clips and gql_filter != "ALL_TIME":
+                clips = _query_user("ALL_TIME")
+        except Exception:
+            pass
+
+    else:
+        # Query category/game clips
+        game_aliases = {
+            "casino": "Slots",
+            "slots": "Slots",
+            "just_chatting": "Just Chatting",
+            "just chatting": "Just Chatting",
+            "irl": "Just Chatting",
+            "gta": "Grand Theft Auto V",
+            "valorant": "Valorant",
+            "fortnite": "Fortnite",
+            "cs2": "Counter-Strike",
+            "counter-strike": "Counter-Strike",
+        }
+        raw_cat = (category_name or "Just Chatting").strip().lower()
+        game_target = game_aliases.get(raw_cat, category_name or "Just Chatting")
+
+        query = """
+        query GetGameClips($name: String!, $first: Int!) {
+          game(name: $name) {
+            id
+            name
+            clips(first: $first) {
+              edges {
+                node {
+                  id
+                  slug
+                  title
+                  viewCount
+                  durationSeconds
+                  createdAt
+                  url
+                  thumbnailURL
+                  broadcaster {
+                    displayName
+                    login
+                    profileImageURL(width: 70)
+                  }
+                  curator { displayName }
+                }
+              }
+            }
+          }
+        }
+        """
+        payload = json.dumps({
+            "query": query,
+            "variables": {
+                "name": game_target,
+                "first": max(1, min(limit, 40)),
+            },
+        }).encode("utf-8")
+        try:
+            req = urllib.request.Request(TWITCH_GQL_URL, data=payload, headers=headers)
+            with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                game_data = data.get("data", {}).get("game") or {}
+                edges = game_data.get("clips", {}).get("edges", [])
+                for edge in edges:
+                    node = edge.get("node") or {}
+                    bcast = node.get("broadcaster") or {}
+                    clips.append({
+                        "id": node.get("id") or node.get("slug") or "",
+                        "title": node.get("title") or "Twitch Clip",
+                        "url": node.get("url") or f"https://clips.twitch.tv/{node.get('slug')}",
+                        "stream_url": node.get("url") or "",
+                        "thumbnail_url": node.get("thumbnailURL") or "",
+                        "platform": "twitch",
+                        "streamer": bcast.get("displayName") or "Streamer",
+                        "streamer_slug": bcast.get("login") or "streamer",
+                        "streamer_avatar": bcast.get("profileImageURL") or "",
+                        "creator": (node.get("curator") or {}).get("displayName") or "Viewer",
+                        "views": int(node.get("viewCount") or 0),
+                        "duration": float(node.get("durationSeconds") or 30.0),
+                        "category": game_data.get("name") or game_target,
+                        "created_at": node.get("createdAt") or "",
+                    })
+        except Exception:
+            pass
+
+    return clips
+
+
 def fetch_twitch_channel_clips(
     channel_slug: str,
     limit: int = 12,
     period: str = "ALL_TIME",
 ) -> List[Dict[str, Any]]:
+    """Backward-compatible alias for existing callers."""
+    return fetch_twitch_clips(channel_slug=channel_slug, time_filter=period, limit=limit)
+
+
+def search_unified_clips(
+    query: str = "",
+    platform: str = "all",
+    category: str = "all",
+    time_filter: str = "all",
+    sort: str = "view",
+    limit: int = 24,
+) -> List[Dict[str, Any]]:
     """
-    Fetches top clips for any Twitch channel using Twitch's public GQL endpoint.
-    Requires zero authentication or user tokens.
+    High-level clip discovery engine across Kick and Twitch.
+    Searches channels, categories, or trending clips with automatic deduplication and view sorting.
     """
-    clean_slug = channel_slug.strip().lower()
-    clean_slug = re.sub(r"^https?://(?:www\.)?twitch\.tv/", "", clean_slug)
-    clean_slug = clean_slug.split("/")[0].split("?")[0].lstrip("@#")
+    clean_query = (query or "").strip()
+    clean_plat = (platform or "all").lower()
+    clean_cat = (category or "all").lower()
 
-    from core.config import TWITCH_GQL_URL, TWITCH_GQL_CLIENT_ID
+    # Detect platform from query URL if given
+    if "twitch.tv" in clean_query:
+        clean_plat = "twitch"
+        clean_query = re.sub(r"^https?://(?:www\.)?twitch\.tv/", "", clean_query).split("/")[0]
+    elif "kick.com" in clean_query:
+        clean_plat = "kick"
+        clean_query = re.sub(r"^https?://(?:www\.)?kick\.com/", "", clean_query).split("/")[0]
 
-    gql_query = """
-    query GetChannelClips($login: String!, $first: Int!, $criteria: ClipConnectionCriteria!) {
-      user(login: $login) {
-        clips(first: $first, criteria: $criteria) {
-          edges {
-            node {
-              id
-              slug
-              title
-              viewCount
-              durationSeconds
-              createdAt
-              url
-              thumbnailURL
-              curator {
-                displayName
-              }
-            }
-          }
-        }
-      }
-    }
-    """
+    all_results: List[Dict[str, Any]] = []
 
-    payload = json.dumps({
-        "query": gql_query,
-        "variables": {
-            "login": clean_slug,
-            "first": max(1, min(limit, 30)),
-            "criteria": {"filter": period if period in ("LAST_DAY", "LAST_WEEK", "LAST_MONTH", "ALL_TIME") else "ALL_TIME"},
-        },
-    }).encode("utf-8")
+    # 1. Fetch Kick Clips if requested
+    if clean_plat in ("all", "kick"):
+        try:
+            k_clips = fetch_kick_clips(
+                channel_slug=clean_query if clean_query else None,
+                category_slug=clean_cat if clean_cat != "all" else None,
+                sort=sort,
+                time_filter=time_filter,
+                limit=limit,
+            )
+            all_results.extend(k_clips)
+        except Exception:
+            pass
 
-    req = urllib.request.Request(
-        TWITCH_GQL_URL,
-        data=payload,
-        headers={
-            "Client-ID": TWITCH_GQL_CLIENT_ID,
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-    )
+    # 2. Fetch Twitch Clips if requested
+    if clean_plat in ("all", "twitch"):
+        try:
+            tw_clips = fetch_twitch_clips(
+                channel_slug=clean_query if clean_query else None,
+                category_name=clean_cat if clean_cat != "all" else None,
+                time_filter=time_filter,
+                limit=limit,
+            )
+            all_results.extend(tw_clips)
+        except Exception:
+            pass
 
-    try:
-        with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            edges = data.get("data", {}).get("user", {}).get("clips", {}).get("edges", [])
-            clips = []
-            for edge in edges:
-                node = edge.get("node", {})
-                clips.append({
-                    "id": node.get("id"),
-                    "slug": node.get("slug"),
-                    "title": node.get("title", "Twitch Clip"),
-                    "views": node.get("viewCount", 0),
-                    "duration": float(node.get("durationSeconds", 0.0)),
-                    "url": node.get("url"),
-                    "thumbnail_url": node.get("thumbnailURL", ""),
-                    "clipped_by": node.get("curator", {}).get("displayName", "Viewer"),
-                    "created_at": node.get("createdAt", ""),
-                    "platform": "twitch",
-                })
-            return clips
-    except Exception as exc:
-        return []
+    # Deduplicate by URL or ID
+    seen = set()
+    deduped = []
+    for c in all_results:
+        key = c.get("url") or c.get("id")
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(c)
+
+    # Sort results
+    if sort == "date":
+        deduped.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+    else:
+        deduped.sort(key=lambda x: int(x.get("views", 0)), reverse=True)
+
+    return deduped[:limit]
 
 
 def download_stream_clip(

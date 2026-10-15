@@ -37,6 +37,7 @@ venv.bak/
 .env.local
 .env.*.local
 credentials/*.json
+credentials/accounts/
 !credentials/client_secret.json.example
 
 # --- FFmpeg & Heavy Binaries (>100MB rejected by GitHub) ---

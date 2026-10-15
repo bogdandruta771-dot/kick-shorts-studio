@@ -45,11 +45,69 @@ def get_youtube_client_type() -> str:
 
 
 def save_client_secrets_json(content: str) -> Path:
-    """Saves user-uploaded or pasted client_secrets.json."""
+    """Saves user-uploaded or pasted client_secrets.json, refreshing any stale tokens."""
     data = json.loads(content) if isinstance(content, str) else content
+    if not isinstance(data, dict):
+        raise ValueError("Invalid client_secret format. Expected a JSON object.")
+
+    # Auto-wrap if top-level client_id & client_secret are provided
+    if "installed" not in data and "web" not in data:
+        if "client_id" in data and "client_secret" in data:
+            data = {"installed": data}
+        else:
+            raise ValueError("Invalid client_secret.json. Missing 'installed' or 'web' OAuth configuration.")
+
     with open(CLIENT_SECRETS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+    # Disconnect previous tokens so they do not conflict with the new key/project
+    disconnect_youtube()
     return CLIENT_SECRETS_FILE
+
+
+def save_client_id_and_secret(client_id: str, client_secret: str, client_type: str = "desktop") -> Path:
+    """
+    Constructs a valid Google OAuth client_secret.json from raw Client ID & Client Secret.
+    Allows users who entered the wrong key or copied credentials directly from Google Cloud to easily change them.
+    """
+    clean_id = (client_id or "").strip()
+    clean_secret = (client_secret or "").strip()
+    if not clean_id or not clean_secret:
+        raise ValueError("Both Client ID and Client Secret are required.")
+
+    is_web = str(client_type).lower() == "web"
+    root_key = "web" if is_web else "installed"
+
+    data = {
+        root_key: {
+            "client_id": clean_id,
+            "client_secret": clean_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "redirect_uris": [
+                "http://127.0.0.1:7860/api/youtube/oauth2callback",
+                "http://localhost:7860/api/youtube/oauth2callback",
+                "http://localhost",
+            ],
+        }
+    }
+    return save_client_secrets_json(json.dumps(data, indent=2))
+
+
+def reset_youtube_credentials() -> bool:
+    """
+    Completely removes client_secret.json, all connected channels, and tokens.
+    Allows the user to re-enter/upload fresh API credentials from scratch.
+    """
+    try:
+        if CLIENT_SECRETS_FILE.is_file():
+            CLIENT_SECRETS_FILE.unlink(missing_ok=True)
+        disconnect_youtube()
+        return True
+    except Exception as e:
+        print(f"Error resetting YouTube credentials: {e}")
+        return False
 
 
 def _save_account_token_and_meta(creds: Credentials, channel_info: Dict[str, Any]) -> Path:
@@ -214,11 +272,30 @@ def get_youtube_auth_status() -> Dict[str, Any]:
     authenticated = len(accounts) > 0
 
     primary = accounts[0] if accounts else {}
+    client_id_snippet = None
+    project_id = None
+    client_id_full = None
+    if has_secrets:
+        try:
+            with open(CLIENT_SECRETS_FILE, "r", encoding="utf-8") as f:
+                s_data = json.load(f)
+            s_info = s_data.get("installed") or s_data.get("web") or {}
+            cid = s_info.get("client_id", "")
+            if cid:
+                client_id_full = cid
+                client_id_snippet = cid[:12] + "..." + cid[-12:] if len(cid) > 28 else cid
+            project_id = s_info.get("project_id")
+        except Exception:
+            pass
+
     return {
         "has_secrets": True,
         "has_client_secrets": True,
         "authenticated": authenticated,
         "client_type": client_type,
+        "client_id_snippet": client_id_snippet,
+        "client_id_full": client_id_full,
+        "project_id": project_id,
         "accounts": accounts,
         "account_count": len(accounts),
         "channel_title": primary.get("channel_title"),

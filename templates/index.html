@@ -1432,6 +1432,10 @@
                                 <i data-lucide="help-circle" class="w-3.5 h-3.5 text-zinc-400"></i>
                                 <span>Setup Guide</span>
                             </button>
+                            <button type="button" onclick="openChangeYtCredentialsModal()" id="btn-yt-change-creds" class="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-xs text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition-colors" title="Change or replace YouTube API Key / OAuth Client Secret">
+                                <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
+                                <span id="yt-creds-btn-label">Change API Key</span>
+                            </button>
                             <button type="button" onclick="connectYouTubeChannel()" id="btn-yt-connect" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-red-600/25 transition-all">
                                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                                 <span id="yt-connect-btn-label">Connect YouTube</span>
@@ -1454,13 +1458,17 @@
                         <ol class="space-y-2 text-zinc-300 list-decimal list-inside leading-relaxed text-[11px]">
                             <li>Open <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" class="text-indigo-400 underline font-bold">Google Cloud Console</a>, create a free project, and click <strong>Enable</strong> on YouTube Data API v3.</li>
                             <li>Go to <strong>Credentials</strong> &rarr; <strong>Create Credentials</strong> &rarr; <strong>OAuth client ID</strong> &rarr; Application type: <strong>Desktop App</strong>.</li>
-                            <li>Download the JSON file and drop or browse it below:</li>
+                            <li>Download the JSON file or paste your Client ID & Secret below:</li>
                         </ol>
-                        <div class="flex items-center gap-3 pt-1">
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
                             <input type="file" id="yt-secrets-file-input" accept=".json" class="hidden" onchange="handleClientSecretsUpload(event)">
                             <button type="button" onclick="document.getElementById('yt-secrets-file-input').click()" class="px-3 py-1.5 rounded-lg bg-brand-surface hover:bg-brand-border text-white text-xs font-semibold border border-brand-border flex items-center gap-1.5">
                                 <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i>
                                 <span>Upload client_secret.json</span>
+                            </button>
+                            <button type="button" onclick="openChangeYtCredentialsModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white text-xs font-semibold border border-indigo-500/40 flex items-center gap-1.5">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span>Enter / Change API Key</span>
                             </button>
                             <span id="yt-secrets-status-txt" class="text-[11px] text-zinc-500">Checking credentials...</span>
                         </div>
@@ -1639,6 +1647,116 @@
     <footer class="glass-panel border-t border-brand-border py-3 text-center text-xs text-zinc-500">
         KickStream Studio • Local High-Performance 9:16 Shorts Automation
     </footer>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL: CHANGE YOUTUBE API KEY & OAUTH CREDENTIALS                         -->
+    <!-- ========================================================================= -->
+    <div id="modal-change-yt-creds" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto">
+        <div class="bg-[#121827] border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-left my-8">
+            <div class="flex items-start justify-between gap-3 border-b border-brand-border pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="key" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Change YouTube API Credentials</h3>
+                        <p class="text-[11px] text-zinc-400">Replace wrong client_secret, paste Client ID & Secret, or reset credentials</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeChangeYtCredentialsModal()" class="text-zinc-400 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+
+            <!-- Current Installed Key Status Banner -->
+            <div id="modal-current-creds-banner" class="p-3 rounded-xl bg-brand-bg border border-brand-border space-y-1 text-xs">
+                <div class="flex items-center justify-between text-[10px] text-zinc-500 uppercase font-semibold">
+                    <span>Currently Installed Credentials</span>
+                    <span id="modal-creds-type-badge" class="px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-300">Desktop</span>
+                </div>
+                <p id="modal-creds-id-txt" class="text-emerald-400 font-mono text-[11px] truncate">client_secret.json installed</p>
+            </div>
+
+            <!-- Method Switcher Tabs -->
+            <div class="flex rounded-xl bg-brand-bg p-1 border border-brand-border text-xs font-semibold">
+                <button type="button" onclick="switchYtCredsTab('manual')" id="tab-btn-manual" class="flex-1 py-1.5 rounded-lg bg-indigo-600 text-white transition-all text-center">
+                    Enter Client ID & Secret
+                </button>
+                <button type="button" onclick="switchYtCredsTab('upload')" id="tab-btn-upload" class="flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center">
+                    Upload JSON File
+                </button>
+                <button type="button" onclick="switchYtCredsTab('paste')" id="tab-btn-paste" class="flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center">
+                    Paste Raw JSON
+                </button>
+            </div>
+
+            <!-- Tab 1: Manual Input (Client ID & Secret) -->
+            <div id="tab-content-manual" class="space-y-3 text-xs">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-zinc-300">Client ID <span class="text-red-400">*</span></label>
+                    <input type="text" id="manual-client-id-input" placeholder="e.g. 123456789-abcdefg.apps.googleusercontent.com" class="w-full bg-brand-surface px-3 py-2 rounded-xl border border-brand-border text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-zinc-300">Client Secret <span class="text-red-400">*</span></label>
+                    <input type="password" id="manual-client-secret-input" placeholder="e.g. GOCSPX-xxxxxxxxxxxxxxxxx" class="w-full bg-brand-surface px-3 py-2 rounded-xl border border-brand-border text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-zinc-300">Application Type</label>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-brand-surface border border-indigo-500/30 cursor-pointer">
+                            <input type="radio" name="manual-client-type" value="desktop" checked class="text-indigo-600">
+                            <div>
+                                <div class="font-bold text-white">Desktop App</div>
+                                <div class="text-[9px] text-zinc-400">Zero redirect URI config</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-brand-surface border border-brand-border cursor-pointer">
+                            <input type="radio" name="manual-client-type" value="web" class="text-indigo-600">
+                            <div>
+                                <div class="font-bold text-white">Web App</div>
+                                <div class="text-[9px] text-zinc-400">Requires redirect URI</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <button type="button" onclick="submitManualClientCredentials()" id="btn-save-manual-creds" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-600/25">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Save New Credentials</span>
+                </button>
+            </div>
+
+            <!-- Tab 2: Upload File -->
+            <div id="tab-content-upload" class="hidden space-y-3 text-xs">
+                <div class="border-2 border-dashed border-brand-border hover:border-indigo-500 rounded-xl p-6 text-center space-y-2 cursor-pointer transition-colors" onclick="document.getElementById('modal-yt-secrets-file').click()">
+                    <input type="file" id="modal-yt-secrets-file" accept=".json" class="hidden" onchange="handleModalClientSecretsUpload(event)">
+                    <div class="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    </div>
+                    <p class="font-semibold text-white">Click or drag & drop new client_secret.json</p>
+                    <p class="text-[10px] text-zinc-500">Replaces any existing credential file automatically</p>
+                </div>
+            </div>
+
+            <!-- Tab 3: Paste Raw JSON -->
+            <div id="tab-content-paste" class="hidden space-y-3 text-xs">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-semibold text-zinc-300">Paste Full client_secret.json Content:</label>
+                    <textarea id="modal-json-textarea" rows="6" placeholder='{"installed": {"client_id": "...", "client_secret": "..."}}' class="w-full bg-brand-surface p-2.5 rounded-xl border border-brand-border text-xs text-white font-mono focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                </div>
+                <button type="button" onclick="submitPastedJsonCredentials()" id="btn-save-pasted-json" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-600/25">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Save Pasted JSON</span>
+                </button>
+            </div>
+
+            <!-- Danger Zone: Reset Credentials -->
+            <div class="pt-3 border-t border-brand-border flex items-center justify-between">
+                <span class="text-[11px] text-zinc-400">Need to start over completely?</span>
+                <button type="button" onclick="confirmResetYouTubeCredentials()" class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/20 transition-colors flex items-center gap-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Clear Stored API Key</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- ========================================================================= -->
     <!-- MODAL: YOUTUBE OAUTH SETUP ASSISTANT (SOLVES REDIRECT_URI_MISMATCH)        -->
@@ -4990,6 +5108,199 @@
             });
         }
 
+        // =========================================================================
+        // CHANGE / RESET YOUTUBE API CREDENTIALS MODAL LOGIC
+        // =========================================================================
+
+        let activeYtCredsTab = 'manual';
+
+        function switchYtCredsTab(tab) {
+            activeYtCredsTab = tab;
+            const tabs = ['manual', 'upload', 'paste'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = 'flex-1 py-1.5 rounded-lg bg-indigo-600 text-white transition-all text-center';
+                    } else {
+                        btn.className = 'flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center';
+                    }
+                }
+                if (content) {
+                    content.classList.toggle('hidden', t !== tab);
+                }
+            });
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function openChangeYtCredentialsModal() {
+            const modal = document.getElementById('modal-change-yt-creds');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/youtube/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    const idTxt = document.getElementById('modal-creds-id-txt');
+                    const typeBadge = document.getElementById('modal-creds-type-badge');
+                    if (idTxt) {
+                        if (data.has_client_secrets) {
+                            const desc = data.client_id_snippet ? `Client ID: ${data.client_id_snippet}` : 'client_secret.json installed';
+                            const proj = data.project_id ? ` • Project: ${data.project_id}` : '';
+                            idTxt.innerText = `${desc}${proj}`;
+                            idTxt.className = 'text-emerald-400 font-mono text-[11px] truncate';
+                        } else {
+                            idTxt.innerText = 'No credentials installed yet';
+                            idTxt.className = 'text-zinc-500 font-mono text-[11px] truncate';
+                        }
+                    }
+                    if (typeBadge) {
+                        typeBadge.innerText = data.client_type === 'web' ? 'Web App' : (data.has_client_secrets ? 'Desktop App' : 'None');
+                    }
+                }
+            } catch (e) {
+                console.warn('Error fetching creds status:', e);
+            }
+
+            switchYtCredsTab(activeYtCredsTab || 'manual');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeChangeYtCredentialsModal() {
+            const modal = document.getElementById('modal-change-yt-creds');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function submitManualClientCredentials() {
+            const idInput = document.getElementById('manual-client-id-input');
+            const secretInput = document.getElementById('manual-client-secret-input');
+            const clientId = (idInput ? idInput.value : '').trim();
+            const clientSecret = (secretInput ? secretInput.value : '').trim();
+            const clientTypeRadio = document.querySelector('input[name="manual-client-type"]:checked');
+            const clientType = clientTypeRadio ? clientTypeRadio.value : 'desktop';
+
+            if (!clientId || !clientSecret) {
+                showToast('⚠️ Please enter both Client ID and Client Secret.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-manual-creds');
+            if (btn) {
+                btn.setAttribute('disabled', 'true');
+                btn.innerText = 'Saving...';
+            }
+
+            try {
+                const res = await fetch('/api/youtube/set-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        client_secret: clientSecret,
+                        client_type: clientType,
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to update credentials');
+
+                showToast('✅ YouTube API credentials saved successfully!');
+                closeChangeYtCredentialsModal();
+                if (idInput) idInput.value = '';
+                if (secretInput) secretInput.value = '';
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('❌ Failed: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.removeAttribute('disabled');
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Save New Credentials</span>';
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        }
+
+        async function handleModalClientSecretsUpload(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/youtube/upload-client-secrets', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+                showToast('✅ New client_secret.json installed successfully!');
+                closeChangeYtCredentialsModal();
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('❌ Failed: ' + err.message);
+            } finally {
+                e.target.value = '';
+            }
+        }
+
+        async function submitPastedJsonCredentials() {
+            const textarea = document.getElementById('modal-json-textarea');
+            const rawJson = (textarea ? textarea.value : '').trim();
+            if (!rawJson) {
+                showToast('⚠️ Please paste your client_secret.json content.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-pasted-json');
+            if (btn) {
+                btn.setAttribute('disabled', 'true');
+                btn.innerText = 'Saving...';
+            }
+
+            try {
+                const res = await fetch('/api/youtube/set-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ raw_json: rawJson })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to parse credentials JSON');
+
+                showToast('✅ Credentials updated successfully!');
+                closeChangeYtCredentialsModal();
+                if (textarea) textarea.value = '';
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('❌ Failed: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.removeAttribute('disabled');
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Save Pasted JSON</span>';
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        }
+
+        async function confirmResetYouTubeCredentials() {
+            if (!confirm('Are you sure you want to completely clear the stored YouTube API credentials and all connected channels?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/youtube/reset-credentials', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Reset failed');
+
+                showToast('🗑️ Stored YouTube API credentials and channels cleared.');
+                closeChangeYtCredentialsModal();
+                checkYouTubeAuthStatus();
+            } catch (err) {
+                showToast('❌ Reset failed: ' + err.message);
+            }
+        }
+
         async function submitManualYouTubeCode() {
             const input = document.getElementById('yt-manual-code-input');
             const code = (input ? input.value : '').trim();
@@ -5030,6 +5341,7 @@
         async function checkYouTubeAuthStatus() {
             const badge = document.getElementById('yt-channel-badge');
             const connectBtnLabel = document.getElementById('yt-connect-btn-label');
+            const credsBtnLabel = document.getElementById('yt-creds-btn-label');
             const btnDisconnect = document.getElementById('btn-yt-disconnect');
             const secretsTxt = document.getElementById('yt-secrets-status-txt');
             const webNotice = document.getElementById('yt-web-client-notice');
@@ -5040,14 +5352,21 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
+                if (credsBtnLabel) {
+                    credsBtnLabel.innerText = data.has_client_secrets ? 'Change API Key' : 'Enter API Key';
+                }
+
                 if (secretsTxt) {
                     if (data.has_client_secrets) {
-                        const typeLabel = data.client_type === 'web' ? 'Web App client_secret.json' : 'Desktop client_secret.json';
-                        secretsTxt.innerText = `${typeLabel} installed!`;
+                        const typeLabel = data.client_type === 'web' ? 'Web App' : 'Desktop App';
+                        const snippet = data.client_id_snippet ? ` (${data.client_id_snippet})` : '';
+                        secretsTxt.innerText = `${typeLabel} installed${snippet}`;
                         secretsTxt.classList.add('text-emerald-400');
                         secretsTxt.classList.remove('text-zinc-500');
                     } else {
-                        secretsTxt.innerText = 'client_secret.json not found yet';
+                        secretsTxt.innerText = 'No client_secret.json or API key installed yet';
+                        secretsTxt.classList.remove('text-emerald-400');
+                        secretsTxt.classList.add('text-zinc-500');
                     }
                 }
 

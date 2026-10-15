@@ -24,6 +24,8 @@ from core.audio_detector import analyze_audio_climax
 from core.youtube_uploader import (
     get_youtube_auth_status,
     save_client_secrets_json,
+    save_client_id_and_secret,
+    reset_youtube_credentials,
     start_youtube_oauth_flow,
     disconnect_youtube,
     disconnect_youtube_account,
@@ -137,6 +139,13 @@ class ExportPayload(BaseModel):
 class SafeMetadataRequest(BaseModel):
     streamer: Optional[str] = None
     detected_win: Optional[str] = None
+
+
+class SetYouTubeCredentialsRequest(BaseModel):
+    raw_json: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    client_type: Optional[str] = "desktop"
 
 
 class GenerateBannerRequest(BaseModel):
@@ -922,6 +931,43 @@ async def upload_client_secrets_endpoint(file: UploadFile = File(...)):
         return {"status": "ok", "auth_status": status}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid client_secret.json: {str(exc)}")
+
+
+@app.post("/api/youtube/set-credentials")
+async def set_youtube_credentials_endpoint(req: SetYouTubeCredentialsRequest):
+    """Sets, changes, or replaces YouTube API Key / OAuth credentials via raw JSON or Client ID & Secret."""
+    try:
+        if req.raw_json and req.raw_json.strip():
+            save_client_secrets_json(req.raw_json.strip())
+        elif req.client_id and req.client_secret:
+            save_client_id_and_secret(
+                client_id=req.client_id,
+                client_secret=req.client_secret,
+                client_type=req.client_type or "desktop",
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Please provide either raw JSON or both Client ID and Client Secret.")
+        status = get_youtube_auth_status()
+        return {
+            "status": "ok",
+            "message": "YouTube API credentials updated successfully.",
+            "auth_status": status,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/api/youtube/reset-credentials")
+async def reset_youtube_credentials_endpoint():
+    """Completely clears stored client_secret.json, all connected channels, and tokens."""
+    ok = reset_youtube_credentials()
+    status = get_youtube_auth_status()
+    return {
+        "status": "ok",
+        "reset": ok,
+        "auth_status": status,
+        "message": "YouTube API credentials and connected accounts have been cleared.",
+    }
 
 
 @app.get("/api/youtube/diagnose-oauth")

@@ -343,8 +343,16 @@ def disconnect_youtube() -> bool:
         return False
 
 
-def create_youtube_flow(redirect_uri: str = "http://127.0.0.1:7860/api/youtube/oauth2callback") -> Flow:
-    """Creates a google-auth Flow supporting both web and installed client configurations."""
+_PENDING_OAUTH_FLOWS: Dict[str, str] = {}
+_LATEST_CODE_VERIFIER: Optional[str] = None
+
+
+def create_youtube_flow(
+    redirect_uri: str = "http://127.0.0.1:7860/api/youtube/oauth2callback",
+    autogenerate_code_verifier: bool = False,
+    code_verifier: Optional[str] = None,
+) -> Flow:
+    """Creates a google-auth Flow supporting both web and installed client configurations without PKCE desync."""
     if not CLIENT_SECRETS_FILE.is_file():
         raise FileNotFoundError(
             "client_secret.json not found. Please upload your OAuth Client ID file first."
@@ -357,18 +365,28 @@ def create_youtube_flow(redirect_uri: str = "http://127.0.0.1:7860/api/youtube/o
         data,
         scopes=SCOPES,
         redirect_uri=redirect_uri,
+        autogenerate_code_verifier=autogenerate_code_verifier,
     )
+    if code_verifier:
+        flow.code_verifier = code_verifier
     return flow
 
 
 def get_youtube_authorization_url(redirect_uri: str = "http://127.0.0.1:7860/api/youtube/oauth2callback") -> Dict[str, Any]:
-    """Generates the authorization URL and state for user consent, prompting account chooser for multi-channel support."""
-    flow = create_youtube_flow(redirect_uri=redirect_uri)
+    """Generates the authorization URL and state for user consent, preventing PKCE code_verifier desynchronization."""
+    global _LATEST_CODE_VERIFIER
+    # Confidential clients with client_secret do not require PKCE and benefit from autogenerate_code_verifier=False
+    flow = create_youtube_flow(redirect_uri=redirect_uri, autogenerate_code_verifier=False)
     auth_url, state = flow.authorization_url(
         prompt="select_account consent",
         access_type="offline",
         include_granted_scopes="true",
     )
+    cv = getattr(flow, "code_verifier", None)
+    if cv:
+        _PENDING_OAUTH_FLOWS[state] = cv
+        _LATEST_CODE_VERIFIER = cv
+
     return {
         "auth_url": auth_url,
         "state": state,
@@ -380,8 +398,10 @@ def get_youtube_authorization_url(redirect_uri: str = "http://127.0.0.1:7860/api
 def exchange_youtube_code(
     code: str,
     redirect_uri: str = "http://127.0.0.1:7860/api/youtube/oauth2callback",
+    state: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Exchanges authorization code for access and refresh tokens, saving channel metadata."""
+    """Exchanges authorization code for access and refresh tokens, handling PKCE verifier gracefully."""
+    global _LATEST_CODE_VERIFIER
     clean_code = code.strip()
     if "code=" in clean_code:
         import urllib.parse
@@ -389,9 +409,32 @@ def exchange_youtube_code(
         qs = urllib.parse.parse_qs(parsed.query)
         if "code" in qs and qs["code"]:
             clean_code = qs["code"][0]
+        if not state and "state" in qs and qs["state"]:
+            state = qs["state"][0]
 
-    flow = create_youtube_flow(redirect_uri=redirect_uri)
-    flow.fetch_token(code=clean_code)
+    verifier = None
+    if state and state in _PENDING_OAUTH_FLOWS:
+        verifier = _PENDING_OAUTH_FLOWS[state]
+    elif _LATEST_CODE_VERIFIER:
+        verifier = _LATEST_CODE_VERIFIER
+
+    flow = create_youtube_flow(
+        redirect_uri=redirect_uri,
+        autogenerate_code_verifier=bool(verifier),
+        code_verifier=verifier,
+    )
+
+    try:
+        flow.fetch_token(code=clean_code)
+    except Exception as exc:
+        # If fetch_token fails due to code_verifier mismatch, retry without verifier
+        if "code verifier" in str(exc).lower():
+            flow_fallback = create_youtube_flow(redirect_uri=redirect_uri, autogenerate_code_verifier=False)
+            flow_fallback.fetch_token(code=clean_code)
+            flow = flow_fallback
+        else:
+            raise
+
     creds = flow.credentials
 
     # Identify channel info via YouTube Data API

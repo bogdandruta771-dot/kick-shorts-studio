@@ -1095,7 +1095,12 @@ async def connect_youtube_endpoint(request: Request):
 
 
 @app.get("/api/youtube/oauth2callback", response_class=HTMLResponse)
-async def youtube_oauth2_callback(request: Request, code: Optional[str] = None, error: Optional[str] = None):
+async def youtube_oauth2_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
     """Handles OAuth2 redirect directly from Google consent screen."""
     if error:
         return HTMLResponse(
@@ -1134,7 +1139,7 @@ async def youtube_oauth2_callback(request: Request, code: Optional[str] = None, 
         if "0.0.0.0" in redirect_uri:
             redirect_uri = redirect_uri.replace("0.0.0.0", "127.0.0.1")
 
-        res = exchange_youtube_code(code, redirect_uri=redirect_uri)
+        res = exchange_youtube_code(code, redirect_uri=redirect_uri, state=state)
         channel_name = res.get("channel_title") or "YouTube Channel"
         return HTMLResponse(
             content=f"""

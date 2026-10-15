@@ -38,6 +38,8 @@
     </script>
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HLS.js for Kick stream playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <style>
         body {
             background-color: #090a0f;
@@ -397,6 +399,33 @@
                     <!-- Clips Grid Container -->
                     <div id="clips-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[320px]">
                         <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Multi-Page Pagination & Controls Bar -->
+                    <div id="clips-pagination-container" class="hidden flex flex-col md:flex-row items-center justify-between gap-3 pt-4 border-t border-brand-border/60">
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                            <span id="clips-page-summary" class="font-mono text-zinc-300">Showing 1-12 of 60 clips</span>
+                            <div class="flex items-center gap-1 bg-brand-surface p-1 rounded-xl border border-brand-border text-[11px]">
+                                <span class="px-1 text-zinc-500 font-semibold uppercase text-[9px]">Per Page:</span>
+                                <button type="button" onclick="setClipPageSize(12)" id="btn-page-size-12" class="px-2 py-0.5 rounded-lg font-medium transition-all text-white bg-indigo-600">12</button>
+                                <button type="button" onclick="setClipPageSize(24)" id="btn-page-size-24" class="px-2 py-0.5 rounded-lg font-medium transition-all text-zinc-400 hover:text-white">24</button>
+                                <button type="button" onclick="setClipPageSize(48)" id="btn-page-size-48" class="px-2 py-0.5 rounded-lg font-medium transition-all text-zinc-400 hover:text-white">48</button>
+                                <button type="button" onclick="setClipPageSize('all')" id="btn-page-size-all" class="px-2 py-0.5 rounded-lg font-medium transition-all text-zinc-400 hover:text-white">All</button>
+                            </div>
+                        </div>
+
+                        <!-- Page Navigation Buttons: [Prev] [1] [2] [3]... [Next] -->
+                        <div class="flex items-center gap-1.5" id="clips-pagination-buttons">
+                            <!-- Populated dynamically via renderClipsPagination() -->
+                        </div>
+
+                        <!-- Load All Available Clips (100+) -->
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="loadAllClipsMax()" id="btn-load-all-clips" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-emerald-600/30 hover:from-indigo-600/50 hover:to-emerald-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span>Fetch Max (100+ Clips)</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Empty State / No Results -->
@@ -1996,22 +2025,34 @@
                     <span>2. Re-test & Connect</span>
                 </button>
             </div>
+        </div>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- MODAL: QUICK CLIP PREVIEW PLAYER                                           -->
     <!-- ========================================================================= -->
-    <div id="modal-clip-preview" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-5 animate-fade-in">
-        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl space-y-0 flex flex-col">
+    <div id="modal-clip-preview" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-5 animate-fade-in" onclick="if(event.target===this) closeClipPreviewModal()">
+        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl space-y-0 flex flex-col" onclick="event.stopPropagation()">
             <div class="p-4 border-b border-brand-border flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <span id="preview-modal-plat-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">KICK</span>
                     <span id="preview-modal-title" class="text-xs sm:text-sm font-bold text-white truncate max-w-sm sm:max-w-md">Clip Title</span>
                 </div>
-                <button type="button" onclick="closeClipPreviewModal()" class="w-8 h-8 rounded-lg bg-brand-surface hover:bg-brand-border flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <a id="preview-modal-external-link" href="#" target="_blank" rel="noopener noreferrer" class="p-1.5 rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-400 hover:text-white transition-colors flex items-center gap-1 text-xs" title="Open original clip">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Open</span>
+                    </a>
+                    <button type="button" onclick="closeClipPreviewModal()" class="w-8 h-8 rounded-lg bg-brand-surface hover:bg-brand-border flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
             <div class="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                <!-- Video element for Kick (.m3u8 with HLS.js or mp4) -->
                 <video id="preview-modal-video" controls autoplay playsinline class="w-full h-full object-contain"></video>
+                <!-- Iframe element for Twitch official embed player -->
+                <iframe id="preview-modal-iframe" class="w-full h-full hidden" frameborder="0" allowfullscreen="true" scrolling="no"></iframe>
             </div>
             <div class="p-3.5 sm:p-4 border-t border-brand-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-brand-bg/60">
                 <div class="text-xs text-zinc-400 flex items-center gap-2 w-full sm:w-auto">
@@ -2037,8 +2078,8 @@
     <!-- ========================================================================= -->
     <!-- MODAL: 1-CLICK SHORT GENERATION PIPELINE & PROGRESS                        -->
     <!-- ========================================================================= -->
-    <div id="modal-oneclick-progress" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-center">
+    <div id="modal-oneclick-progress" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 animate-fade-in" onclick="if(event.target===this) closeOneClickModal()">
+        <div class="bg-brand-card border border-brand-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-center" onclick="event.stopPropagation()">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-indigo-500/20 to-purple-500/20 border border-emerald-500/30 mx-auto flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
                 <i data-lucide="zap" class="w-7 h-7 text-yellow-300 animate-pulse"></i>
             </div>
@@ -2482,10 +2523,13 @@
             query: '',
             isLoading: false,
             clips: [],
+            currentPage: 1,
+            pageSize: 12,
             activePreviewClip: null,
             activeOneClickJobId: null,
             pollTimer: null,
         };
+        let activeHls = null;
 
         // Ingest Mode Toggle (4 Modes: explorer, watchdog, url, file)
         function setIngestMode(mode) {
@@ -2544,18 +2588,19 @@
             lucide.createIcons();
         }
 
-        async function loadTrendingClips() {
+        async function loadTrendingClips(fetchLimit = 60) {
             clipExplorerState.isLoading = true;
             renderClipsSkeleton();
             const badge = document.getElementById('clips-counter-badge');
             if (badge) badge.innerText = 'Fetching...';
 
             try {
-                const res = await fetch(`/api/clips/trending?platform=${clipExplorerState.platform}&time_filter=${clipExplorerState.timeFilter}&limit=21`);
+                const res = await fetch(`/api/clips/trending?platform=${clipExplorerState.platform}&time_filter=${clipExplorerState.timeFilter}&limit=${fetchLimit}`);
                 if (!res.ok) throw new Error('Failed to load trending clips');
                 const data = await res.json();
                 clipExplorerState.clips = data.clips || [];
-                renderClipsGrid(clipExplorerState.clips);
+                clipExplorerState.currentPage = 1;
+                renderClipsPage();
             } catch (err) {
                 console.warn('Trending clips load error:', err);
                 renderClipsError(err.message);
@@ -2564,7 +2609,7 @@
             }
         }
 
-        async function searchClipsNow() {
+        async function searchClipsNow(fetchLimit = 60) {
             const queryInput = document.getElementById('clip-search-query');
             const query = (queryInput ? queryInput.value : '').trim();
             clipExplorerState.query = query;
@@ -2590,13 +2635,14 @@
                         category: clipExplorerState.category,
                         time_filter: clipExplorerState.timeFilter,
                         sort: clipExplorerState.sort,
-                        limit: 24,
+                        limit: fetchLimit,
                     })
                 });
                 if (!res.ok) throw new Error('Search failed');
                 const data = await res.json();
                 clipExplorerState.clips = data.clips || [];
-                renderClipsGrid(clipExplorerState.clips);
+                clipExplorerState.currentPage = 1;
+                renderClipsPage();
             } catch (err) {
                 console.warn('Clip search error:', err);
                 renderClipsError(err.message);
@@ -2605,10 +2651,15 @@
             }
         }
 
+        function loadAllClipsMax() {
+            showToast('Fetching max clips from Kick & Twitch...', 'info');
+            searchClipsNow(120);
+        }
+
         function refreshTrendingClips() {
             const icon = document.getElementById('icon-refresh-clips');
             if (icon) icon.classList.add('animate-spin');
-            searchClipsNow().finally(() => {
+            searchClipsNow(60).finally(() => {
                 setTimeout(() => {
                     if (icon) icon.classList.remove('animate-spin');
                 }, 600);
@@ -2621,7 +2672,7 @@
             const clearBtn = document.getElementById('btn-clear-clip-search');
             if (clearBtn) clearBtn.classList.add('hidden');
             clipExplorerState.query = '';
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function quickSearchStreamer(name) {
@@ -2630,7 +2681,7 @@
             const clearBtn = document.getElementById('btn-clear-clip-search');
             if (clearBtn) clearBtn.classList.remove('hidden');
             clipExplorerState.query = name;
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function setClipExplorerPlatform(plat) {
@@ -2645,7 +2696,7 @@
                     }
                 }
             });
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function setClipExplorerTime(time) {
@@ -2660,7 +2711,7 @@
                     }
                 }
             });
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function setClipExplorerSort(sort) {
@@ -2674,7 +2725,7 @@
                 if (btnView) btnView.className = 'px-2.5 py-1 rounded-lg font-medium transition-all text-zinc-400 hover:text-zinc-200 flex items-center gap-1';
                 if (btnDate) btnDate.className = 'px-2.5 py-1 rounded-lg font-medium transition-all text-indigo-300 bg-brand-bg shadow-xs flex items-center gap-1';
             }
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function setClipExplorerCategory(cat) {
@@ -2690,13 +2741,15 @@
                     }
                 }
             });
-            searchClipsNow();
+            searchClipsNow(60);
         }
 
         function renderClipsSkeleton() {
             const container = document.getElementById('clips-grid');
             const emptyEl = document.getElementById('clips-empty-state');
+            const pagEl = document.getElementById('clips-pagination-container');
             if (emptyEl) emptyEl.classList.add('hidden');
+            if (pagEl) pagEl.classList.add('hidden');
             if (!container) return;
 
             let html = '';
@@ -2717,13 +2770,15 @@
         function renderClipsError(msg) {
             const container = document.getElementById('clips-grid');
             const badge = document.getElementById('clips-counter-badge');
+            const pagEl = document.getElementById('clips-pagination-container');
             if (badge) badge.innerText = '0 clips';
+            if (pagEl) pagEl.classList.add('hidden');
             if (container) {
                 container.innerHTML = `
                 <div class="col-span-full py-10 text-center text-zinc-400 space-y-2">
                     <p class="text-sm font-semibold text-rose-400">Could not fetch clips</p>
                     <p class="text-xs text-zinc-500">${escapeHtml(msg || 'Network or service timeout')}</p>
-                    <button onclick="searchClipsNow()" class="mt-2 px-3 py-1.5 rounded-lg bg-brand-surface border border-brand-border text-xs text-white">Retry</button>
+                    <button onclick="searchClipsNow(60)" class="mt-2 px-3 py-1.5 rounded-lg bg-brand-surface border border-brand-border text-xs text-white">Retry</button>
                 </div>`;
             }
         }
@@ -2757,13 +2812,152 @@
             }
         }
 
+        // --- MULTI-PAGE PAGINATION DISPATCHER ---
+        function renderClipsPage() {
+            const all = clipExplorerState.clips || [];
+            const total = all.length;
+            const pageSize = clipExplorerState.pageSize;
+
+            if (total === 0) {
+                renderClipsGrid([]);
+                renderClipsPagination();
+                return;
+            }
+
+            let pageItems = all;
+            if (pageSize !== 'all') {
+                const size = Number(pageSize) || 12;
+                const totalPages = Math.max(1, Math.ceil(total / size));
+                if (clipExplorerState.currentPage > totalPages) clipExplorerState.currentPage = totalPages;
+                const start = (clipExplorerState.currentPage - 1) * size;
+                pageItems = all.slice(start, start + size);
+            }
+
+            renderClipsGrid(pageItems);
+            renderClipsPagination();
+        }
+
+        function renderClipsPagination() {
+            const pagEl = document.getElementById('clips-pagination-container');
+            const summaryEl = document.getElementById('clips-page-summary');
+            const btnsEl = document.getElementById('clips-pagination-buttons');
+            const all = clipExplorerState.clips || [];
+            const total = all.length;
+
+            if (!pagEl) return;
+            if (total <= 1) {
+                pagEl.classList.add('hidden');
+                return;
+            }
+            pagEl.classList.remove('hidden');
+
+            const pageSize = clipExplorerState.pageSize;
+            const currentPage = clipExplorerState.currentPage;
+
+            // Update Page Size Pills styling
+            ['12', '24', '48', 'all'].forEach(s => {
+                const btn = document.getElementById(`btn-page-size-${s}`);
+                if (btn) {
+                    if (String(pageSize) === s) {
+                        btn.className = 'px-2 py-0.5 rounded-lg font-medium transition-all text-white bg-indigo-600 shadow-xs';
+                    } else {
+                        btn.className = 'px-2 py-0.5 rounded-lg font-medium transition-all text-zinc-400 hover:text-white';
+                    }
+                }
+            });
+
+            if (pageSize === 'all') {
+                if (summaryEl) summaryEl.innerText = `Showing all ${total} clips`;
+                if (btnsEl) btnsEl.innerHTML = '';
+                return;
+            }
+
+            const size = Number(pageSize) || 12;
+            const totalPages = Math.max(1, Math.ceil(total / size));
+            const startIdx = (currentPage - 1) * size + 1;
+            const endIdx = Math.min(total, currentPage * size);
+
+            if (summaryEl) {
+                summaryEl.innerText = `Showing ${startIdx}-${endIdx} of ${total} clips (Page ${currentPage} of ${totalPages})`;
+            }
+
+            if (!btnsEl) return;
+
+            let html = '';
+            // Prev button
+            const prevDisabled = currentPage <= 1;
+            html += `
+            <button onclick="goToClipPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg text-xs font-semibold border border-brand-border bg-brand-surface ${prevDisabled ? 'opacity-40 cursor-not-allowed text-zinc-500' : 'text-zinc-300 hover:text-white hover:bg-brand-border'} transition-colors flex items-center gap-1">
+                <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Prev</span>
+            </button>`;
+
+            // Page numbers
+            const maxVisible = 5;
+            let startP = Math.max(1, currentPage - 2);
+            let endP = Math.min(totalPages, startP + maxVisible - 1);
+            if (endP - startP < maxVisible - 1) {
+                startP = Math.max(1, endP - maxVisible + 1);
+            }
+
+            if (startP > 1) {
+                html += `<button onclick="goToClipPage(1)" class="w-7 h-7 rounded-lg text-xs font-semibold border border-brand-border bg-brand-surface text-zinc-300 hover:text-white hover:bg-brand-border transition-colors">1</button>`;
+                if (startP > 2) html += `<span class="text-zinc-600 px-1">...</span>`;
+            }
+
+            for (let p = startP; p <= endP; p++) {
+                if (p === currentPage) {
+                    html += `<button class="w-7 h-7 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500">${p}</button>`;
+                } else {
+                    html += `<button onclick="goToClipPage(${p})" class="w-7 h-7 rounded-lg text-xs font-semibold border border-brand-border bg-brand-surface text-zinc-300 hover:text-white hover:bg-brand-border transition-colors">${p}</button>`;
+                }
+            }
+
+            if (endP < totalPages) {
+                if (endP < totalPages - 1) html += `<span class="text-zinc-600 px-1">...</span>`;
+                html += `<button onclick="goToClipPage(${totalPages})" class="w-7 h-7 rounded-lg text-xs font-semibold border border-brand-border bg-brand-surface text-zinc-300 hover:text-white hover:bg-brand-border transition-colors">${totalPages}</button>`;
+            }
+
+            // Next button
+            const nextDisabled = currentPage >= totalPages;
+            html += `
+            <button onclick="goToClipPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg text-xs font-semibold border border-brand-border bg-brand-surface ${nextDisabled ? 'opacity-40 cursor-not-allowed text-zinc-500' : 'text-zinc-300 hover:text-white hover:bg-brand-border'} transition-colors flex items-center gap-1">
+                <span class="hidden sm:inline">Next</span>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>`;
+
+            btnsEl.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function goToClipPage(p) {
+            const all = clipExplorerState.clips || [];
+            const size = clipExplorerState.pageSize === 'all' ? all.length : (Number(clipExplorerState.pageSize) || 12);
+            const totalPages = Math.max(1, Math.ceil(all.length / size));
+            const targetPage = Math.max(1, Math.min(p, totalPages));
+            clipExplorerState.currentPage = targetPage;
+            renderClipsPage();
+
+            const labelEl = document.getElementById('clips-counter-label');
+            if (labelEl) {
+                labelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function setClipPageSize(size) {
+            clipExplorerState.pageSize = size;
+            clipExplorerState.currentPage = 1;
+            renderClipsPage();
+        }
+
         function renderClipsGrid(clips) {
             const container = document.getElementById('clips-grid');
             const emptyEl = document.getElementById('clips-empty-state');
             const badge = document.getElementById('clips-counter-badge');
             const countLabel = document.getElementById('clips-counter-label');
+            const total = (clipExplorerState.clips || []).length;
 
-            if (badge) badge.innerText = `${clips.length} viral clips`;
+            if (badge) badge.innerText = `${total} viral clips`;
             if (countLabel) {
                 countLabel.innerText = clipExplorerState.query ? `Results for "${clipExplorerState.query}"` : 'Top Viral Clips';
             }
@@ -2786,6 +2980,8 @@
                 const safeStreamer = escapeHtml(clip.streamer || 'Streamer');
                 const safeCat = escapeHtml(clip.category || (isKick ? 'Kick' : 'Twitch'));
                 const clipUrl = clip.url || '';
+                const streamUrl = clip.stream_url || '';
+                const clipId = clip.id || '';
                 const thumb = clip.thumbnail_url || '/fallback-thumb.jpg';
                 const viewTxt = formatViews(clip.views);
                 const durTxt = formatDuration(clip.duration);
@@ -2820,7 +3016,7 @@
                         </div>
 
                         <!-- Hover Play Button overlay for Instant Preview -->
-                        <button type="button" onclick="openClipPreview('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${clip.platform}', '${viewTxt}')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-xs cursor-pointer" title="Quick Preview Video">
+                        <button type="button" onclick="openClipPreview('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${clip.platform}', '${viewTxt}', '${streamUrl.replace(/'/g, "\\'")}', '${clipId}')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-xs cursor-pointer" title="Quick Preview Video">
                             <div class="w-11 h-11 rounded-full bg-white/95 text-black flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
                                 <i data-lucide="play" class="w-5 h-5 fill-black ml-0.5"></i>
                             </div>
@@ -2851,11 +3047,11 @@
 
                         <!-- Actions Bar -->
                         <div class="grid grid-cols-2 gap-2 pt-2 border-t border-brand-border/40">
-                            <button type="button" onclick="triggerOneClickShort('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}')" class="py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30 hover:scale-[1.02] transition-all" title="1-Click: Download, 9:16 layout, Whisper subtitles, anti-shadowban layer, and ready for YouTube">
+                            <button type="button" onclick="triggerOneClickShort('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}', this)" class="py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30 hover:scale-[1.02] transition-all" title="1-Click: Download, 9:16 layout, Whisper subtitles, anti-shadowban layer, and ready for YouTube">
                                 <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i>
                                 <span>1-Click Short</span>
                             </button>
-                            <button type="button" onclick="importClipToStudio('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}', '${clip.platform}')" class="py-2 px-2.5 rounded-xl bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all" title="Load into Studio Framing (Step 2) to manually adjust crop boxes">
+                            <button type="button" onclick="importClipToStudio('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}', '${clip.platform}', this)" class="py-2 px-2.5 rounded-xl bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all" title="Load into Studio Framing (Step 2) to manually adjust crop boxes">
                                 <i data-lucide="sliders" class="w-3.5 h-3.5 text-indigo-400"></i>
                                 <span>Framing</span>
                             </button>
@@ -2868,32 +3064,81 @@
         }
 
         // --- PREVIEW MODAL HANDLERS ---
-        function openClipPreview(url, title, streamer, platform, viewTxt) {
-            clipExplorerState.activePreviewClip = { url, title, streamer, platform };
+        function openClipPreview(url, title, streamer, platform, viewTxt, streamUrl, clipId) {
+            clipExplorerState.activePreviewClip = { url, title, streamer, platform, streamUrl, clipId };
             const modal = document.getElementById('modal-clip-preview');
             const titleEl = document.getElementById('preview-modal-title');
             const streamerEl = document.getElementById('preview-modal-streamer');
             const viewsEl = document.getElementById('preview-modal-views');
             const badgeEl = document.getElementById('preview-modal-plat-badge');
+            const extLink = document.getElementById('preview-modal-external-link');
             const videoEl = document.getElementById('preview-modal-video');
+            const iframeEl = document.getElementById('preview-modal-iframe');
 
             if (titleEl) titleEl.innerText = title || 'Clip Preview';
             if (streamerEl) streamerEl.innerText = streamer || 'Streamer';
             if (viewsEl) viewsEl.innerText = viewTxt ? `${viewTxt} views` : '';
-            if (badgeEl) {
-                if (platform === 'twitch') {
+            if (extLink) extLink.href = url || '#';
+
+            // Clean up previous playback
+            if (activeHls) {
+                activeHls.destroy();
+                activeHls = null;
+            }
+            if (videoEl) {
+                videoEl.pause();
+                videoEl.removeAttribute('src');
+                videoEl.load();
+            }
+            if (iframeEl) {
+                iframeEl.src = 'about:blank';
+            }
+
+            if (platform === 'twitch') {
+                if (badgeEl) {
                     badgeEl.innerText = 'TWITCH';
                     badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500/20 text-purple-400 border border-purple-500/30';
-                } else {
+                }
+                if (videoEl) videoEl.classList.add('hidden');
+                if (iframeEl) {
+                    iframeEl.classList.remove('hidden');
+                    let slug = clipId || '';
+                    if (!slug && url) {
+                        const m = url.match(/(?:clips\.twitch\.tv\/|\/clip\/)([A-Za-z0-9_-]+)/);
+                        if (m) slug = m[1];
+                    }
+                    if (slug) {
+                        const host = window.location.hostname || 'localhost';
+                        iframeEl.src = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(slug)}&parent=${encodeURIComponent(host)}&autoplay=true`;
+                    } else {
+                        iframeEl.src = url;
+                    }
+                }
+            } else {
+                // Kick or other direct stream
+                if (badgeEl) {
                     badgeEl.innerText = 'KICK';
                     badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 }
-            }
-
-            if (videoEl) {
-                videoEl.src = url;
-                videoEl.load();
-                videoEl.play().catch(() => {});
+                if (iframeEl) iframeEl.classList.add('hidden');
+                if (videoEl) {
+                    videoEl.classList.remove('hidden');
+                    const targetMedia = streamUrl || url;
+                    if (targetMedia.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
+                        activeHls = new Hls({ enableWorker: true });
+                        activeHls.loadSource(targetMedia);
+                        activeHls.attachMedia(videoEl);
+                        activeHls.on(Hls.Events.MANIFEST_PARSED, function() {
+                            videoEl.play().catch(() => {});
+                        });
+                    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoEl.src = targetMedia;
+                        videoEl.play().catch(() => {});
+                    } else {
+                        videoEl.src = targetMedia;
+                        videoEl.play().catch(() => {});
+                    }
+                }
             }
 
             if (modal) modal.classList.remove('hidden');
@@ -2903,9 +3148,20 @@
         function closeClipPreviewModal() {
             const modal = document.getElementById('modal-clip-preview');
             const videoEl = document.getElementById('preview-modal-video');
+            const iframeEl = document.getElementById('preview-modal-iframe');
+
+            if (activeHls) {
+                activeHls.destroy();
+                activeHls = null;
+            }
             if (videoEl) {
                 videoEl.pause();
-                videoEl.src = '';
+                videoEl.removeAttribute('src');
+                videoEl.load();
+            }
+            if (iframeEl) {
+                iframeEl.src = 'about:blank';
+                iframeEl.classList.add('hidden');
             }
             if (modal) modal.classList.add('hidden');
         }
@@ -2925,8 +3181,16 @@
         }
 
         // --- IMPORT CLIP TO STUDIO (STEP 2 FRAMING) ---
-        async function importClipToStudio(clipUrl, title, streamer, category, platform) {
+        async function importClipToStudio(clipUrl, title, streamer, category, platform, btnEl) {
+            let originalHtml = '';
+            if (btnEl) {
+                originalHtml = btnEl.innerHTML;
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div><span>Importing...</span>`;
+            }
+            showToast(`Importing "${title || 'Clip'}" into Framing Studio...`, 'info');
             setIngestLoading(true, `Importing "${title || 'Clip'}" into studio framing...`);
+
             try {
                 const res = await fetch('/api/clips/import', {
                     method: 'POST',
@@ -2943,18 +3207,23 @@
                 if (!res.ok) throw new Error(data.detail || 'Failed to import clip');
 
                 handleIngestSuccess(data);
-                showToast(`Clip imported: "${title}"`, 'success');
+                showToast(`Clip imported successfully: "${title}"`, 'success');
                 appState.maxUnlockedStep = Math.max(appState.maxUnlockedStep, 2);
                 goToStep(2);
             } catch (err) {
                 showToast('Import error: ' + err.message, 'error');
             } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }
                 setIngestLoading(false);
             }
         }
 
         // --- 1-CLICK VIRAL SHORT AUTOMATION ---
-        async function triggerOneClickShort(clipUrl, title, streamer, category) {
+        async function triggerOneClickShort(clipUrl, title, streamer, category, btnEl) {
             const modal = document.getElementById('modal-oneclick-progress');
             const titleEl = document.getElementById('oneclick-modal-title');
             const subEl = document.getElementById('oneclick-modal-subtitle');
@@ -2970,6 +3239,8 @@
             if (pct) pct.innerText = '10%';
             if (successBox) successBox.classList.add('hidden');
             if (modal) modal.classList.remove('hidden');
+
+            showToast(`1-Click Short started for "${title || 'Clip'}"!`, 'info');
 
             try {
                 const res = await fetch('/api/clips/one-click-short', {

@@ -160,39 +160,54 @@ def fetch_kick_clips(
     else:
         url = f"https://kick.com/api/v2/clips?sort={clean_sort}&time={clean_time}"
 
-    try:
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            raw_clips = data.get("clips", [])
-            clips = []
-            for item in raw_clips[:limit]:
-                channel = item.get("channel") or {}
-                category = item.get("category") or {}
-                creator = item.get("creator") or {}
-                clip_id = str(item.get("id") or "")
-                ch_slug = channel.get("slug") or channel.get("username") or "streamer"
-                clip_page = f"https://kick.com/{ch_slug}?clip={clip_id}" if clip_id else f"https://kick.com/{ch_slug}"
+    clips: List[Dict[str, Any]] = []
+    cursor: Optional[str] = None
+    target_limit = max(1, limit)
+    max_pages = min(6, (target_limit + 19) // 20)
 
-                clips.append({
-                    "id": clip_id,
-                    "title": item.get("title") or f"{ch_slug} Moment",
-                    "url": clip_page,
-                    "stream_url": item.get("clip_url") or item.get("video_url") or "",
-                    "thumbnail_url": item.get("thumbnail_url") or "",
-                    "platform": "kick",
-                    "streamer": channel.get("username") or ch_slug,
-                    "streamer_slug": ch_slug,
-                    "streamer_avatar": channel.get("profile_picture") or "",
-                    "creator": creator.get("username") or "Viewer",
-                    "views": int(item.get("views") or item.get("view_count") or 0),
-                    "duration": float(item.get("duration") or 30.0),
-                    "category": category.get("name") or "Kick Stream",
-                    "created_at": item.get("created_at") or "",
-                })
-            return clips
+    try:
+        for _ in range(max_pages):
+            page_url = url + (f"&cursor={cursor}" if cursor else "")
+            req = urllib.request.Request(page_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                raw_clips = data.get("clips", [])
+                if not raw_clips:
+                    break
+                for item in raw_clips:
+                    channel = item.get("channel") or {}
+                    category = item.get("category") or {}
+                    creator = item.get("creator") or {}
+                    clip_id = str(item.get("id") or "")
+                    ch_slug = channel.get("slug") or channel.get("username") or "streamer"
+                    clip_page = f"https://kick.com/{ch_slug}?clip={clip_id}" if clip_id else f"https://kick.com/{ch_slug}"
+
+                    clips.append({
+                        "id": clip_id,
+                        "title": item.get("title") or f"{ch_slug} Moment",
+                        "url": clip_page,
+                        "stream_url": item.get("clip_url") or item.get("video_url") or "",
+                        "thumbnail_url": item.get("thumbnail_url") or "",
+                        "platform": "kick",
+                        "streamer": channel.get("username") or ch_slug,
+                        "streamer_slug": ch_slug,
+                        "streamer_avatar": channel.get("profile_picture") or "",
+                        "creator": creator.get("username") or "Viewer",
+                        "views": int(item.get("views") or item.get("view_count") or 0),
+                        "duration": float(item.get("duration") or 30.0),
+                        "category": category.get("name") or "Kick Stream",
+                        "created_at": item.get("created_at") or "",
+                    })
+                    if len(clips) >= target_limit:
+                        break
+
+                cursor = data.get("nextCursor")
+                if not cursor or len(clips) >= target_limit:
+                    break
+
+        return clips
     except Exception:
-        return []
+        return clips
 
 
 def fetch_twitch_clips(
@@ -261,7 +276,7 @@ def fetch_twitch_clips(
                 "query": query,
                 "variables": {
                     "login": slug,
-                    "first": max(1, min(limit, 40)),
+                    "first": max(1, min(limit, 100)),
                     "criteria": {"filter": filt},
                 },
             }).encode("utf-8")
@@ -350,7 +365,7 @@ def fetch_twitch_clips(
             "query": query,
             "variables": {
                 "name": game_target,
-                "first": max(1, min(limit, 40)),
+                "first": max(1, min(limit, 100)),
             },
         }).encode("utf-8")
         try:
@@ -399,7 +414,7 @@ def search_unified_clips(
     category: str = "all",
     time_filter: str = "all",
     sort: str = "view",
-    limit: int = 24,
+    limit: int = 60,
 ) -> List[Dict[str, Any]]:
     """
     High-level clip discovery engine across Kick and Twitch.

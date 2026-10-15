@@ -1,4 +1,4 @@
-"""Kick Casino Stream-to-Shorts Automation Studio - Minimalist Multi-Step Studio Backend."""
+import asyncio
 import os
 import sys
 import time
@@ -130,7 +130,9 @@ class SearchClipsRequest(BaseModel):
     category: Optional[str] = "all"
     time_filter: Optional[str] = "all"  # "day", "week", "month", "all"
     sort: Optional[str] = "view"  # "view", "date"
-    limit: Optional[int] = 24
+    limit: Optional[int] = 60
+    page: Optional[int] = 1
+    page_size: Optional[int] = 12
 
 
 class ImportClipRequest(BaseModel):
@@ -382,19 +384,29 @@ async def select_detector_win(req: SelectWinRequest):
 
 @app.post("/api/clips/search")
 async def search_clips_endpoint(req: SearchClipsRequest):
-    """Searches and discovers top clips across Kick and Twitch with category and time filters."""
+    """Searches and discovers top clips across Kick and Twitch with category and time filters and multi-page support."""
     try:
+        fetch_limit = req.limit or 60
         results = search_unified_clips(
             query=req.query or "",
             platform=req.platform or "all",
             category=req.category or "all",
             time_filter=req.time_filter or "all",
             sort=req.sort or "view",
-            limit=req.limit or 24,
+            limit=fetch_limit,
         )
+        total_count = len(results)
+        page = max(1, req.page or 1)
+        page_size = max(1, req.page_size or 12)
+        total_pages = max(1, (total_count + page_size - 1) // page_size) if total_count > 0 else 1
+
         return {
-            "count": len(results),
+            "count": total_count,
             "clips": results,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
             "query": req.query,
             "platform": req.platform,
             "category": req.category,
@@ -412,7 +424,9 @@ async def search_clips_get(
     category: Optional[str] = "all",
     time_filter: Optional[str] = "all",
     sort: Optional[str] = "view",
-    limit: Optional[int] = 24,
+    limit: Optional[int] = 60,
+    page: Optional[int] = 1,
+    page_size: Optional[int] = 12,
 ):
     """GET variant for instant URL query searching."""
     req = SearchClipsRequest(
@@ -422,6 +436,8 @@ async def search_clips_get(
         time_filter=time_filter,
         sort=sort,
         limit=limit,
+        page=page,
+        page_size=page_size,
     )
     return await search_clips_endpoint(req)
 
@@ -430,7 +446,7 @@ async def search_clips_get(
 async def get_trending_clips(
     platform: Optional[str] = "all",
     time_filter: Optional[str] = "day",
-    limit: Optional[int] = 18,
+    limit: Optional[int] = 60,
 ):
     """Returns hottest trending clips right now from Kick and Twitch."""
     req = SearchClipsRequest(
@@ -439,7 +455,7 @@ async def get_trending_clips(
         category="all",
         time_filter=time_filter or "day",
         sort="view",
-        limit=limit or 18,
+        limit=limit or 60,
     )
     return await search_clips_endpoint(req)
 
@@ -456,11 +472,11 @@ async def import_clip_endpoint(req: ImportClipRequest):
     dest_path = TEMP_DIR / f"{platform}_clip_{ts}_{uuid.uuid4().hex[:4]}.mp4"
 
     try:
-        active_path = download_stream_clip(url, dest_path)
-        meta = validate_media_file(active_path)
+        active_path = await asyncio.to_thread(download_stream_clip, url, dest_path)
+        meta = await asyncio.to_thread(validate_media_file, active_path)
 
         preview_img_path = TEMP_DIR / f"snap_{active_path.stem}.jpg"
-        extract_preview_frame(active_path, preview_img_path, timestamp=2.0)
+        await asyncio.to_thread(extract_preview_frame, active_path, preview_img_path, 2.0)
         img = Image.open(preview_img_path)
         b64 = pil_to_base64(img)
 

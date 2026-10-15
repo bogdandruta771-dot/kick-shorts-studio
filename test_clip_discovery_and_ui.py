@@ -115,6 +115,36 @@ def test_ui_html_structure_and_enhancements():
     assert "panel-ingest-explorer" in html
     assert "clips-grid" in html
 
-    # Modals
+    # Modals & Multi-Player Previews
     assert "modal-clip-preview" in html
+    assert "preview-modal-iframe" in html
+    assert "preview-modal-video" in html
+    assert "preview-modal-external-link" in html
     assert "modal-oneclick-progress" in html
+    assert "hls.min.js" in html
+
+    # Pagination & Batch Controls
+    assert "clips-pagination-container" in html
+    assert "clips-pagination-buttons" in html
+    assert "btn-load-all-clips" in html
+
+
+def test_pagination_and_preview_enhancements():
+    """Verifies pagination metadata and search response structure."""
+    res = client.post("/api/clips/search", json={
+        "platform": "all",
+        "category": "all",
+        "limit": 10,
+        "page": 1,
+        "page_size": 5,
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert "page" in data
+    assert "page_size" in data
+    assert "total_pages" in data
+    assert "total_count" in data
+    assert data["page"] == 1
+    assert data["page_size"] == 5
+    assert data["total_pages"] >= 1
+

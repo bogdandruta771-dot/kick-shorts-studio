@@ -148,3 +148,36 @@ def test_pagination_and_preview_enhancements():
     assert data["page_size"] == 5
     assert data["total_pages"] >= 1
 
+
+def test_twitch_clips_slug_mapping():
+    """Verifies Twitch clips have their alphanumeric slug preserved in 'id' and 'slug'."""
+    clips = fetch_twitch_clips(category_name="Just Chatting", limit=3)
+    if clips:
+        for c in clips:
+            assert "slug" in c
+            # When slug is available from Twitch, id must be the slug or at least match
+            if c.get("slug"):
+                assert c["id"] == c["slug"]
+                assert not c["id"].isdigit(), f"Twitch clip ID should be alphanumeric slug, not pure digits: {c['id']}"
+
+
+def test_ui_youtube_svg_and_preview_integrity():
+    """Verifies no broken data-lucide='youtube' tags and preview iframe has proper embed attributes."""
+    res_home = client.get("/")
+    assert res_home.status_code == 200
+    html = res_home.text
+
+    # No broken lucide youtube icons
+    assert 'data-lucide="youtube"' not in html
+    assert 'data-lucide=\'youtube\'' not in html
+
+    # Has inline SVG youtube icons in header and direct upload
+    assert '<svg class="w-3.5 h-3.5 fill-current text-rose-500' in html
+    assert 'header-yt-btn' in html
+
+    # Preview iframe has proper parent domain handling and allow attributes
+    assert 'preview-modal-iframe' in html
+    assert 'allow="autoplay; fullscreen"' in html
+    assert 'clips.twitch.tv/embed?clip=' in html
+
+

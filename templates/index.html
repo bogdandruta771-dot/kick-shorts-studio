@@ -238,7 +238,7 @@
 
                 <!-- YouTube Multi-Account Button -->
                 <button onclick="openChangeYtCredentialsModal()" id="header-yt-btn" class="flex items-center gap-1.5 text-xs text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 px-2.5 sm:px-3 py-1.5 rounded-lg border border-rose-500/30 transition-all" title="Manage Connected YouTube Accounts">
-                    <i data-lucide="youtube" class="w-3.5 h-3.5 text-rose-400"></i>
+                    <svg class="w-3.5 h-3.5 fill-current text-rose-500 flex-shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                     <span id="header-yt-label" class="hidden md:inline">YouTube</span>
                 </button>
 
@@ -1619,7 +1619,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-border">
                         <div class="flex items-center gap-2.5">
                             <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-500 flex items-center justify-center">
-                                <i data-lucide="youtube" class="w-5 h-5"></i>
+                                <svg class="w-5 h-5 fill-current text-red-500 flex-shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -2052,7 +2052,7 @@
                 <!-- Video element for Kick (.m3u8 with HLS.js or mp4) -->
                 <video id="preview-modal-video" controls autoplay playsinline class="w-full h-full object-contain"></video>
                 <!-- Iframe element for Twitch official embed player -->
-                <iframe id="preview-modal-iframe" class="w-full h-full hidden" frameborder="0" allowfullscreen="true" scrolling="no"></iframe>
+                <iframe id="preview-modal-iframe" class="w-full h-full hidden" frameborder="0" allowfullscreen="true" allow="autoplay; fullscreen" scrolling="no"></iframe>
             </div>
             <div class="p-3.5 sm:p-4 border-t border-brand-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-brand-bg/60">
                 <div class="text-xs text-zinc-400 flex items-center gap-2 w-full sm:w-auto">
@@ -2981,7 +2981,7 @@
                 const safeCat = escapeHtml(clip.category || (isKick ? 'Kick' : 'Twitch'));
                 const clipUrl = clip.url || '';
                 const streamUrl = clip.stream_url || '';
-                const clipId = clip.id || '';
+                const clipId = clip.slug || clip.id || '';
                 const thumb = clip.thumbnail_url || '/fallback-thumb.jpg';
                 const viewTxt = formatViews(clip.views);
                 const durTxt = formatDuration(clip.duration);
@@ -3102,15 +3102,21 @@
                 if (videoEl) videoEl.classList.add('hidden');
                 if (iframeEl) {
                     iframeEl.classList.remove('hidden');
-                    let slug = clipId || '';
-                    if (!slug && url) {
-                        const m = url.match(/(?:clips\.twitch\.tv\/|\/clip\/)([A-Za-z0-9_-]+)/);
-                        if (m) slug = m[1];
+                    let slug = '';
+                    if (url) {
+                        const m = url.match(/(?:clips\.twitch\.tv\/(?:embed\?(?:.*&)?clip=)?|\/clip\/)([A-Za-z0-9_-]+)/i);
+                        if (m && m[1]) slug = m[1].split('?')[0].split('&')[0];
+                    }
+                    if (!slug && clipId && !/^\d+$/.test(String(clipId).trim())) {
+                        slug = String(clipId).trim();
                     }
                     if (slug) {
-                        const host = window.location.hostname || 'localhost';
-                        iframeEl.src = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(slug)}&parent=${encodeURIComponent(host)}&autoplay=true`;
-                    } else {
+                        const host = window.location.hostname || '127.0.0.1';
+                        let parentParams = `parent=${encodeURIComponent(host)}`;
+                        if (host !== 'localhost') parentParams += '&parent=localhost';
+                        if (host !== '127.0.0.1') parentParams += '&parent=127.0.0.1';
+                        iframeEl.src = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(slug)}&${parentParams}&autoplay=true&muted=false`;
+                    } else if (url) {
                         iframeEl.src = url;
                     }
                 }
@@ -6564,7 +6570,7 @@
             accounts.forEach((acc, idx) => {
                 const avatarImg = acc.channel_avatar
                     ? `<img src="${acc.channel_avatar}" class="w-8 h-8 rounded-full object-cover border border-brand-border flex-shrink-0">`
-                    : `<div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0"><i data-lucide="youtube" class="w-4 h-4"></i></div>`;
+                    : `<div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0"><svg class="w-4 h-4 fill-current text-red-500 flex-shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></div>`;
 
                 const handle = acc.channel_custom_url || `@${acc.channel_id.substring(0, 10)}`;
 

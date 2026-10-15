@@ -291,7 +291,8 @@ def fetch_twitch_clips(
                 for edge in edges:
                     node = edge.get("node") or {}
                     out.append({
-                        "id": node.get("id") or node.get("slug") or "",
+                        "id": node.get("slug") or node.get("id") or "",
+                        "slug": node.get("slug") or "",
                         "title": node.get("title") or "Twitch Clip",
                         "url": node.get("url") or f"https://clips.twitch.tv/{node.get('slug')}",
                         "stream_url": node.get("url") or "",
@@ -378,7 +379,8 @@ def fetch_twitch_clips(
                     node = edge.get("node") or {}
                     bcast = node.get("broadcaster") or {}
                     clips.append({
-                        "id": node.get("id") or node.get("slug") or "",
+                        "id": node.get("slug") or node.get("id") or "",
+                        "slug": node.get("slug") or "",
                         "title": node.get("title") or "Twitch Clip",
                         "url": node.get("url") or f"https://clips.twitch.tv/{node.get('slug')}",
                         "stream_url": node.get("url") or "",

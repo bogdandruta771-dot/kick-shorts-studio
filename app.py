@@ -131,6 +131,12 @@ class ExportPayload(BaseModel):
     trim_start: Optional[float] = None
     trim_end: Optional[float] = None
     overlays: Optional[List[Dict[str, Any]]] = None
+    enable_anti_shadowban: Optional[bool] = True
+
+
+class SafeMetadataRequest(BaseModel):
+    streamer: Optional[str] = None
+    detected_win: Optional[str] = None
 
 
 class GenerateBannerRequest(BaseModel):
@@ -716,6 +722,7 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
             trim_start=payload.trim_start,
             trim_end=payload.trim_end,
             overlays=resolved_overlays,
+            enable_anti_shadowban=bool(payload.enable_anti_shadowban if payload.enable_anti_shadowban is not None else True),
             progress_cb=_prog,
         )
 
@@ -873,6 +880,25 @@ async def generate_ai_metadata(req: GenerateMetadataRequest):
         return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"AI generation notice: {str(exc)}")
+
+
+@app.post("/api/ai/safe-metadata")
+async def generate_safe_metadata_endpoint(req: SafeMetadataRequest):
+    """Generates dynamic algorithm-safe metadata with rotating formulas and strictly compliant hashtags."""
+    from core.ai_copywriter import generate_safe_metadata
+    return generate_safe_metadata(streamer_name=req.streamer, detected_win=req.detected_win)
+
+
+@app.get("/api/system/encoder-info")
+async def get_system_encoder_info():
+    """Returns detected hardware encoder status (NVIDIA NVENC, AMD AMF, Intel QSV, or CPU)."""
+    from core.video_processor import detect_optimal_video_encoder
+    info = detect_optimal_video_encoder()
+    return {
+        "name": info["name"],
+        "type": info["type"],
+        "is_gpu": info["is_gpu"],
+    }
 
 
 # --- YOUTUBE DIRECT SHORTS UPLOAD ENDPOINTS ---

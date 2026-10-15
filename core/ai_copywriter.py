@@ -726,3 +726,79 @@ def generate_shorts_metadata(
         promo_code=promo_code,
         category=target_category,
     )
+
+
+_SAFE_TITLE_COUNTER = 0
+
+
+def generate_safe_metadata(
+    streamer_name: Optional[str] = None,
+    detected_win: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Metadata & Title Spinner for Anti-Shadowban Compliance:
+    - Rotates between 3 dynamic, high-CTR title formulas.
+    - Appends 3 non-spammy, algorithm-compliant hashtags (#gaming, #streamerhighlights, #epicmoments).
+    - Strictly avoids blacklisted tags like #casino, #deposit, #gambling, or #bet.
+    """
+    global _SAFE_TITLE_COUNTER
+    name = (streamer_name or "").strip() or "Streamer"
+
+    raw_highlight = (detected_win or "").strip()
+    if raw_highlight:
+        if re.match(r"^\d+(?:\.\d+)?$", raw_highlight):
+            try:
+                highlight = f"${float(raw_highlight):,.0f}"
+            except Exception:
+                highlight = raw_highlight.upper()
+        else:
+            highlight = raw_highlight.upper()
+    else:
+        highlight = "INSANE HIGHLIGHT"
+
+    # 3 Dynamic High-CTR Title Formulas
+    formulas = [
+        f"NO WAY HE HIT THIS! 😱🔥 ({highlight}) #shorts",
+        f"{name.upper()} Reaction Is Completely Unhinged! 💀 ({highlight}) #shorts",
+        f"The Luckiest Moment In Live Streaming History?! 🤯 ({highlight}) #shorts",
+    ]
+
+    selected_title = formulas[_SAFE_TITLE_COUNTER % len(formulas)]
+    _SAFE_TITLE_COUNTER += 1
+
+    safe_hashtags = ["#gaming", "#streamerhighlights", "#epicmoments"]
+
+    # Blacklist assertion
+    blacklisted = {"#casino", "#deposit", "#gambling", "#bet", "#wager", "#slots", "#crypto"}
+    cleaned_hashtags = [h for h in safe_hashtags if h.lower() not in blacklisted]
+
+    desc_1 = (
+        f"🎮 Unbelievable live moment from {name}! Watch until the very end!\n\n"
+        f"👉 Drop a comment with your craziest clutch or lucky moment! 👇\n"
+        f"🔔 Subscribe for daily stream highlights!\n\n"
+        f"{' '.join(cleaned_hashtags)}"
+    )
+    desc_2 = (
+        f"Did you expect this to happen?! Let me know below! 👇\n\n"
+        f"✨ Creator: {name}\n\n"
+        f"📌 Subscribe for more epic plays and funny reactions!\n\n"
+        f"{' '.join(cleaned_hashtags)}"
+    )
+    desc_3 = (
+        f"Top streamer highlight featuring {name}.\n\n"
+        f"🚀 Daily shorts, unforgettable live moments, and crazy reactions.\n"
+        f"🔔 Like and subscribe for more!\n\n"
+        f"{' '.join(cleaned_hashtags)}"
+    )
+
+    return {
+        "title": selected_title,
+        "titles": formulas,
+        "descriptions": [desc_1, desc_2, desc_3],
+        "description": desc_1,
+        "hashtags": cleaned_hashtags,
+        "streamer": name,
+        "detected_win": highlight,
+        "safe_compliance": True,
+    }
+

@@ -1,4 +1,7 @@
-"""Video processing engine: 9:16 vertical composition, crop layout stacking, blurred background, subtitle burning, and outro concatenation."""
+"""Video processing engine: 9:16 vertical composition, crop layout stacking, blurred background, subtitle burning, hardware encoding, and anti-shadowban protection."""
+import random
+import sys
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable, List
 
@@ -9,6 +12,7 @@ from core.config import (
     AUDIO_SAMPLE_RATE,
     RENDER_TIMEOUT,
     DEFAULT_SUBTITLE_Y_OFFSET,
+    ENABLE_ANTI_SHADOWBAN,
 )
 from core.utils import (
     resolve_binary_paths,
@@ -18,6 +22,120 @@ from core.utils import (
 )
 from core.video_ingest import validate_media_file
 from core.subtitles import SubtitleEngine, extract_audio_track
+
+
+_CACHED_ENCODER_INFO: Optional[Dict[str, Any]] = None
+
+
+def get_system_font_path() -> Optional[str]:
+    """Resolves a valid system TTF font file for FFmpeg drawtext filter across operating systems."""
+    candidates = [
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("C:/Windows/Fonts/segoeui.ttf"),
+        Path("C:/Windows/Fonts/tahoma.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/System/Library/Fonts/Helvetica.ttc"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return str(p).replace("\\", "/").replace(":", r"\:")
+    return None
+
+
+def detect_optimal_video_encoder(ffmpeg_bin: str = "ffmpeg") -> Dict[str, Any]:
+    """
+    Intelligent hardware encoder auto-detection with runtime validation probe.
+    Queries available encoders and tests candidates in strict hierarchy:
+      1. NVIDIA: h264_nvenc (-c:v h264_nvenc -preset p4 -rc vbr -b:v 8M -maxrate 10M)
+      2. AMD Radeon: h264_amf (-c:v h264_amf -quality speed -rc cbr -b:v 8M)
+      3. Intel QuickSync: h264_qsv (-c:v h264_qsv -preset fast -b:v 8M)
+      4. Universal Fallback (CPU): libx264 (-c:v libx264 -preset veryfast -crf 22)
+    Forces -pix_fmt yuv420p across all encoders for 100% mobile Shorts playback compatibility.
+    Caches the optimal working encoder globally for instant subsequent renders.
+    """
+    global _CACHED_ENCODER_INFO
+    if _CACHED_ENCODER_INFO is not None:
+        return _CACHED_ENCODER_INFO
+
+    candidate_encoders = [
+        {
+            "name": "h264_nvenc",
+            "type": "NVIDIA NVENC (GPU)",
+            "is_gpu": True,
+            "args": [
+                "-c:v", "h264_nvenc",
+                "-preset", "p4",
+                "-rc", "vbr",
+                "-b:v", "8M",
+                "-maxrate", "10M",
+                "-pix_fmt", "yuv420p",
+            ],
+        },
+        {
+            "name": "h264_amf",
+            "type": "AMD Radeon AMF (GPU)",
+            "is_gpu": True,
+            "args": [
+                "-c:v", "h264_amf",
+                "-quality", "speed",
+                "-rc", "cbr",
+                "-b:v", "8M",
+                "-pix_fmt", "yuv420p",
+            ],
+        },
+        {
+            "name": "h264_qsv",
+            "type": "Intel QuickSync QSV (GPU)",
+            "is_gpu": True,
+            "args": [
+                "-c:v", "h264_qsv",
+                "-preset", "fast",
+                "-b:v", "8M",
+                "-pix_fmt", "yuv420p",
+            ],
+        },
+    ]
+
+    cpu_fallback = {
+        "name": "libx264",
+        "type": "Universal CPU (libx264)",
+        "is_gpu": False,
+        "args": [
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "22",
+            "-pix_fmt", "yuv420p",
+        ],
+    }
+
+    # Query ffmpeg -encoders to verify build support
+    avail_encoders_text = ""
+    try:
+        probe_res = run_command_safe([ffmpeg_bin, "-encoders"], timeout=10)
+        avail_encoders_text = probe_res.stdout
+    except Exception:
+        pass
+
+    for candidate in candidate_encoders:
+        enc_name = candidate["name"]
+        if enc_name in avail_encoders_text:
+            # Execute a 1-frame runtime probe to ensure hardware session initializes
+            probe_cmd = [
+                ffmpeg_bin,
+                "-y",
+                "-f", "lavfi",
+                "-i", "color=c=black:s=256x256:d=0.04",
+                *candidate["args"],
+                "-f", "null",
+                "-",
+            ]
+            run_res = run_command_safe(probe_cmd, timeout=10)
+            if run_res.returncode == 0:
+                _CACHED_ENCODER_INFO = candidate
+                return candidate
+
+    _CACHED_ENCODER_INFO = cpu_fallback
+    return cpu_fallback
 
 
 class VideoProcessor:
@@ -39,6 +157,7 @@ class VideoProcessor:
         trim_start: Optional[float] = None,
         trim_end: Optional[float] = None,
         overlays: Optional[List[Dict[str, Any]]] = None,
+        enable_anti_shadowban: bool = ENABLE_ANTI_SHADOWBAN,
         progress_cb: Optional[Callable[[float, str], None]] = None,
     ) -> Path:
         """
@@ -219,30 +338,48 @@ class VideoProcessor:
             # Subtitles burn-in
             if ass_path and ass_path.is_file():
                 escaped_ass = escape_ffmpeg_filter_path(str(ass_path))
-                filter_chains.append(f"[{current_v_layer}]subtitles='{escaped_ass}'[v_out]")
+                filter_chains.append(f"[{current_v_layer}]subtitles='{escaped_ass}'[v_subbed]")
+                current_v_layer = "v_subbed"
+
+            # Anti-Shadowban Video Disruption (Micro-zoom/crop, color grading, compliance badge)
+            if enable_anti_shadowban:
+                # Micro-Scale & Crop: 1.01x to 1.025x randomized zoom
+                scale_factor = round(random.uniform(1.01, 1.025), 4)
+                sw = int(round(TARGET_WIDTH * scale_factor))
+                sh = int(round(TARGET_HEIGHT * scale_factor))
+                sw += (sw % 2)
+                sh += (sh % 2)
+
+                # Micro Color Grading: imperceptible fractional contrast/brightness/saturation tweaks
+                contrast = round(random.uniform(1.005, 1.020), 4)
+                brightness = round(random.uniform(0.002, 0.008), 4)
+                saturation = round(random.uniform(1.005, 1.020), 4)
+
+                # Compliance Badge: burn subtle 18+ Play Responsibly watermark
+                sys_font = get_system_font_path()
+                badge_filter = ""
+                if sys_font:
+                    badge_filter = f",drawtext=fontfile='{sys_font}':text='18+ | Play Responsibly':fontsize=20:fontcolor=white@0.45:box=1:boxcolor=black@0.35:boxborderw=6:x=36:y=36"
+                elif sys.platform != "win32":
+                    badge_filter = ",drawtext=text='18+ | Play Responsibly':fontsize=20:fontcolor=white@0.45:box=1:boxcolor=black@0.35:boxborderw=6:x=36:y=36"
+
+                filter_chains.append(
+                    f"[{current_v_layer}]scale={sw}:{sh},crop={TARGET_WIDTH}:{TARGET_HEIGHT},setsar=1,"
+                    f"eq=contrast={contrast:.4f}:brightness={brightness:.4f}:saturation={saturation:.4f}"
+                    f"{badge_filter}[v_out]"
+                )
             else:
                 filter_chains.append(f"[{current_v_layer}]null[v_out]")
 
-            full_filter_complex = ";".join(filter_chains)
+            # Anti-Shadowban Acoustic Jitter & YouTube Loudness Normalization
+            if enable_anti_shadowban:
+                atempo_val = round(random.uniform(0.995, 1.005), 4)
+                src_a_input = "0:a:0" if meta["has_audio"] else f"{silent_audio_idx}:a:0"
+                filter_chains.append(
+                    f"[{src_a_input}]atempo={atempo_val:.4f},loudnorm=I=-14:LRA=11:TP=-1.5[a_out]"
+                )
 
-            # Audio mapping
-            audio_args = []
-            if meta["has_audio"]:
-                audio_args = [
-                    "-c:a", "aac",
-                    "-b:a", "192k",
-                    "-ar", str(AUDIO_SAMPLE_RATE),
-                    "-ac", "2",
-                ]
-            else:
-                # Add silent audio stream
-                audio_args = [
-                    "-f", "lavfi",
-                    "-i", f"anullsrc=r={AUDIO_SAMPLE_RATE}:cl=stereo",
-                    "-c:a", "aac",
-                    "-b:a", "192k",
-                    "-shortest",
-                ]
+            full_filter_complex = ";".join(filter_chains)
 
             render_cmd = [
                 self.ffmpeg_bin,
@@ -265,17 +402,26 @@ class VideoProcessor:
                 "-map", "[v_out]",
             ])
 
-            if meta["has_audio"]:
-                render_cmd.extend(["-map", "0:a:0"])
+            if enable_anti_shadowban:
+                render_cmd.extend(["-map", "[a_out]"])
+                # Metadata Scrubbing: strip source metadata & inject unique UUID container tag
+                render_cmd.extend([
+                    "-map_metadata", "-1",
+                    "-metadata", f"comment=omnistream_{uuid.uuid4().hex}",
+                    "-metadata", f"title=Short_{uuid.uuid4().hex[:8]}",
+                ])
             else:
-                render_cmd.extend(["-map", f"{silent_audio_idx}:a:0"])
+                if meta["has_audio"]:
+                    render_cmd.extend(["-map", "0:a:0"])
+                else:
+                    render_cmd.extend(["-map", f"{silent_audio_idx}:a:0"])
 
+            # Dynamic Hardware Encoder Auto-Detection (NVIDIA -> AMD -> Intel -> CPU)
+            encoder_info = detect_optimal_video_encoder(self.ffmpeg_bin)
+            render_cmd.extend(encoder_info["args"])
+
+            # High Quality Audio Output
             render_cmd.extend([
-                "-c:v", "libx264",
-                "-preset", "veryfast",
-                "-crf", "19",
-                "-threads", "0",
-                "-pix_fmt", "yuv420p",
                 "-c:a", "aac",
                 "-b:a", "192k",
                 "-ar", str(AUDIO_SAMPLE_RATE),
@@ -343,6 +489,7 @@ class VideoProcessor:
         filter_parts.append("[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]")
         concat_filter = ";".join(filter_parts)
 
+        encoder_info = detect_optimal_video_encoder(self.ffmpeg_bin)
         cmd = [
             self.ffmpeg_bin,
             "-y",
@@ -351,12 +498,11 @@ class VideoProcessor:
             "-filter_complex", concat_filter,
             "-map", "[v]",
             "-map", "[a]",
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "18",
-            "-pix_fmt", "yuv420p",
+            *encoder_info["args"],
             "-c:a", "aac",
             "-b:a", "192k",
+            "-map_metadata", "-1",
+            "-metadata", f"comment=omnistream_{uuid.uuid4().hex}",
             str(output_path),
         ]
 

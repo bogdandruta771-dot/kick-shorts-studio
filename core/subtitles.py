@@ -66,6 +66,62 @@ def format_ass_timestamp(seconds: float) -> str:
     return f"{hrs}:{mins:02d}:{secs:02d}.{cs:02d}"
 
 
+# NLP Subtitle Sanitizer Rules: (Compiled Regex, Safe Replacement Synonym)
+SUBTITLE_SANITIZER_RULES: List[Tuple[re.Pattern, str]] = [
+    # Platforms & Spoken Casino Names
+    (re.compile(r"\b(?:1win|one\s*win)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:stake(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:roobet(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:rollbit(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:bc\.?game)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:shuffle(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:duelbits(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    (re.compile(r"\b(?:gamdom(?:\.com)?)\b", re.IGNORECASE), "the platform"),
+    # Sensitive Gambling / Algorithm-Restricted Vocabulary
+    (re.compile(r"\bcasinos\b", re.IGNORECASE), "sessions"),
+    (re.compile(r"\bcasino\b", re.IGNORECASE), "session"),
+    (re.compile(r"\bgamblings\b", re.IGNORECASE), "gaming"),
+    (re.compile(r"\bgambling\b", re.IGNORECASE), "gaming"),
+    (re.compile(r"\bgamblers\b", re.IGNORECASE), "players"),
+    (re.compile(r"\bgambler\b", re.IGNORECASE), "player"),
+    (re.compile(r"\bgambles\b", re.IGNORECASE), "games"),
+    (re.compile(r"\bgamble\b", re.IGNORECASE), "game"),
+    (re.compile(r"\bwagering\b", re.IGNORECASE), "competing"),
+    (re.compile(r"\bwagers\b", re.IGNORECASE), "rounds"),
+    (re.compile(r"\bwager\b", re.IGNORECASE), "round"),
+    (re.compile(r"\bdepositing\b", re.IGNORECASE), "reloading"),
+    (re.compile(r"\bdeposits\b", re.IGNORECASE), "reloads"),
+    (re.compile(r"\bdeposit\b", re.IGNORECASE), "reload"),
+    (re.compile(r"\bbetting\b", re.IGNORECASE), "playing"),
+    (re.compile(r"\bbets\b", re.IGNORECASE), "entries"),
+    (re.compile(r"\bbet\b", re.IGNORECASE), "entry"),
+]
+
+
+def sanitize_subtitle_text(text: str) -> str:
+    """
+    NLP Subtitle Sanitizer: Replaces sensitive gambling and algorithm-restricted terms
+    with safe synonyms (casino -> session, bet -> entry, deposit -> reload, stake/1win -> the platform)
+    while matching and preserving original capitalization (UPPERCASE, Titlecase, lowercase).
+    """
+    if not text:
+        return text
+
+    sanitized = text
+    for pattern, replacement in SUBTITLE_SANITIZER_RULES:
+        def _match_repl(match: re.Match) -> str:
+            original = match.group(0)
+            if original.isupper():
+                return replacement.upper()
+            elif original.istitle():
+                return replacement.title()
+            return replacement.lower()
+
+        sanitized = pattern.sub(_match_repl, sanitized)
+
+    return sanitized
+
+
 def extract_audio_track(video_path: Path, output_wav: Path) -> Path:
     """Extracts a 16kHz mono WAV audio track optimized for Whisper transcription."""
     ffmpeg_bin, _ = resolve_binary_paths()
@@ -154,6 +210,8 @@ class SubtitleEngine:
                         cleaned = w.word.strip().upper()
                         # Filter out punctuation-only artifacts
                         cleaned = re.sub(r"[^\w\s\$\€\£\!\?\%]", "", cleaned)
+                        # Sanitize sensitive gambling/platform words
+                        cleaned = sanitize_subtitle_text(cleaned)
                         if cleaned:
                             all_words.append({
                                 "word": cleaned,
@@ -251,7 +309,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 # Assemble line text with active word pop without using destructive \r tag
                 tokens = []
                 for idx, w in enumerate(burst):
-                    word_text = w["word"]
+                    word_text = sanitize_subtitle_text(w["word"])
                     if idx == active_idx:
                         # Pop styling: highlight color + scale pulse, then return to primary color and 100% scale
                         tokens.append(f"{{\\c{highlight_ass}\\fscx114\\fscy114}}{word_text}{{\\c{primary_ass}\\fscx100\\fscy100}}")

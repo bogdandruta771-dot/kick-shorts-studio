@@ -27,6 +27,9 @@ DEFAULT_FPS = 30
 AUDIO_SAMPLE_RATE = 48000
 AUDIO_CHANNELS = 2
 
+# Anti-Shadowban Algorithm Disruption & Compliance Defaults
+ENABLE_ANTI_SHADOWBAN = True
+
 # Universal Stream HUD Crop Presets (Gaming, Reaction, Podcast, Casino, Fullscreen)
 CROP_PRESETS: Dict[str, Dict[str, Any]] = {
     # --- 🎮 Gaming & Esports ---

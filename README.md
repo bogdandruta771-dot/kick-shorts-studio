@@ -1,15 +1,16 @@
-# 🎰 KickStream Shorts Studio
+# ⚡ OmniStream Shorts Studio (Kick & Twitch)
 
 <p align="center">
-  <strong>Automated Local 9:16 Shorts Creation & Real-Time Big Win Sentinel for Kick Livestreams</strong>
+  <strong>Universal Stream-to-Shorts Production Automation & Real-Time Hype Sentinel for Kick & Twitch</strong>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Platforms-Kick%20%7C%20Twitch-purple?style=flat-square" alt="Kick and Twitch">
+  <img src="https://img.shields.io/badge/Categories-Gaming%20%7C%20IRL%20%7C%20Podcasts%20%7C%20Casino-blue?style=flat-square" alt="All Stream Types">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=flat-square&logo=fastapi" alt="FastAPI">
-  <img src="https://img.shields.io/badge/Faster--Whisper-Speech--to--Text-orange?style=flat-square" alt="Faster-Whisper">
-  <img src="https://img.shields.io/badge/FFmpeg-Hardware--Accelerated-green?style=flat-square&logo=ffmpeg" alt="FFmpeg">
-  <img src="https://img.shields.io/badge/Cost-100%25%20Free%20%2F%20Local-success?style=flat-square" alt="100% Free">
+  <img src="https://img.shields.io/badge/Speech-Faster--Whisper-orange?style=flat-square" alt="Faster-Whisper">
+  <img src="https://img.shields.io/badge/Cost-100%25%20Free%20%2F%20Zero%20API%20Keys-success?style=flat-square" alt="100% Free">
   <img src="https://img.shields.io/badge/License-MIT-purple?style=flat-square" alt="MIT License">
 </p>
 
@@ -17,17 +18,24 @@
 
 ## ⚡ Overview
 
-**KickStream Shorts Studio** is a local, high-performance video production automation studio designed specifically for Kick creators, casino streamers, and clip editors. It ingests 16:9 streams, detects big wins in real time with zero expensive Vision-Language-Model (VLM) API costs, transforms footage into 9:16 vertical shorts, transcribes audio into animated karaoke subtitles, adds custom affiliate promo overlays, generates high-CTR titles and descriptions, and publishes directly to YouTube Shorts with a single click.
+**OmniStream Shorts Studio** is a 100% free, local-first video production studio that turns full-length 16:9 livestreams and clips from **Kick** and **Twitch** into viral 9:16 vertical shorts (YouTube Shorts, TikTok, Instagram Reels) with sub-second responsiveness.
+
+Supports all major stream categories:
+- 🎮 **Gaming & Esports** (Valorant, CS2, Fortnite, League of Legends, Apex Legends, GTA V)
+- 💬 **Just Chatting, IRL & Reactions** (Webcam bottom + React video top, drama, storytime)
+- 🎙️ **Podcasts & Dual Cam** (Split top guest + bottom host interview mode)
+- 🎰 **Casino & Slots** (Slot reels, multipliers, jackpot alerts)
+- 📱 **Ambient Blur 16:9** (Centered gameplay with dynamic blurred background fill)
 
 ```
 +-----------------------------------------------------------------------------------------+
-|                                    KICKSTREAM STUDIO                                    |
+|                                  OMNISTREAM STUDIO                                      |
 |                                                                                         |
 |  [ Step 1: Ingest & Trim ]  ->  [ Step 2: 9:16 Framing ]  ->  [ Step 3: Subtitles ]  ->  [ Step 4: Export & Upload ]
-|   • Live Pusher Sentinel         • Gameplay Top Reel           • Local Faster-Whisper    • Multi-thread FFmpeg
-|   • Direct Kick URL Ingest       • Facecam Bottom Cam          • Word-by-Word Karaoke    • Free AI Copywriter
-|   • Local Video File Upload      • 60 FPS Ambient Blur Fill    • 200px-1800px Placement  • 1-Click YouTube Upload
-|   • Interactive Cut Scrubber     • Promo / Affiliate Overlays  • Live Phone Preview      • Channel Management
+|   • Kick (Pusher WebSocket)      • Categorized Presets         • Local Faster-Whisper    • Multi-thread FFmpeg
+|   • Twitch (Anonymous IRC & GQL) • 60 FPS Ambient Blur Fill    • Word-by-Word Karaoke    • Multi-Niche AI Copywriter
+|   • Clips URL Auto-Detect        • Drag & Drop Resize Handles  • Vertical Pos (200-1800) • 1-Click YouTube Upload
+|   • Audio Energy Climax Scan     • Promo Code Banner Maker     • Neon Gamer / Rage Red   • Zero Paid API Keys
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -35,44 +43,48 @@
 
 ## ✨ Key Features
 
-### 🎰 1. Real-Time Big Win Sentinel Watchdog
-- **Triple-Sensor Non-VLM Detection**: Operates 24/7 with zero costly external vision models:
-  1. **Kick Pusher WebSocket Interceptor**: Listens directly to real-time events (`pusher:subscribe` to Kick chatrooms and casino channels), detecting win multipliers, jackpot alerts, and bonus rounds with sub-second latency.
-  2. **Chat Velocity Spike Engine**: Tracks rolling chat message frequency per second. Massive sudden spikes (>300% above baseline) trigger highlight flags.
-  3. **Clip Burst Cluster Analysis**: Monitors cluster clip creation frequency via Kick API.
-- **Smart Clip Buffer**: Automatically records and buffers preceding context so streamer reactions and buildup are never cut off.
+### 📡 1. Universal Real-Time Hype Sentinel Watchdog (Kick & Twitch)
+- **Zero API Key Architecture**: Connects without requiring any paid API keys, logins, or developer accounts:
+  1. **Twitch Anonymous IRC WebSocket (`wss://irc-ws.chat.twitch.tv:443`)**: Listens directly to Twitch chatrooms with zero tokens (`NICK justinfan<random>`), tracking chat velocity and hype emote bursts (`POG`, `KEKW`, `LUL`, `CLUTCH`, `ACE`, `W`, etc.).
+  2. **Twitch Public GQL (`https://gql.twitch.tv/gql`)**: Queries and discovers recent top channel clips and view milestones instantly.
+  3. **Kick Pusher WebSocket**: Intercepts real-time events (`chatrooms.<id>.v2`), detecting big wins, multipliers, and chat bursts.
+- **Category-Aware Filters**: Switch between Gaming, Just Chatting, Casino, or All Streams to filter relevant hype moments.
+- **Audio Climax Pinpointing**: Lightweight RMS energy waveform scanning pinpoints shouts, celebrations, and volume peaks to auto-trim 20s clips.
 
-### 🎬 2. Interactive 9:16 Split Framing Studio
-- **Dual Visual Stacking**: Stacks the gameplay reel on top and the streamer facecam on the bottom over a 60 FPS darkened and blurred ambient background fill.
-- **Visual Cropper & Drag-and-Drop Handles**: Live WYSIWYG crop box positioning with interactive drag handles, size constraints, and instant aspect-ratio locks.
-- **1-Click Layout Presets**: Center Slot + Bottom-Right Cam, Center Slot + Top-Left Cam, Roulette Table, Full 16:9 screen, or custom manual pixel coordinates.
-- **Visual Promo Overlays**: Upload custom transparent PNG banners (e.g., `"USE CODE: VIP"`, `"18+ Gamble Aware"`, streamer logos) with opacity sliders and real-time canvas placement.
+### 🎬 2. Universal 9:16 Visual Framing Studio
+- **Categorized Presets**:
+  - `🎮 Gaming FPS`: Crosshair/Gameplay top + Streamer webcam bottom right.
+  - `⚔️ Gaming MOBA`: Minimap-safe top view + Streamer camera.
+  - `🎯 Gaming Centered`: Focused screen center + camera.
+  - `💬 Reaction Standard`: 60% reaction media top + 40% streamer facecam.
+  - `👥 Dual Cam / Interview`: 50/50 vertical split for podcasts and guest interviews.
+  - `🎰 Casino Royale`: Big slot reel center + camera.
+  - `✨ Ambient Blur 16:9`: Full 16:9 screen centered with 60 FPS mirrored blurred background.
+- **Interactive Drag & Resize Handles**: Move and adjust crop boxes directly on the canvas with real-time iPhone 9:16 preview.
+- **Cover Photo & Promo Banner Maker**: Generate transparent promo banners (e.g. `"USE CODE: VIP"`) or upload your own logos to cover unwanted stream HUD elements or balances.
 
 ### 🎙️ 3. Animated Word-by-Word Karaoke AI Subtitles
-- **100% Local Faster-Whisper Engine**: Transcribes speech with word-level timestamps on local CPU or GPU without sending audio to third-party paid APIs.
-- **Pop-Highlight Animations**: Words dynamically enlarge and pop with custom highlight colors as they are spoken (Hormozi, Royale, Cyberpunk, and Minimal presets).
-- **Pixel-Perfect ASS Positioning**: Anchored with `\an5\pos(540, Y)\q2` to guarantee subtitles never jump to default margins or line-break awkwardly.
-- **Full-Range Vertical Placement**: Continuous vertical adjustment ($200\text{px}$ to $1800\text{px}$) with 4 instant placement presets (Top Reels, Center Gap, Over Cam, Bottom Safe) and live phone canvas drag support.
+- **100% Local Faster-Whisper Engine**: Transcribes speech with word-level precision on CPU/GPU without sending audio to paid APIs.
+- **Preset Styles**:
+  - `🔥 Hormozi`: Bold font with vibrant golden highlight.
+  - `🎮 Neon Gamer`: Electric cyan with neon lime highlight.
+  - `🔴 Rage Red`: Clean white with crimson red highlight.
+  - `⚡ Cyberpunk`: Neon cyan with hot pink highlight.
+  - `✨ Minimal`: Clean modern subtitles.
+- **Pixel-Perfect ASS Subtitle Positioning**: Drag and adjust height ($200\text{px}$ to $1800\text{px}$) with instant placement pills (Top Reels, Center Gap, Over Cam, Bottom Safe).
 
-### 🤖 4. 100% Free AI Copywriting Engine
-- **Free Gemini API Integration**: Connect a free Google AI Studio API key (`GEMINI_API_KEY`) to generate 5 high-CTR viral titles, 3 SEO descriptions, and relevant hashtags.
-- **Built-in Offline Copywriter**: No API key? No problem! The built-in offline casino copywriter generates tailored titles, descriptions, and hashtags without internet access or external APIs.
+### 🤖 4. Multi-Category AI Shorts Copywriter
+- **Niche-Specific Copy Generation**: Generates 5 viral title hooks and 3 complete description variants with hashtags tailored to:
+  - 🎮 **Gaming & Esports** (Clutch, Ace, Pog, Ranked Highlights)
+  - 💬 **Just Chatting & IRL** (Drama, Reactions, Unfiltered moments)
+  - 🎰 **Casino & Slots** (Multipliers, Jackpot, High Roller)
+  - 🌐 **General Streams**
+- **100% Free Offline Engine**: Operates locally out-of-the-box. Optional free Google Gemini or Groq API keys can be added for extra variety.
 
 ### 🚀 5. 1-Click Direct YouTube Shorts Publishing
-- **Integrated OAuth 2.0 Client**: Authorize your YouTube channel directly through the studio.
-- **Built-in Diagnostic Probe**: Automatically tests OAuth redirect URIs before launching authentication windows, preventing confusing `redirect_uri_mismatch` errors.
-- **Background Publishing**: Uploads directly to YouTube Data API v3 with title, description, tags, and category automatically filled.
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-- **Backend**: Python 3.10+, [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/)
-- **Frontend**: Clean Vanilla JavaScript (ES6+), [Tailwind CSS](https://tailwindcss.com/) (CDN), [Lucide Icons](https://lucide.dev/)
-- **Media Engine**: [FFmpeg 7](https://ffmpeg.org/), `imageio-ffmpeg`
-- **Speech Recognition**: [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2)
-- **Networking**: `websockets`, `websocket-client`, `requests`, `yt-dlp`
-- **Cloud APIs**: Google YouTube Data API v3, Google Gemini API (optional)
+- **Built-in Google OAuth 2.0 Client**: Connect your YouTube channel and publish vertical shorts directly from the studio.
+- **Zero-Config Desktop Mode**: Drop in a Desktop Application `client_secret.json` from Google Cloud Console with zero redirect URI configuration needed.
+- **Built-in Diagnostic Probe**: Pre-validates redirect URIs to prevent `redirect_uri_mismatch` errors.
 
 ---
 
@@ -80,25 +92,24 @@
 
 ### 1. Prerequisites
 - **Operating System**: Windows 10/11, macOS, or Linux
-- **Python**: Version 3.10, 3.11, or 3.12 installed ([python.org](https://www.python.org/downloads/))
-- **FFmpeg**: Required for media processing. On Windows, the studio can automatically download and localize FFmpeg binaries for you!
+- **Python**: Version 3.10, 3.11, or 3.12+ installed ([python.org](https://www.python.org/downloads/))
+- **FFmpeg**: Handled automatically on Windows via bootstrap scripts.
 
 ### 2. Installation
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/kick-shorts-studio.git
+   git clone https://github.com/bogdandruta771-dot/kick-shorts-studio.git
    cd kick-shorts-studio
    ```
 
 2. **Run Dependency Bootstrap**:
    - **On Windows**:
-     Simply double-click:
-     ```cmd
-     run.bat
+     Double-click `run.bat` or run:
+     ```powershell
+     python -m pip install -r requirements.txt
+     python app.py
      ```
-     *This script verifies Python, downloads and localizes standalone FFmpeg binaries if needed, installs dependencies from `requirements.txt`, and launches the studio.*
-
    - **On macOS / Linux**:
      ```bash
      python3 -m venv .venv
@@ -107,90 +118,31 @@
      python app.py
      ```
 
-3. **Open the Studio**:
-   Open your browser and navigate to:
+3. **Open Studio**:
+   Open your browser to:
    ```text
    http://127.0.0.1:7860
    ```
 
 ---
 
-## 🔑 YouTube Upload Setup (Optional)
-
-To publish directly from the studio to YouTube Shorts:
-
-1. Open the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-2. Create a project (or select an existing one) and enable the **YouTube Data API v3**.
-3. Go to **Credentials** &rarr; **Create Credentials** &rarr; **OAuth client ID**.
-   - **Recommended (Zero Config)**: Select **Desktop App**. Download the JSON file and upload it into Step 4 of the studio. Desktop credentials require no redirect URIs!
-   - **Alternative (Web Application)**: If selecting **Web Application**, add this under **Authorized redirect URIs**:
-     ```text
-     http://127.0.0.1:7860/api/youtube/oauth2callback
-     ```
-4. In Step 4 of KickStream Studio, click **Upload client_secret.json**, then click **Connect YouTube Channel**.
-
----
-
 ## 🧪 Running Automated Tests
 
-KickStream Studio includes a comprehensive automated test suite verifying every component from video ingestion to ASS subtitle generation and YouTube authorization:
+Run the test suites verifying Twitch ingestion, Kick sentinels, AI copywriter, and subtitle pipelines:
 
 ```bash
-# Run studio UI flow tests (ingest, trim, crop, export, session reset)
-python test_studio_ui_flow.py
+# Run Universal Stream & Twitch test suite
+python -m pytest test_universal_and_twitch.py
 
-# Run AI copywriter & YouTube authorization diagnostics test
+# Run AI Copywriter & YouTube OAuth diagnostics
 python test_ai_and_youtube_flow.py
 
-# Run overlay composition tests
+# Run overlay pipeline tests
 python test_overlay_pipeline.py
-
-# Run pipeline unit tests
-python test_pipeline.py
-```
-
----
-
-## 📁 Repository Structure
-
-```
-kick-shorts-studio/
-├── app.py                      # FastAPI server & REST API endpoints
-├── run.bat                     # 1-click Windows launcher & environment bootstrap
-├── install_dependencies.py     # Self-installing dependency & FFmpeg manager
-├── requirements.txt            # Python dependencies
-├── core/
-│   ├── ai_copywriter.py        # Gemini API & offline casino title/description engine
-│   ├── audio_detector.py       # Audio volume & cheering peak analysis
-│   ├── banner_generator.py     # Pillow promo banner generation
-│   ├── config.py               # Geometric defaults, crop presets & Pusher keys
-│   ├── detector.py             # Pusher WebSocket listener & Sentinel watchdog
-│   ├── subtitles.py            # Faster-Whisper transcription & ASS karaoke pop engine
-│   ├── utils.py                # FFmpeg wrappers, geometry scaling & probe utilities
-│   ├── video_ingest.py         # yt-dlp Kick clip downloader & validator
-│   ├── video_processor.py      # Multi-stage FFmpeg 9:16 layout compositor
-│   └── youtube_uploader.py     # OAuth 2.0 authentication & YouTube upload dispatcher
-├── templates/
-│   └── index.html              # Single-page studio interface (4-step stepper wizard)
-├── credentials/
-│   ├── .gitkeep
-│   └── client_secret.json.example
-├── output/                     # Rendered 9:16 vertical shorts (ignored by git)
-│   └── .gitkeep
-├── temp/                       # Temporary media working files (ignored by git)
-│   └── .gitkeep
-├── tests_fixtures/             # Small test fixtures (<1MB) for test suite
-└── LICENSE                     # MIT License
 ```
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">
-  Built with ❤️ for livestream creators and video editors.
-</p>
+This project is licensed under the MIT License.

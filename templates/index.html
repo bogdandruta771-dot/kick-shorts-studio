@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kick Casino Shorts Studio</title>
+    <title>OmniStream Shorts Studio - Kick & Twitch</title>
     <!-- Google Fonts Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,14 +159,14 @@
             <!-- Logo & Brand -->
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <span class="text-lg">🎰</span>
+                    <span class="text-lg">⚡</span>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <span class="font-bold text-white tracking-tight text-sm sm:text-base">KickStudio</span>
-                        <span class="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">PRO</span>
+                        <span class="font-bold text-white tracking-tight text-sm sm:text-base">OmniStream</span>
+                        <span class="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">STUDIO</span>
                     </div>
-                    <p class="text-[11px] text-zinc-400 font-normal hidden sm:block">Stream to 9:16 Shorts Automation</p>
+                    <p class="text-[11px] text-zinc-400 font-normal hidden sm:block">Kick & Twitch to 9:16 Shorts Automation</p>
                 </div>
             </div>
 
@@ -221,8 +221,8 @@
         <!-- ========================================================================= -->
         <section id="stage-step-1" class="w-full max-w-2xl mx-auto space-y-6 transition-all duration-300">
             <div class="text-center space-y-1.5">
-                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Stream Detection & Ingest</h1>
-                <p class="text-sm text-zinc-400">Auto-detect big wins live with dual sentinels or import clips manually.</p>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Universal Stream Detection & Ingest</h1>
+                <p class="text-sm text-zinc-400">Auto-detect viral moments live from Kick & Twitch with real-time sentinels or import clips manually.</p>
             </div>
 
             <!-- Ingestion Method Tabs -->
@@ -235,7 +235,7 @@
                     </button>
                     <button onclick="setIngestMode('url')" id="tab-mode-url" class="flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1.5">
                         <i data-lucide="link" class="w-4 h-4 text-indigo-400"></i>
-                        <span>Kick Clip URL</span>
+                        <span>Clip URL</span>
                     </button>
                     <button onclick="setIngestMode('file')" id="tab-mode-file" class="flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-zinc-400 hover:text-zinc-200 flex items-center justify-center gap-1.5">
                         <i data-lucide="upload-cloud" class="w-4 h-4 text-cyan-400"></i>
@@ -245,12 +245,62 @@
 
                 <!-- Option A: Sentinel Watchdog Live Monitor -->
                 <div id="panel-ingest-watchdog" class="space-y-4">
+                    <!-- Platform Toggle (Kick vs Twitch) -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Streaming Platform</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="setWatchdogPlatform('kick')" id="btn-plat-kick" class="py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/15 text-left transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                                    <div>
+                                        <span class="text-xs font-bold text-white block">🟢 Kick Stream</span>
+                                        <span class="text-[10px] text-zinc-400">Pusher Live Chat & Clips</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">PUSHER</span>
+                            </button>
+                            <button type="button" onclick="setWatchdogPlatform('twitch')" id="btn-plat-twitch" class="py-2.5 px-3 rounded-xl border border-brand-border bg-brand-bg hover:border-purple-500/50 text-left transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>
+                                    <div>
+                                        <span class="text-xs font-bold text-white block">🟣 Twitch Stream</span>
+                                        <span class="text-[10px] text-zinc-400">Anonymous IRC & GQL</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">IRC+GQL</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stream Category Filter Pills -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Stream Category / Niche</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            <button type="button" onclick="setWatchdogCategory('all')" id="btn-cat-all" class="py-2 px-2 rounded-xl border border-indigo-500 bg-indigo-500/20 text-center transition-all">
+                                <span class="text-xs font-bold text-white block">🌐 All Streams</span>
+                                <span class="text-[9px] text-zinc-400">Any Category</span>
+                            </button>
+                            <button type="button" onclick="setWatchdogCategory('gaming')" id="btn-cat-gaming" class="py-2 px-2 rounded-xl border border-brand-border bg-brand-bg hover:border-indigo-500/40 text-center transition-all">
+                                <span class="text-xs font-bold text-white block">🎮 Gaming</span>
+                                <span class="text-[9px] text-zinc-400">Clutch, Ace, Pog</span>
+                            </button>
+                            <button type="button" onclick="setWatchdogCategory('just_chatting')" id="btn-cat-just_chatting" class="py-2 px-2 rounded-xl border border-brand-border bg-brand-bg hover:border-indigo-500/40 text-center transition-all">
+                                <span class="text-xs font-bold text-white block">💬 Just Chatting</span>
+                                <span class="text-[9px] text-zinc-400">KEKW, LUL, Drama</span>
+                            </button>
+                            <button type="button" onclick="setWatchdogCategory('casino')" id="btn-cat-casino" class="py-2 px-2 rounded-xl border border-brand-border bg-brand-bg hover:border-indigo-500/40 text-center transition-all">
+                                <span class="text-xs font-bold text-white block">🎰 Casino</span>
+                                <span class="text-[9px] text-zinc-400">Max Win, Multipliers</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="flex-1">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Kick Channel Slug</label>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1" id="watchdog-channel-label">Kick Channel Slug</label>
                             <div class="relative">
-                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">kick.com/</span>
-                                <input type="text" id="watchdog-channel-input" value="xqc" placeholder="e.g. xqc, trainwreckstv, roshtein" class="w-full pl-20 pr-4 py-2.5 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs" id="watchdog-channel-prefix">kick.com/</span>
+                                <input type="text" id="watchdog-channel-input" value="xqc" placeholder="e.g. xqc, tarik, shroud, trainwreckstv" class="w-full pl-24 pr-4 py-2.5 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
                             </div>
                         </div>
                     </div>
@@ -367,13 +417,13 @@
                     </div>
                 </div>
 
-                <!-- Option B: Kick URL Input Form -->
+                <!-- Option B: URL Input Form (Kick, Twitch, YouTube, Generic) -->
                 <div id="panel-ingest-url" class="hidden space-y-4">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400">Kick Clip or Stream Cut Link</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400">Twitch, Kick, or Stream Clip Link</label>
                     <div class="flex gap-2">
                         <div class="relative flex-1">
                             <i data-lucide="video" class="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" id="kick-url-input" placeholder="https://kick.com/clip/clip_01J..." class="w-full pl-10 pr-4 py-3 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                            <input type="text" id="kick-url-input" placeholder="https://clips.twitch.tv/... or https://kick.com/... or https://twitch.tv/..." class="w-full pl-10 pr-4 py-3 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
                         </div>
                         <button onclick="inspectKickUrl()" id="btn-inspect-url" class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all">
                             <span>Inspect</span>
@@ -382,7 +432,7 @@
                     </div>
                     <p class="text-[11px] text-zinc-500 flex items-center gap-1.5">
                         <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-400"></i>
-                        Supports Kick clips and highlight URLs. Extracted safely with format fallbacks.
+                        Supports Twitch clips, Kick clips, and web streams. Extracted safely via yt-dlp format fallbacks.
                     </p>
                 </div>
 
@@ -547,14 +597,36 @@
                     <p class="text-xs sm:text-sm text-zinc-400">Position the Top Gameplay reel and Bottom Streamer Camera. Drag boxes or handles directly.</p>
                 </div>
 
-                <!-- Layout Preset Buttons Bar -->
-                <div class="flex flex-wrap items-center gap-1.5 p-1 bg-brand-card rounded-xl border border-brand-border">
-                    <span class="text-[11px] text-zinc-500 px-2 font-medium">Presets:</span>
-                    <button onclick="applyPreset('center_slot')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white transition-colors">🎰 Slot Standard</button>
-                    <button onclick="applyPreset('roulette_table')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white transition-colors">🎡 Live Table</button>
-                    <button onclick="applyPreset('full_reel')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white transition-colors">📱 Full Reels</button>
-                    <button onclick="snapCam('br')" class="px-2 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 transition-colors">📌 Cam Bottom-Right</button>
-                    <button onclick="snapCam('bl')" class="px-2 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 transition-colors">📌 Cam Bottom-Left</button>
+                <!-- Layout Preset Selector Bar -->
+                <div class="flex flex-wrap items-center gap-2 p-1.5 bg-brand-card rounded-xl border border-brand-border">
+                    <span class="text-[11px] text-zinc-400 font-semibold px-2 flex items-center gap-1">
+                        <i data-lucide="layout-template" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Crop Preset:</span>
+                    </span>
+                    <select id="presetSelect" onchange="applyPreset(this.value)" class="bg-brand-surface text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-border focus:outline-none focus:border-indigo-500 cursor-pointer">
+                        <optgroup label="🎮 Gaming & Esports (FPS / MOBA / Centered)">
+                            <option value="gaming_fps">🎮 Gaming FPS (Valorant, CS2, Apex - Game Top + Cam)</option>
+                            <option value="gaming_moba">⚔️ Gaming MOBA (League, Dota 2 - Minimap Safe)</option>
+                            <option value="gaming_centered">🎯 Gaming Centered (HUD Focus)</option>
+                        </optgroup>
+                        <optgroup label="💬 Just Chatting & Reaction">
+                            <option value="reaction_standard">💬 Reaction (Top Media 60% + Streamer 40%)</option>
+                            <option value="reaction_interview">👥 Dual Cam / Split Screen (50/50)</option>
+                        </optgroup>
+                        <optgroup label="🎙️ Podcasts & Shows">
+                            <option value="podcast_split">🎙️ Podcast Split (Side-by-Side Dual Host)</option>
+                        </optgroup>
+                        <optgroup label="🎰 Casino & Slots">
+                            <option value="center_slot" selected>🎰 Slot Standard (Big Reel + Cam)</option>
+                            <option value="roulette_table">🎡 Live Roulette / Table</option>
+                            <option value="full_reel">📱 Full Width Reels</option>
+                        </optgroup>
+                        <optgroup label="📱 Ambient & Fullscreen">
+                            <option value="ambient_blur_16_9">✨ Ambient Blur Background (16:9 in 9:16)</option>
+                        </optgroup>
+                    </select>
+                    <button type="button" onclick="snapCam('br')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Right</button>
+                    <button type="button" onclick="snapCam('bl')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Left</button>
                 </div>
             </div>
 
@@ -852,7 +924,7 @@
                             <!-- Typography Presets -->
                             <div>
                                 <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Typography Preset</label>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     <button type="button" onclick="setSubPreset('hormozi')" id="sub-pre-hormozi" class="sub-preset-btn p-3 rounded-xl border border-indigo-500 bg-indigo-500/10 text-left transition-all">
                                         <div class="text-xs font-bold text-white flex items-center gap-1.5">
                                             <span>🔥 Hormozi</span>
@@ -870,6 +942,18 @@
                                             <span>⚡ Cyberpunk</span>
                                         </div>
                                         <p class="text-[10px] text-pink-400 mt-1 font-bold">CYAN & PINK</p>
+                                    </button>
+                                    <button type="button" onclick="setSubPreset('neon_gamer')" id="sub-pre-neon_gamer" class="sub-preset-btn p-3 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                            <span>🎮 Neon Gamer</span>
+                                        </div>
+                                        <p class="text-[10px] text-lime-400 mt-1 font-bold">CYAN & LIME</p>
+                                    </button>
+                                    <button type="button" onclick="setSubPreset('rage_red')" id="sub-pre-rage_red" class="sub-preset-btn p-3 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                            <span>🔴 Rage Red</span>
+                                        </div>
+                                        <p class="text-[10px] text-rose-500 mt-1 font-bold">CRIMSON POP</p>
                                     </button>
                                     <button type="button" onclick="setSubPreset('casino')" id="sub-pre-casino" class="sub-preset-btn p-3 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
                                         <div class="text-xs font-bold text-white flex items-center gap-1.5">
@@ -1171,6 +1255,17 @@
                                 <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
                                 <span>Generate Copy</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Stream Category Selector for Copywriting -->
+                    <div class="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-brand-bg border border-brand-border">
+                        <span class="text-[11px] font-semibold text-zinc-400 px-2">Copy Style:</span>
+                        <div class="flex flex-wrap gap-1" id="ai-category-pills">
+                            <button type="button" onclick="setAiCategory('gaming')" id="btn-ai-cat-gaming" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-surface hover:bg-brand-border text-zinc-300 transition-colors">🎮 Gaming & Esports</button>
+                            <button type="button" onclick="setAiCategory('just_chatting')" id="btn-ai-cat-just_chatting" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-surface hover:bg-brand-border text-zinc-300 transition-colors">💬 Just Chatting & IRL</button>
+                            <button type="button" onclick="setAiCategory('casino')" id="btn-ai-cat-casino" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-surface hover:bg-brand-border text-zinc-300 transition-colors">🎰 Casino & Slots</button>
+                            <button type="button" onclick="setAiCategory('general')" id="btn-ai-cat-general" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition-colors">🌐 General Stream</button>
                         </div>
                     </div>
 
@@ -1521,6 +1616,9 @@
             activeVideoPath: null,
             videoUrl: null,
             previewBase64: null,
+            watchdogPlatform: 'kick',
+            watchdogCategory: 'all',
+            aiCategory: 'general',
             meta: {
                 width: 1920,
                 height: 1080,
@@ -1553,8 +1651,36 @@
             overlays: [] // Array of { id, path, filename, url, x, y, w, h, opacity, origW, origH }
         };
 
-        // Layout Presets Definition
+        // Layout Presets Definition (Universal: Gaming, IRL, Podcasts, Casino, Ambient)
         const PRESETS = {
+            gaming_fps: {
+                gp: { x: 160, y: 0, w: 1600, h: 900 },
+                fc: { x: 1440, y: 720, w: 480, h: 360 }
+            },
+            gaming_moba: {
+                gp: { x: 0, y: 40, w: 1560, h: 1000 },
+                fc: { x: 1400, y: 660, w: 520, h: 420 }
+            },
+            gaming_centered: {
+                gp: { x: 240, y: 80, w: 1440, h: 920 },
+                fc: { x: 700, y: 720, w: 520, h: 360 }
+            },
+            reaction_standard: {
+                gp: { x: 0, y: 0, w: 1360, h: 1080 },
+                fc: { x: 1360, y: 460, w: 560, h: 620 }
+            },
+            reaction_interview: {
+                gp: { x: 0, y: 0, w: 960, h: 1080 },
+                fc: { x: 960, y: 0, w: 960, h: 1080 }
+            },
+            podcast_split: {
+                gp: { x: 40, y: 80, w: 900, h: 920 },
+                fc: { x: 980, y: 80, w: 900, h: 920 }
+            },
+            ambient_blur_16_9: {
+                gp: { x: 0, y: 0, w: 1920, h: 1080 },
+                fc: { x: 0, y: 0, w: 1920, h: 1080 }
+            },
             center_slot: {
                 gp: { x: 260, y: 80, w: 1400, h: 920 },
                 fc: { x: 1380, y: 680, w: 520, h: 380 }
@@ -1895,8 +2021,72 @@
         }
 
         // =========================================================================
-        // ENHANCED DETECTOR CONTROLS & AUDIO CLIMAX ANALYZER
+        // ENHANCED DETECTOR CONTROLS & UNIVERSAL STREAM SENTINEL
         // =========================================================================
+
+        function setWatchdogPlatform(platform) {
+            appState.watchdogPlatform = platform;
+            const btnKick = document.getElementById('btn-plat-kick');
+            const btnTwitch = document.getElementById('btn-plat-twitch');
+            const chanPrefix = document.getElementById('watchdog-channel-prefix');
+            const chanLabel = document.getElementById('watchdog-channel-label');
+            const chanInput = document.getElementById('watchdog-channel-input');
+
+            if (platform === 'twitch') {
+                if (btnKick) {
+                    btnKick.className = 'py-2.5 px-3 rounded-xl border border-brand-border bg-brand-bg hover:border-emerald-500/50 text-left transition-all flex items-center justify-between';
+                }
+                if (btnTwitch) {
+                    btnTwitch.className = 'py-2.5 px-3 rounded-xl border border-purple-500 bg-purple-500/15 text-left transition-all flex items-center justify-between';
+                }
+                if (chanPrefix) chanPrefix.innerText = 'twitch.tv/';
+                if (chanLabel) chanLabel.innerText = 'Twitch Channel Slug';
+                if (chanInput && (chanInput.value === 'xqc' || !chanInput.value)) chanInput.value = 'tarik';
+            } else {
+                if (btnKick) {
+                    btnKick.className = 'py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/15 text-left transition-all flex items-center justify-between';
+                }
+                if (btnTwitch) {
+                    btnTwitch.className = 'py-2.5 px-3 rounded-xl border border-brand-border bg-brand-bg hover:border-purple-500/50 text-left transition-all flex items-center justify-between';
+                }
+                if (chanPrefix) chanPrefix.innerText = 'kick.com/';
+                if (chanLabel) chanLabel.innerText = 'Kick Channel Slug';
+                if (chanInput && (chanInput.value === 'tarik' || !chanInput.value)) chanInput.value = 'xqc';
+            }
+            showToast(`Platform switched to ${platform === 'twitch' ? 'Twitch (IRC + GQL)' : 'Kick (Pusher)'}`);
+        }
+
+        function setWatchdogCategory(cat) {
+            appState.watchdogCategory = cat;
+            const cats = ['all', 'gaming', 'just_chatting', 'casino'];
+            cats.forEach(c => {
+                const btn = document.getElementById(`btn-cat-${c}`);
+                if (btn) {
+                    if (c === cat) {
+                        btn.className = 'py-2 px-2 rounded-xl border border-indigo-500 bg-indigo-500/20 text-center transition-all';
+                    } else {
+                        btn.className = 'py-2 px-2 rounded-xl border border-brand-border bg-brand-bg hover:border-indigo-500/40 text-center transition-all';
+                    }
+                }
+            });
+            showToast(`Detection filter set to ${cat.replace('_', ' ').toUpperCase()}`);
+        }
+
+        function setAiCategory(cat) {
+            appState.aiCategory = cat;
+            const cats = ['gaming', 'just_chatting', 'casino', 'general'];
+            cats.forEach(c => {
+                const btn = document.getElementById(`btn-ai-cat-${c}`);
+                if (btn) {
+                    if (c === cat) {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition-colors';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-surface hover:bg-brand-border text-zinc-300 transition-colors';
+                    }
+                }
+            });
+            showToast(`AI Copywriter style: ${cat.replace('_', ' ').toUpperCase()}`);
+        }
 
         async function setSensitivityPreset(preset) {
             const btnAgg = document.getElementById('btn-sens-aggressive');
@@ -1950,11 +2140,13 @@
             const slugInput = document.getElementById('watchdog-channel-input');
             const slug = (slugInput ? slugInput.value : '').trim() || 'xqc';
             const btn = document.getElementById('btn-scan-recent');
+            const plat = appState.watchdogPlatform || 'kick';
+            const cat = appState.watchdogCategory || 'all';
 
             if (btn) {
                 btn.disabled = true;
                 btn.classList.add('opacity-75');
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-amber-400"></i><span>Scanning 24h...</span>';
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-amber-400"></i><span>Scanning...</span>';
                 lucide.createIcons();
             }
 
@@ -1962,16 +2154,21 @@
                 const res = await fetch('/api/detector/scan-recent-clips', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel_slug: slug, hours: 24 })
+                    body: JSON.stringify({
+                        channel_slug: slug,
+                        platform: plat,
+                        category: cat,
+                        hours: 24
+                    })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Scan failed');
 
                 if (data.wins && data.wins.length > 0) {
                     renderDetectedWins(data.wins);
-                    showToast(`🎯 Found ${data.wins.length} big win clips from ${slug} in past 24h!`);
+                    showToast(`🎯 Found ${data.wins.length} ${plat.toUpperCase()} highlights from ${slug}!`);
                 } else {
-                    showToast(`No qualifying big win clips found for ${slug} in past 24 hours.`);
+                    showToast(`No qualifying clips found for ${slug} on ${plat.toUpperCase()}.`);
                 }
             } catch (err) {
                 showToast('Scan error: ' + err.message);
@@ -2091,9 +2288,12 @@
         async function startWatchdog() {
             const channelInput = document.getElementById('watchdog-channel-input');
             let rawSlug = channelInput.value.trim();
-            // Automatically strip URLs or paths like kick.com/mrheriv2/videos/...
+            // Automatically strip URLs or paths like twitch.tv/tarik or kick.com/mrheriv2
+            rawSlug = rawSlug.replace(/^https?:\/\/(www\.)?twitch\.tv\/?/i, '');
             rawSlug = rawSlug.replace(/^https?:\/\/(www\.)?kick\.com\/?/i, '');
+            rawSlug = rawSlug.replace(/^twitch\.tv\/?/i, '');
             rawSlug = rawSlug.replace(/^kick\.com\/?/i, '');
+            rawSlug = rawSlug.replace(/^[#@]+/, '');
             rawSlug = rawSlug.replace(/^\/+/, '');
             if (rawSlug.includes('/')) rawSlug = rawSlug.split('/')[0];
             if (rawSlug.includes('?')) rawSlug = rawSlug.split('?')[0];
@@ -2101,10 +2301,12 @@
             channelInput.value = channelSlug;
 
             if (!channelSlug) {
-                showToast('Please enter a Kick channel slug (e.g. mrheriv2 or xqc).');
+                showToast('Please enter a channel slug (e.g. tarik, xqc, or shroud).');
                 return;
             }
 
+            const platform = appState.watchdogPlatform || 'kick';
+            const category = appState.watchdogCategory || 'all';
             const minAmount = parseFloat(document.getElementById('watchdog-min-amount').value) || 100.0;
             const minMultiplier = parseFloat(document.getElementById('watchdog-min-multiplier').value) || 50.0;
             const pollInterval = parseFloat(document.getElementById('watchdog-poll-interval').value) || 10.0;
@@ -2118,6 +2320,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         channel_slug: channelSlug,
+                        platform: platform,
+                        category: category,
                         min_amount: minAmount,
                         min_multiplier: minMultiplier,
                         poll_interval: pollInterval
@@ -2128,7 +2332,7 @@
 
                 document.getElementById('btn-start-watchdog').classList.add('hidden');
                 document.getElementById('btn-stop-watchdog').classList.remove('hidden');
-                showToast(`Sentinel Watchdog started for ${channelSlug}!`);
+                showToast(`Sentinel Watchdog started for ${channelSlug} on ${platform.toUpperCase()}!`);
 
                 if (watchdogPollTimer) clearInterval(watchdogPollTimer);
                 watchdogPollTimer = setInterval(pollWatchdogStatus, 2000);
@@ -3227,6 +3431,9 @@
             appState.crops.cx = p.fc.x; appState.crops.cy = p.fc.y;
             appState.crops.cw = p.fc.w; appState.crops.ch = p.fc.h;
 
+            const ps = document.getElementById('presetSelect');
+            if (ps && ps.value !== presetKey) ps.value = presetKey;
+
             syncBoxStylesFromState();
             saveSession();
             showToast('Applied layout preset: ' + presetKey);
@@ -3293,6 +3500,16 @@
                 appState.subtitles.fontSize = 50;
                 appState.subtitles.primaryColor = '#00FFFF';
                 appState.subtitles.highlightColor = '#FF007F';
+            } else if (preset === 'neon_gamer') {
+                appState.subtitles.fontName = 'Impact';
+                appState.subtitles.fontSize = 54;
+                appState.subtitles.primaryColor = '#00F0FF';
+                appState.subtitles.highlightColor = '#39FF14';
+            } else if (preset === 'rage_red') {
+                appState.subtitles.fontName = 'Impact';
+                appState.subtitles.fontSize = 56;
+                appState.subtitles.primaryColor = '#FFFFFF';
+                appState.subtitles.highlightColor = '#FF1A35';
             } else if (preset === 'casino') {
                 appState.subtitles.fontName = 'Impact';
                 appState.subtitles.fontSize = 54;
@@ -4177,6 +4394,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clip_title: clipName,
+                        category: appState.aiCategory || 'general',
                         game_name: null,
                         win_amount: null,
                         multiplier: null,

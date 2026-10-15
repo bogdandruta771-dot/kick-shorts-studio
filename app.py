@@ -52,14 +52,17 @@ from core.utils import TempFileManager, cleanup_stale_temp_dirs
 from core.video_ingest import (
     validate_media_file,
     download_kick_clip,
+    download_stream_clip,
+    detect_stream_platform,
+    fetch_twitch_channel_clips,
     extract_preview_frame,
 )
 from core.video_processor import VideoProcessor
-from core.detector import KickWatchdogManager, WinExtractor
+from core.detector import UniversalWatchdogManager, KickWatchdogManager, WinExtractor, sanitize_channel_slug
 
-app = FastAPI(title="Kick Casino Shorts Studio", version="2.0.0")
+app = FastAPI(title="OmniStream Shorts Studio - Kick & Twitch", version="2.5.0")
 processor = VideoProcessor()
-watchdog = KickWatchdogManager()
+watchdog = UniversalWatchdogManager()
 
 # In-Memory Background Job Store
 export_jobs: Dict[str, Dict[str, Any]] = {}
@@ -83,6 +86,8 @@ class IngestUrlRequest(BaseModel):
 
 class WatchdogStartRequest(BaseModel):
     channel_slug: str
+    platform: Optional[str] = "kick"
+    category: Optional[str] = "all"
     min_amount: Optional[float] = DEFAULT_MIN_WIN_AMOUNT
     min_multiplier: Optional[float] = DEFAULT_MIN_MULTIPLIER
     poll_interval: Optional[float] = DEFAULT_POLL_INTERVAL_SEC
@@ -94,6 +99,8 @@ class SensitivityPresetRequest(BaseModel):
 
 class ScanRecentClipsRequest(BaseModel):
     channel_slug: Optional[str] = None
+    platform: Optional[str] = "kick"
+    category: Optional[str] = "all"
     hours: Optional[int] = 24
 
 
@@ -136,7 +143,8 @@ class GenerateBannerRequest(BaseModel):
 
 
 class GenerateMetadataRequest(BaseModel):
-    clip_title: Optional[str] = "Big Win on Kick"
+    clip_title: Optional[str] = "Stream Highlight Moment"
+    category: Optional[str] = "general"
     win_amount: Optional[Any] = None
     multiplier: Optional[Any] = None
     streamer: Optional[str] = None
@@ -193,13 +201,15 @@ async def serve_home():
 
 @app.post("/api/detector/start")
 async def start_detector_watchdog(req: WatchdogStartRequest):
-    """Starts dual-sentinel Kick live monitoring watchdog."""
+    """Starts dual-sentinel Kick or Twitch live monitoring watchdog."""
     slug = req.channel_slug.strip()
     if not slug:
-        raise HTTPException(status_code=400, detail="Missing Kick channel slug.")
+        raise HTTPException(status_code=400, detail="Missing channel slug.")
     try:
         res = watchdog.start_watchdog(
             channel_slug=slug,
+            platform=req.platform or "kick",
+            stream_category=req.category or "all",
             min_amount=req.min_amount or DEFAULT_MIN_WIN_AMOUNT,
             min_multiplier=req.min_multiplier or DEFAULT_MIN_MULTIPLIER,
             poll_interval=req.poll_interval or DEFAULT_POLL_INTERVAL_SEC,
@@ -211,7 +221,7 @@ async def start_detector_watchdog(req: WatchdogStartRequest):
 
 @app.post("/api/detector/stop")
 async def stop_detector_watchdog():
-    """Stops active Kick watchdog monitoring."""
+    """Stops active watchdog monitoring."""
     return watchdog.stop_watchdog()
 
 
@@ -229,14 +239,16 @@ async def set_detector_sensitivity(req: SensitivityPresetRequest):
 
 @app.post("/api/detector/scan-recent-clips")
 async def scan_recent_clips_endpoint(req: ScanRecentClipsRequest):
-    """Scans Kick channel clips created in the past N hours for qualified big win moments."""
+    """Scans Kick or Twitch channel clips for qualified big wins and viral moments."""
     slug = req.channel_slug or watchdog.channel_slug
     if not slug:
-        raise HTTPException(status_code=400, detail="Missing Kick channel slug.")
+        raise HTTPException(status_code=400, detail="Missing channel slug.")
     try:
-        watchdog.channel_slug = slug
-        wins = watchdog.scan_channel_recent_wins(hours=req.hours or 168)
-        return {"channel": slug, "wins": wins, "count": len(wins)}
+        clean_slug = sanitize_channel_slug(slug)
+        watchdog.channel_slug = clean_slug
+        plat = req.platform or ("twitch" if ("twitch" in str(slug).lower() or "twitch.tv" in str(slug).lower()) else watchdog.platform)
+        wins = watchdog.scan_channel_recent_wins(hours=req.hours or 168, platform=plat)
+        return {"channel": clean_slug, "platform": plat, "wins": wins, "count": len(wins)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -272,16 +284,17 @@ async def analyze_audio_climax_endpoint(req: AnalyzeAudioClimaxRequest):
 
 @app.post("/api/detector/select-win")
 async def select_detector_win(req: SelectWinRequest):
-    """Downloads a detected big win clip via yt-dlp and returns preview snapshot for Step 2 Framing."""
+    """Downloads a detected clip via yt-dlp and returns preview snapshot for Step 2 Framing."""
     url = req.clip_url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="Missing clip URL.")
 
+    platform = detect_stream_platform(url)
     ts = int(time.time())
-    dest_path = TEMP_DIR / f"kick_win_{ts}.mp4"
+    dest_path = TEMP_DIR / f"{platform}_clip_{ts}.mp4"
 
     try:
-        active_path = download_kick_clip(url, dest_path)
+        active_path = download_stream_clip(url, dest_path)
         meta = validate_media_file(active_path)
 
         preview_img_path = TEMP_DIR / f"snap_{ts}.jpg"
@@ -289,11 +302,15 @@ async def select_detector_win(req: SelectWinRequest):
         img = Image.open(preview_img_path)
         b64 = pil_to_base64(img)
 
+        suggested_preset = "gaming_fps" if platform == "twitch" else "standard_dual"
+
         return {
             "path": str(active_path),
             "filename": active_path.name,
             "video_url": f"/temp_media/{active_path.name}",
-            "title": req.title or "Big Win Clip",
+            "platform": platform,
+            "suggested_preset": suggested_preset,
+            "title": req.title or f"{platform.capitalize()} Clip",
             "width": meta["width"],
             "height": meta["height"],
             "duration": meta["duration"],
@@ -393,18 +410,25 @@ async def reset_session():
 
 
 
+@app.get("/api/crop-presets")
+async def get_crop_presets():
+    """Returns available crop presets categorized for gaming, IRL, podcasts, and casino streams."""
+    return CROP_PRESETS
+
+
 @app.post("/api/ingest-url")
-async def ingest_kick_url(req: IngestUrlRequest):
-    """Downloads a Kick clip via yt-dlp, validates container, and returns snapshot & metadata."""
+async def ingest_stream_url(req: IngestUrlRequest):
+    """Downloads a Kick, Twitch, or web stream clip via yt-dlp, detects platform & suggests preset."""
     url = req.url.strip()
     if not url:
-        raise HTTPException(status_code=400, detail="Missing Kick URL.")
+        raise HTTPException(status_code=400, detail="Missing clip or stream URL.")
 
+    platform = detect_stream_platform(url)
     ts = int(time.time())
-    dest_path = TEMP_DIR / f"kick_dl_{ts}.mp4"
+    dest_path = TEMP_DIR / f"{platform}_dl_{ts}.mp4"
 
     try:
-        active_path = download_kick_clip(url, dest_path)
+        active_path = download_stream_clip(url, dest_path)
         meta = validate_media_file(active_path)
 
         preview_img_path = TEMP_DIR / f"snap_{ts}.jpg"
@@ -412,10 +436,15 @@ async def ingest_kick_url(req: IngestUrlRequest):
         img = Image.open(preview_img_path)
         b64 = pil_to_base64(img)
 
+        # Suggest crop preset based on platform
+        suggested_preset = "gaming_fps" if platform == "twitch" else "standard_dual"
+
         return {
             "path": str(active_path),
             "filename": active_path.name,
             "video_url": f"/temp_media/{active_path.name}",
+            "platform": platform,
+            "suggested_preset": suggested_preset,
             "width": meta["width"],
             "height": meta["height"],
             "duration": meta["duration"],
@@ -814,7 +843,8 @@ async def generate_ai_metadata(req: GenerateMetadataRequest):
             win_str = f"{req.multiplier}x"
 
         result = generate_shorts_metadata(
-            clip_title=req.clip_title or "Big Win on Kick",
+            clip_title=req.clip_title or "Stream Highlight Moment",
+            category=req.category or "general",
             win_amount=win_str,
             streamer=req.streamer,
             transcript=req.transcript,

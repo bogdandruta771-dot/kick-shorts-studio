@@ -14,7 +14,7 @@ def run_e2e_api_test():
     print("[1/6] Testing GET / (Studio HTML UI & Stepper Wizard)...")
     res_home = requests.get(f"{BASE_URL}/")
     assert res_home.status_code == 200, f"Expected 200, got {res_home.status_code}"
-    assert "KickStudio" in res_home.text, "Page missing KickStudio branding"
+    assert "OmniStream" in res_home.text or "KickStudio" in res_home.text, "Page missing studio branding"
     assert "canvas-9-16" in res_home.text, "Page missing 9:16 canvas"
     assert "stage-step-1" in res_home.text, "Page missing Step 1"
     assert "stage-step-2" in res_home.text, "Page missing Step 2"

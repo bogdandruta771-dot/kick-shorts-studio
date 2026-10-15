@@ -27,18 +27,25 @@ from core.config import (
     CHAT_VELOCITY_SPIKE_RATIO,
     DEFAULT_POLL_INTERVAL_SEC,
     WIN_KEYWORDS,
+    GAMING_KEYWORDS,
+    IRL_KEYWORDS,
+    CASINO_KEYWORDS,
+    ALL_HYPE_KEYWORDS,
+    TWITCH_IRC_WS_URL,
     DEFAULT_TIMEOUT,
 )
 
 
 def sanitize_channel_slug(raw: str) -> str:
-    """Sanitizes user input (full URL, path, or raw name) into a clean Kick channel slug."""
+    """Sanitizes user input (Kick URL, Twitch URL, path, or raw username) into a clean channel slug."""
     if not raw:
         return ""
     clean = raw.strip()
+    clean = re.sub(r"^https?://(?:www\.|clips\.)?twitch\.tv/", "", clean, flags=re.IGNORECASE)
     clean = re.sub(r"^https?://(?:www\.)?kick\.com/", "", clean, flags=re.IGNORECASE)
-    clean = re.sub(r"^kick\.com/", "", clean, flags=re.IGNORECASE)
-    clean = clean.lstrip("/")
+    clean = re.sub(r"^(?:www\.|clips\.)?twitch\.tv/", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"^(?:www\.)?kick\.com/", "", clean, flags=re.IGNORECASE)
+    clean = clean.lstrip("/@#")
     if "/" in clean:
         clean = clean.split("/")[0]
     if "?" in clean:
@@ -697,29 +704,211 @@ class KickPusherChatSentinel:
             self._thread.join(timeout=2.0)
 
 
-class KickWatchdogManager:
-    """Orchestrates Sentinel A and Sentinel B live monitoring threads and stores detected wins."""
+class TwitchIrcChatSentinel:
+    """Sentinel for Twitch live chat via anonymous IRC WebSocket (wss://irc-ws.chat.twitch.tv:443).
+    Zero API key required. Tracks chat velocity, emote surges, and hype keyword spikes.
+    """
+
+    def __init__(
+        self,
+        channel_slug: str,
+        stream_category: str = "all",
+        on_velocity_spike: Optional[Callable[[float, float], None]] = None,
+        on_chat_message: Optional[Callable[[str, str], None]] = None,
+    ):
+        self.channel_slug = channel_slug.strip().lower().lstrip("#@")
+        self.stream_category = stream_category
+        self.on_velocity_spike = on_velocity_spike
+        self.on_chat_message = on_chat_message
+
+        self.is_connected = False
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._ws_app = None
+
+        self.total_messages = 0
+        self._message_times: deque = deque()
+        self._keyword_times: deque = deque()
+        self._baseline_velocity: float = 0.5
+        self.current_velocity: float = 0.0
+        self.last_spike_time: float = 0.0
+        self.last_error: Optional[str] = None
+
+        # Select keyword filter based on stream category
+        if self.stream_category == "gaming":
+            raw_kws = GAMING_KEYWORDS
+        elif self.stream_category == "just_chatting":
+            raw_kws = IRL_KEYWORDS
+        elif self.stream_category == "casino":
+            raw_kws = CASINO_KEYWORDS
+        else:
+            raw_kws = ALL_HYPE_KEYWORDS
+        self._active_keywords = [k.lower() for k in raw_kws]
+
+    def _update_velocity(self) -> float:
+        now = time.time()
+        cutoff = now - CHAT_VELOCITY_WINDOW_SEC
+
+        while self._message_times and self._message_times[0] < cutoff:
+            self._message_times.popleft()
+
+        count = len(self._message_times)
+        span = min(CHAT_VELOCITY_WINDOW_SEC, max(1.0, now - (self._message_times[0] if count > 0 else now)))
+        velocity = count / span
+        self.current_velocity = round(velocity, 2)
+
+        if now - self.last_spike_time > 30:
+            self._baseline_velocity = (self._baseline_velocity * 0.95) + (max(0.1, velocity) * 0.05)
+
+        return self.current_velocity
+
+    def _check_spike(self, content: str):
+        now = time.time()
+        self._message_times.append(now)
+        self.total_messages += 1
+        current_vel = self._update_velocity()
+
+        content_upper = content.upper()
+        has_hype_kw = any(kw in content_upper for kw in self._active_keywords)
+
+        if has_hype_kw:
+            self._keyword_times.append(now)
+
+        cutoff_kw = now - 10.0
+        while self._keyword_times and self._keyword_times[0] < cutoff_kw:
+            self._keyword_times.popleft()
+
+        kw_burst_count = len(self._keyword_times)
+
+        # Trigger conditions
+        threshold = max(1.5, self._baseline_velocity * CHAT_VELOCITY_SPIKE_RATIO)
+        is_spike = current_vel >= threshold
+        is_kw_surge = kw_burst_count >= 3
+        is_boosted = has_hype_kw and current_vel >= 1.0
+
+        if (is_spike or is_kw_surge or is_boosted) and (now - self.last_spike_time > 15):
+            self.last_spike_time = now
+            if self.on_velocity_spike:
+                self.on_velocity_spike(current_vel, self._baseline_velocity)
+
+    def _parse_and_handle_message(self, raw_line: str):
+        if raw_line.startswith("PING"):
+            if self._ws_app:
+                try:
+                    self._ws_app.send("PONG :tmi.twitch.tv\r\n")
+                except Exception:
+                    pass
+            return
+
+        if "PRIVMSG" in raw_line:
+            sender = "viewer"
+            match = re.search(r"display-name=([^;]*)", raw_line)
+            if match and match.group(1):
+                sender = match.group(1).strip()
+            else:
+                user_match = re.search(r":([^!]+)!", raw_line)
+                if user_match:
+                    sender = user_match.group(1).strip()
+
+            if " :" in raw_line:
+                msg_body = raw_line.split(" :", 1)[1].strip()
+            else:
+                msg_body = raw_line.split("PRIVMSG", 1)[1].strip()
+
+            self._check_spike(msg_body)
+            if self.on_chat_message:
+                self.on_chat_message(sender, msg_body)
+
+    def _worker(self):
+        import websocket
+        import random
+
+        anon_num = random.randint(10000, 99999)
+        nick = f"justinfan{anon_num}"
+
+        def on_open(ws):
+            self.is_connected = True
+            self.last_error = None
+            ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands\r\n")
+            ws.send(f"PASS oauth:{nick}\r\n")
+            ws.send(f"NICK {nick}\r\n")
+            ws.send(f"USER {nick} 8 * :{nick}\r\n")
+            ws.send(f"JOIN #{self.channel_slug}\r\n")
+
+        def on_message(ws, raw_msg):
+            for line in raw_msg.splitlines():
+                line = line.strip()
+                if line:
+                    self._parse_and_handle_message(line)
+
+        def on_error(ws, error):
+            self.last_error = str(error)
+            self.is_connected = False
+
+        def on_close(ws, close_status_code, close_msg):
+            self.is_connected = False
+
+        while self._running:
+            try:
+                self._ws_app = websocket.WebSocketApp(
+                    TWITCH_IRC_WS_URL,
+                    on_open=on_open,
+                    on_message=on_message,
+                    on_error=on_error,
+                    on_close=on_close,
+                )
+                self._ws_app.run_forever(ping_interval=20, ping_timeout=10)
+            except Exception as e:
+                self.last_error = str(e)
+                self.is_connected = False
+
+            if not self._running:
+                break
+            time.sleep(2.0)
+
+    def start(self):
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._worker, daemon=True, name="TwitchIrcChatSentinel")
+        self._thread.start()
+
+    def stop(self):
+        self._running = False
+        self.is_connected = False
+        if self._ws_app:
+            try:
+                self._ws_app.close()
+            except Exception:
+                pass
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=2.0)
+
+
+class UniversalWatchdogManager:
+    """Universal stream monitoring watchdog supporting both Kick (Pusher) and Twitch (IRC + GQL)."""
 
     def __init__(self):
+        self.platform: str = "kick"
+        self.stream_category: str = "all"
         self.channel_slug: Optional[str] = None
         self.clip_sentinel: Optional[KickClipPulseSentinel] = None
-        self.chat_sentinel: Optional[KickPusherChatSentinel] = None
+        self.chat_sentinel: Optional[Any] = None
         self.is_active = False
 
         self.min_amount: float = DEFAULT_MIN_WIN_AMOUNT
         self.min_multiplier: float = DEFAULT_MIN_MULTIPLIER
         self.poll_interval: float = DEFAULT_POLL_INTERVAL_SEC
 
-        # Detected wins buffer (max 50)
+        # Detected highlights / wins buffer (max 50)
         self.detected_wins: deque = deque(maxlen=50)
         self.recent_chat_events: deque = deque(maxlen=30)
         self.burst_alerts: deque = deque(maxlen=10)
         self._lock = threading.Lock()
 
     def _on_big_win_detected(self, event: Dict[str, Any]):
-        """Handler for qualified big win events from Sentinel A."""
+        """Handler for qualified big win events from Kick Sentinel A."""
         with self._lock:
-            # Check if clip already in list
             if not any(w["clip_id"] == event["clip_id"] for w in self.detected_wins):
                 self.detected_wins.appendleft(event)
 
@@ -734,9 +923,41 @@ class KickWatchdogManager:
 
     def _on_velocity_spike(self, current_vel: float, baseline: float):
         """Handler for chat velocity spikes from Sentinel B."""
-        # When chat surges, trigger an immediate Sentinel A clip check
-        if self.clip_sentinel:
+        with self._lock:
+            self.burst_alerts.appendleft({
+                "count": int(current_vel * 2),
+                "time": time.time(),
+                "sample_title": f"Chat velocity spike: {current_vel:.1f} msg/s (Baseline: {baseline:.1f})",
+            })
+
+        if self.platform == "kick" and self.clip_sentinel:
             threading.Thread(target=self.clip_sentinel.poll_once, daemon=True).start()
+        elif self.platform == "twitch":
+            threading.Thread(target=self._poll_twitch_clips_once, daemon=True).start()
+
+    def _poll_twitch_clips_once(self):
+        """Quick background scan for newly created Twitch clips."""
+        if not self.channel_slug:
+            return
+        from core.video_ingest import fetch_twitch_channel_clips
+        clips = fetch_twitch_channel_clips(self.channel_slug, limit=6, period="LAST_DAY")
+        with self._lock:
+            for c in clips:
+                cid = str(c.get("id") or c.get("slug"))
+                if not any(x["clip_id"] == cid for x in self.detected_wins):
+                    self.detected_wins.appendleft({
+                        "clip_id": cid,
+                        "title": c.get("title", "Twitch Highlight"),
+                        "win_amount": c.get("views", 0),
+                        "multiplier": 0.0,
+                        "view_count": c.get("views", 0),
+                        "duration": c.get("duration", 30.0),
+                        "created_at": c.get("created_at", ""),
+                        "clip_url": c.get("url", ""),
+                        "thumbnail_url": c.get("thumbnail_url", ""),
+                        "clipped_by": c.get("clipped_by", "Twitch Viewer"),
+                        "platform": "twitch",
+                    })
 
     def _on_chat_message(self, sender: str, content: str):
         """Handler for incoming chat message."""
@@ -750,17 +971,21 @@ class KickWatchdogManager:
     def start_watchdog(
         self,
         channel_slug: str,
+        platform: str = "kick",
+        stream_category: str = "all",
         min_amount: float = DEFAULT_MIN_WIN_AMOUNT,
         min_multiplier: float = DEFAULT_MIN_MULTIPLIER,
         poll_interval: float = DEFAULT_POLL_INTERVAL_SEC,
     ) -> Dict[str, Any]:
-        """Starts monitoring a Kick channel."""
+        """Starts monitoring either a Kick channel (Pusher) or Twitch channel (IRC)."""
         self.stop_watchdog()
 
         clean_slug = sanitize_channel_slug(channel_slug)
         if not clean_slug:
-            raise ValueError(f"Could not parse valid Kick channel slug from '{channel_slug}'")
+            raise ValueError(f"Could not parse valid channel slug from '{channel_slug}'")
 
+        self.platform = "twitch" if ("twitch" in str(platform).lower() or "twitch.tv" in str(channel_slug).lower()) else "kick"
+        self.stream_category = stream_category
         self.channel_slug = clean_slug
         self.min_amount = min_amount
         self.min_multiplier = min_multiplier
@@ -770,30 +995,41 @@ class KickWatchdogManager:
             self.detected_wins.clear()
             self.burst_alerts.clear()
 
-        # Start Sentinel A (Clips)
-        self.clip_sentinel = KickClipPulseSentinel(
-            channel_slug=clean_slug,
-            poll_interval=poll_interval,
-            min_amount=min_amount,
-            min_multiplier=min_multiplier,
-            on_big_win=self._on_big_win_detected,
-            on_burst=self._on_clip_burst,
-        )
-        self.clip_sentinel.start()
+        if self.platform == "twitch":
+            self.chat_sentinel = TwitchIrcChatSentinel(
+                channel_slug=clean_slug,
+                stream_category=stream_category,
+                on_velocity_spike=self._on_velocity_spike,
+                on_chat_message=self._on_chat_message,
+            )
+            self.chat_sentinel.start()
+            threading.Thread(target=self._poll_twitch_clips_once, daemon=True).start()
+        else:
+            self.clip_sentinel = KickClipPulseSentinel(
+                channel_slug=clean_slug,
+                poll_interval=poll_interval,
+                min_amount=min_amount,
+                min_multiplier=min_multiplier,
+                on_big_win=self._on_big_win_detected,
+                on_burst=self._on_clip_burst,
+            )
+            self.clip_sentinel.start()
+            threading.Thread(target=self.clip_sentinel.poll_once, daemon=True).start()
 
-        # Seed immediate clip scan in background
-        threading.Thread(target=self.clip_sentinel.poll_once, daemon=True).start()
-
-        # Start Sentinel B (Pusher Chat)
-        self.chat_sentinel = KickPusherChatSentinel(
-            channel_slug=clean_slug,
-            on_velocity_spike=self._on_velocity_spike,
-            on_chat_message=self._on_chat_message,
-        )
-        self.chat_sentinel.start()
+            self.chat_sentinel = KickPusherChatSentinel(
+                channel_slug=clean_slug,
+                on_velocity_spike=self._on_velocity_spike,
+                on_chat_message=self._on_chat_message,
+            )
+            self.chat_sentinel.start()
 
         self.is_active = True
-        return {"status": "started", "channel": clean_slug}
+        return {
+            "status": "started",
+            "channel": clean_slug,
+            "platform": self.platform,
+            "category": self.stream_category,
+        }
 
     def stop_watchdog(self) -> Dict[str, Any]:
         """Stops active monitoring threads."""
@@ -830,36 +1066,63 @@ class KickWatchdogManager:
             "min_multiplier": self.min_multiplier,
         }
 
-    def scan_channel_recent_wins(self, hours: int = 168) -> List[Dict[str, Any]]:
-        """Scans channel clips from the last N hours and adds them to detected wins."""
+    def scan_channel_recent_wins(self, hours: int = 168, platform: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Scans channel clips from Twitch or Kick and adds them to detected clips/wins."""
         slug = self.channel_slug
         if not slug:
             return []
 
-        # Always use sentinel for the target channel slug
-        sentinel = KickClipPulseSentinel(
-            channel_slug=slug,
-            min_amount=self.min_amount,
-            min_multiplier=self.min_multiplier,
-        )
+        target_platform = platform or self.platform
 
-        recent_wins = sentinel.scan_recent_clips(hours=hours)
-        with self._lock:
-            for w in recent_wins:
-                if not any(x["clip_id"] == w["clip_id"] for x in self.detected_wins):
-                    self.detected_wins.append(w)
-        return recent_wins
+        if target_platform == "twitch":
+            from core.video_ingest import fetch_twitch_channel_clips
+            raw_clips = fetch_twitch_channel_clips(slug, limit=20, period="ALL_TIME")
+            results = []
+            for c in raw_clips:
+                formatted = {
+                    "clip_id": str(c.get("id") or c.get("slug")),
+                    "title": c.get("title", "Twitch Clip"),
+                    "win_amount": c.get("views", 0),
+                    "multiplier": 0.0,
+                    "view_count": c.get("views", 0),
+                    "duration": c.get("duration", 30.0),
+                    "created_at": c.get("created_at", ""),
+                    "clip_url": c.get("url", ""),
+                    "thumbnail_url": c.get("thumbnail_url", ""),
+                    "clipped_by": c.get("clipped_by", "Twitch Viewer"),
+                    "platform": "twitch",
+                }
+                results.append(formatted)
+
+            with self._lock:
+                for w in results:
+                    if not any(x["clip_id"] == w["clip_id"] for x in self.detected_wins):
+                        self.detected_wins.append(w)
+            return results
+        else:
+            sentinel = KickClipPulseSentinel(
+                channel_slug=slug,
+                min_amount=self.min_amount,
+                min_multiplier=self.min_multiplier,
+            )
+            recent_wins = sentinel.scan_recent_clips(hours=hours)
+            with self._lock:
+                for w in recent_wins:
+                    if not any(x["clip_id"] == w["clip_id"] for x in self.detected_wins):
+                        self.detected_wins.append(w)
+            return recent_wins
 
     def get_status(self) -> Dict[str, Any]:
         """Returns comprehensive watchdog status and telemetry."""
         with self._lock:
             wins_copy = list(self.detected_wins)
             bursts_copy = list(self.burst_alerts)
+            chat_events = list(self.recent_chat_events)
 
         ws_connected = self.chat_sentinel.is_connected if self.chat_sentinel else False
         chat_vel = self.chat_sentinel.current_velocity if self.chat_sentinel else 0.0
         total_msgs = self.chat_sentinel.total_messages if self.chat_sentinel else 0
-        chatroom_id = self.chat_sentinel.chatroom_id if self.chat_sentinel else None
+        chatroom_id = getattr(self.chat_sentinel, "chatroom_id", None) if self.chat_sentinel else None
 
         last_error = None
         if self.clip_sentinel and self.clip_sentinel.last_error:
@@ -868,7 +1131,7 @@ class KickWatchdogManager:
             last_error = self.chat_sentinel.last_error
 
         livestream_info = {}
-        if self.clip_sentinel and self.channel_slug:
+        if self.clip_sentinel and self.channel_slug and self.platform == "kick":
             try:
                 livestream_info = self.clip_sentinel.fetch_channel_livestream()
             except Exception:
@@ -876,6 +1139,8 @@ class KickWatchdogManager:
 
         return {
             "is_active": self.is_active,
+            "platform": self.platform,
+            "category": self.stream_category,
             "channel_slug": self.channel_slug,
             "ws_connected": ws_connected,
             "chatroom_id": chatroom_id,
@@ -884,8 +1149,14 @@ class KickWatchdogManager:
             "min_amount": self.min_amount,
             "min_multiplier": self.min_multiplier,
             "detected_wins_count": len(wins_copy),
-            "detected_wins": wins_copy[:25],
+            "detected_wins": wins_copy[:30],
             "recent_bursts": bursts_copy[:5],
+            "recent_chat_events": chat_events[:10],
             "last_error": last_error,
             "livestream": livestream_info,
         }
+
+
+# Backward-compatible alias
+KickWatchdogManager = UniversalWatchdogManager
+

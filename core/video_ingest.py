@@ -2,6 +2,7 @@
 import json
 import re
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -94,26 +95,121 @@ def validate_media_file(file_path: Path) -> Dict[str, Any]:
     }
 
 
-def download_kick_clip(
+def detect_stream_platform(url: str) -> str:
+    """Detects whether a URL belongs to Twitch, Kick, YouTube, or is a generic stream link."""
+    clean = url.strip().lower()
+    if "twitch.tv" in clean or "clips.twitch.tv" in clean:
+        return "twitch"
+    if "kick.com" in clean:
+        return "kick"
+    if "youtube.com" in clean or "youtu.be" in clean:
+        return "youtube"
+    return "generic"
+
+
+def fetch_twitch_channel_clips(
+    channel_slug: str,
+    limit: int = 12,
+    period: str = "ALL_TIME",
+) -> List[Dict[str, Any]]:
+    """
+    Fetches top clips for any Twitch channel using Twitch's public GQL endpoint.
+    Requires zero authentication or user tokens.
+    """
+    clean_slug = channel_slug.strip().lower()
+    clean_slug = re.sub(r"^https?://(?:www\.)?twitch\.tv/", "", clean_slug)
+    clean_slug = clean_slug.split("/")[0].split("?")[0].lstrip("@#")
+
+    from core.config import TWITCH_GQL_URL, TWITCH_GQL_CLIENT_ID
+
+    gql_query = """
+    query GetChannelClips($login: String!, $first: Int!, $criteria: ClipConnectionCriteria!) {
+      user(login: $login) {
+        clips(first: $first, criteria: $criteria) {
+          edges {
+            node {
+              id
+              slug
+              title
+              viewCount
+              durationSeconds
+              createdAt
+              url
+              thumbnailURL
+              curator {
+                displayName
+              }
+            }
+          }
+        }
+      }
+    }
+    """
+
+    payload = json.dumps({
+        "query": gql_query,
+        "variables": {
+            "login": clean_slug,
+            "first": max(1, min(limit, 30)),
+            "criteria": {"filter": period if period in ("LAST_DAY", "LAST_WEEK", "LAST_MONTH", "ALL_TIME") else "ALL_TIME"},
+        },
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        TWITCH_GQL_URL,
+        data=payload,
+        headers={
+            "Client-ID": TWITCH_GQL_CLIENT_ID,
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            edges = data.get("data", {}).get("user", {}).get("clips", {}).get("edges", [])
+            clips = []
+            for edge in edges:
+                node = edge.get("node", {})
+                clips.append({
+                    "id": node.get("id"),
+                    "slug": node.get("slug"),
+                    "title": node.get("title", "Twitch Clip"),
+                    "views": node.get("viewCount", 0),
+                    "duration": float(node.get("durationSeconds", 0.0)),
+                    "url": node.get("url"),
+                    "thumbnail_url": node.get("thumbnailURL", ""),
+                    "clipped_by": node.get("curator", {}).get("displayName", "Viewer"),
+                    "created_at": node.get("createdAt", ""),
+                    "platform": "twitch",
+                })
+            return clips
+    except Exception as exc:
+        return []
+
+
+def download_stream_clip(
     url: str,
     output_target: Path,
     timeout: int = DOWNLOAD_TIMEOUT,
 ) -> Path:
     """
-    Downloads a Kick clip or stream cut using yt-dlp with automated format fallbacks.
+    Downloads a clip or VOD from Twitch, Kick, YouTube, or direct stream link using yt-dlp.
     Returns the validated output Path.
     """
     clean_url = url.strip()
     if not clean_url.startswith(("http://", "https://")):
         raise ValueError(f"Invalid clip URL format: {clean_url}")
 
+    platform = detect_stream_platform(clean_url)
     ffmpeg_bin, _ = resolve_binary_paths()
     ffmpeg_dir = str(Path(ffmpeg_bin).parent)
 
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--ffmpeg-location", ffmpeg_dir,
-        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best",
         "--merge-output-format", "mp4",
         "--no-playlist",
         "--no-check-certificates",
@@ -125,23 +221,26 @@ def download_kick_clip(
     def _execute_download() -> Path:
         res = run_command_safe(cmd, timeout=timeout)
         if res.returncode != 0:
-            # Check if output file was created anyway despite warnings
             if output_target.is_file() and output_target.stat().st_size > 1024:
                 return output_target
             err_msg = res.stderr.strip() or res.stdout.strip()
-            raise RuntimeError(f"yt-dlp download failed: {err_msg[:400]}")
+            raise RuntimeError(f"yt-dlp download failed ({platform}): {err_msg[:400]}")
         return output_target
 
     downloaded_file = retry_with_backoff(
         _execute_download,
         max_retries=2,
         initial_delay=2.0,
-        task_name=f"Download Kick clip ({clean_url})",
+        task_name=f"Download {platform.capitalize()} clip ({clean_url})",
     )
 
     # Validate container
     validate_media_file(downloaded_file)
     return downloaded_file
+
+
+# Backward-compatible alias for existing imports
+download_kick_clip = download_stream_clip
 
 
 def extract_preview_frame(

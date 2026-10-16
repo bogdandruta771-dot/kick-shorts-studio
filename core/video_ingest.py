@@ -3,6 +3,7 @@ import json
 import re
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -140,7 +141,26 @@ def fetch_kick_clips(
         "valorant": "valorant",
         "fortnite": "fortnite",
         "cs2": "counter-strike-2",
+        "csgo": "counter-strike-2",
         "counter-strike": "counter-strike-2",
+        "counter-strike-2": "counter-strike-2",
+        "counter-strike 2": "counter-strike-2",
+        "case_opening": "counter-strike-2",
+        "case-opening": "counter-strike-2",
+        "case opening": "counter-strike-2",
+        "cases": "counter-strike-2",
+        "unboxing": "counter-strike-2",
+        "minecraft": "minecraft",
+        "apex": "apex-legends",
+        "apex legends": "apex-legends",
+        "league": "league-of-legends",
+        "league of legends": "league-of-legends",
+        "dota": "dota-2",
+        "dota 2": "dota-2",
+        "fifa": "ea-sports-fc-24",
+        "fc 24": "ea-sports-fc-24",
+        "fc 25": "ea-sports-fc-25",
+        "roblox": "roblox",
     }
 
     headers = {
@@ -321,15 +341,36 @@ def fetch_twitch_clips(
         # Query category/game clips
         game_aliases = {
             "casino": "Slots",
+            "gambling": "Slots",
             "slots": "Slots",
             "just_chatting": "Just Chatting",
             "just chatting": "Just Chatting",
             "irl": "Just Chatting",
             "gta": "Grand Theft Auto V",
+            "grand theft auto v": "Grand Theft Auto V",
             "valorant": "Valorant",
             "fortnite": "Fortnite",
             "cs2": "Counter-Strike",
+            "csgo": "Counter-Strike",
             "counter-strike": "Counter-Strike",
+            "counter-strike-2": "Counter-Strike",
+            "counter-strike 2": "Counter-Strike",
+            "case_opening": "Counter-Strike",
+            "case-opening": "Counter-Strike",
+            "case opening": "Counter-Strike",
+            "cases": "Counter-Strike",
+            "unboxing": "Counter-Strike",
+            "minecraft": "Minecraft",
+            "apex": "Apex Legends",
+            "apex legends": "Apex Legends",
+            "league": "League of Legends",
+            "league of legends": "League of Legends",
+            "dota": "Dota 2",
+            "dota 2": "Dota 2",
+            "fifa": "EA Sports FC 24",
+            "fc 24": "EA Sports FC 24",
+            "fc 25": "EA Sports FC 25",
+            "roblox": "Roblox",
         }
         raw_cat = (category_name or "Just Chatting").strip().lower()
         game_target = game_aliases.get(raw_cat, category_name or "Just Chatting")
@@ -410,6 +451,75 @@ def fetch_twitch_channel_clips(
     return fetch_twitch_clips(channel_slug=channel_slug, time_filter=period, limit=limit)
 
 
+TOPIC_INTENTS: Dict[str, Dict[str, Any]] = {
+    "case_opening": {
+        "patterns": [
+            r"\bcase[s]?\b",
+            r"\bunbox(ing)?\b",
+            r"\bknife\b",
+            r"\bdragon\s*lore\b",
+            r"\bhowl\b",
+            r"\bglove[s]?\b",
+            r"\bgold\b",
+            r"\bcase\s*opening[s]?\b",
+            r"\bcrate[s]?\b",
+            r"\bcs2\s*case\b",
+            r"\bcsgo\s*case\b",
+            r"\bdoppler\b",
+            r"\bkarambit\b",
+            r"\bbutterfly\b",
+        ],
+        "kick_category": "counter-strike-2",
+        "twitch_category": "Counter-Strike",
+        "boost_streamers": ["ohnepixel", "anomaly"],
+        "bonus_keywords": [
+            "case", "opening", "unbox", "unboxing", "knife", "gold", "glove", "gloves",
+            "dragon lore", "howl", "doppler", "sapphire", "ruby", "fade", "skin", "skins",
+            "pull", "opened", "karambit", "butterfly", "crate", "case opening",
+        ],
+    },
+    "slots": {
+        "patterns": [
+            r"\bslot[s]?\b",
+            r"\bcasino\b",
+            r"\bgambl(ing|e)\b",
+            r"\bmax\s*win\b",
+            r"\bbonus\s*hunt\b",
+            r"\bstake\b",
+            r"\bsweet\s*bonanza\b",
+            r"\bgates\s*of\s*olympus\b",
+            r"\bjackpot\b",
+        ],
+        "kick_category": "slots",
+        "twitch_category": "Slots",
+        "boost_streamers": ["roshtein", "trainwreckstv", "xposed"],
+        "bonus_keywords": [
+            "max win", "big win", "slot", "slots", "bonus", "hunt", "jackpot", "multi",
+            "x1000", "x5000", "gates", "sweet bonanza", "pragmatic", "stake",
+        ],
+    },
+    "pack_opening": {
+        "patterns": [
+            r"\bpack\s*opening[s]?\b",
+            r"\bpack[s]?\b",
+            r"\bfifa\b",
+            r"\bfc\s*24\b",
+            r"\bfc\s*25\b",
+            r"\bfut\b",
+            r"\bicon\s*pull\b",
+            r"\btcg\b",
+            r"\bpokemon\b",
+        ],
+        "kick_category": "ea-sports-fc-24",
+        "twitch_category": "EA Sports FC 24",
+        "boost_streamers": ["castro_1021", "dannyaarons"],
+        "bonus_keywords": [
+            "pack", "packs", "icon", "toty", "tots", "walkout", "pele", "r9", "mbappe", "messi", "charizard",
+        ],
+    },
+}
+
+
 def search_unified_clips(
     query: str = "",
     platform: str = "all",
@@ -420,7 +530,9 @@ def search_unified_clips(
 ) -> List[Dict[str, Any]]:
     """
     High-level clip discovery engine across Kick and Twitch.
-    Searches channels, categories, or trending clips with automatic deduplication and view sorting.
+    Supports topic intent detection (e.g. 'case opening', 'slots', 'pack opening'),
+    streamer channel searching, game category mapping, and free-form title keyword matching.
+    Uses concurrent multi-threaded fetching for maximum speed and zero-lag performance.
     """
     clean_query = (query or "").strip()
     clean_plat = (platform or "all").lower()
@@ -434,34 +546,98 @@ def search_unified_clips(
         clean_plat = "kick"
         clean_query = re.sub(r"^https?://(?:www\.)?kick\.com/", "", clean_query).split("/")[0]
 
+    q_lower = clean_query.lower()
+
+    # 1. Detect Topic Intent (e.g. "case opening", "knife", "slots")
+    matched_intent = None
+    bonus_keywords: List[str] = []
+
+    # Check query first
+    if q_lower:
+        for topic_name, intent_data in TOPIC_INTENTS.items():
+            for pat in intent_data["patterns"]:
+                if re.search(pat, q_lower):
+                    matched_intent = intent_data
+                    bonus_keywords = intent_data["bonus_keywords"]
+                    break
+            if matched_intent:
+                break
+
+    # If no intent from query, check if category itself matches an intent
+    if not matched_intent and clean_cat != "all":
+        for topic_name, intent_data in TOPIC_INTENTS.items():
+            if clean_cat in (topic_name, topic_name.replace("_", "-"), topic_name.replace("_", " ")):
+                matched_intent = intent_data
+                bonus_keywords = intent_data["bonus_keywords"]
+                break
+
     all_results: List[Dict[str, Any]] = []
 
-    # 1. Fetch Kick Clips if requested
-    if clean_plat in ("all", "kick"):
+    # Helper for running safely in thread pool
+    def _fetch_kick_safe(**kwargs):
         try:
-            k_clips = fetch_kick_clips(
-                channel_slug=clean_query if clean_query else None,
-                category_slug=clean_cat if clean_cat != "all" else None,
-                sort=sort,
-                time_filter=time_filter,
-                limit=limit,
-            )
-            all_results.extend(k_clips)
+            return fetch_kick_clips(**kwargs)
         except Exception:
-            pass
+            return []
 
-    # 2. Fetch Twitch Clips if requested
-    if clean_plat in ("all", "twitch"):
+    def _fetch_twitch_safe(**kwargs):
         try:
-            tw_clips = fetch_twitch_clips(
-                channel_slug=clean_query if clean_query else None,
-                category_name=clean_cat if clean_cat != "all" else None,
-                time_filter=time_filter,
-                limit=limit,
-            )
-            all_results.extend(tw_clips)
+            return fetch_twitch_clips(**kwargs)
         except Exception:
-            pass
+            return []
+
+    # Case A: Intent Detected (e.g. Case Opening, Slots, Pack Opening)
+    if matched_intent:
+        kick_cat = matched_intent["kick_category"]
+        tw_cat = matched_intent["twitch_category"]
+        boost_streamers = matched_intent.get("boost_streamers", [])
+
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futures = []
+            if clean_plat in ("all", "kick"):
+                futures.append(pool.submit(_fetch_kick_safe, category_slug=kick_cat, sort=sort, time_filter=time_filter, limit=max(30, limit // 2)))
+            if clean_plat in ("all", "twitch"):
+                futures.append(pool.submit(_fetch_twitch_safe, category_name=tw_cat, time_filter=time_filter, limit=max(50, limit)))
+                for s in boost_streamers:
+                    futures.append(pool.submit(_fetch_twitch_safe, channel_slug=s, time_filter=time_filter, limit=25))
+
+            for f in as_completed(futures):
+                all_results.extend(f.result())
+
+    # Case B: Streamer Channel Query (single word or @handle, no spaces, not a known intent)
+    elif q_lower and " " not in q_lower and clean_cat == "all" and not clean_query.startswith("http"):
+        handle = clean_query.lstrip("@#")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = []
+            if clean_plat in ("all", "kick"):
+                futures.append(pool.submit(_fetch_kick_safe, channel_slug=handle, sort=sort, time_filter=time_filter, limit=limit))
+            if clean_plat in ("all", "twitch"):
+                futures.append(pool.submit(_fetch_twitch_safe, channel_slug=handle, time_filter=time_filter, limit=limit))
+
+            for f in as_completed(futures):
+                all_results.extend(f.result())
+
+        # If streamer channel returned 0 results, fall back to searching clips with this query as title keyword
+        if not all_results:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = []
+                if clean_plat in ("all", "kick"):
+                    futures.append(pool.submit(_fetch_kick_safe, category_slug=clean_cat if clean_cat != "all" else None, sort=sort, time_filter=time_filter, limit=limit))
+                if clean_plat in ("all", "twitch"):
+                    futures.append(pool.submit(_fetch_twitch_safe, category_name=clean_cat if clean_cat != "all" else None, time_filter=time_filter, limit=limit))
+                for f in as_completed(futures):
+                    all_results.extend(f.result())
+
+    # Case C: Freeform Keyword Search or Category Browse
+    else:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = []
+            if clean_plat in ("all", "kick"):
+                futures.append(pool.submit(_fetch_kick_safe, category_slug=clean_cat if clean_cat != "all" else None, sort=sort, time_filter=time_filter, limit=limit))
+            if clean_plat in ("all", "twitch"):
+                futures.append(pool.submit(_fetch_twitch_safe, category_name=clean_cat if clean_cat != "all" else None, time_filter=time_filter, limit=limit))
+            for f in as_completed(futures):
+                all_results.extend(f.result())
 
     # Deduplicate by URL or ID
     seen = set()
@@ -472,11 +648,44 @@ def search_unified_clips(
             seen.add(key)
             deduped.append(c)
 
-    # Sort results
+    # Relevance Scoring & Ranking
+    query_words = [w for w in q_lower.split() if len(w) >= 3] if q_lower else []
+
+    def _score(clip: Dict[str, Any]) -> int:
+        title = (clip.get("title") or "").lower()
+        streamer = (clip.get("streamer") or "").lower()
+        views = int(clip.get("views") or 0)
+        s = 0
+
+        if q_lower:
+            # Exact query in title
+            if q_lower in title:
+                s += 600
+            # Streamer match
+            if q_lower in streamer:
+                s += 400
+            # Individual query words in title
+            for w in query_words:
+                if w in title:
+                    s += 120
+            # Intent bonus keywords in title
+            for kw in bonus_keywords:
+                if kw in title:
+                    s += 80
+
+        # Viral views tie-breaker (capped at +50 so relevance dominates)
+        s += min(views // 3000, 50)
+        return s
+
     if sort == "date":
         deduped.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
     else:
-        deduped.sort(key=lambda x: int(x.get("views", 0)), reverse=True)
+        # Check if we have active query matches
+        has_query_matches = any(_score(c) > 60 for c in deduped) if q_lower else False
+        if has_query_matches:
+            deduped.sort(key=_score, reverse=True)
+        else:
+            deduped.sort(key=lambda x: int(x.get("views", 0)), reverse=True)
 
     return deduped[:limit]
 

@@ -57,6 +57,29 @@ def test_search_unified_clips_multiplatform():
             assert all_clips[i]["views"] >= all_clips[i + 1]["views"]
 
 
+def test_case_opening_intent_search():
+    """Verifies that searching for 'case opening' triggers smart CS2 unboxing intent and returns top clips."""
+    clips = search_unified_clips(query="case opening", platform="all", limit=10)
+    assert isinstance(clips, list)
+    assert len(clips) > 0, "Expected at least 1 clip for 'case opening'"
+    
+    # Verify clips contain relevant case opening keywords or CS2 category
+    keywords = ["case", "open", "knife", "unbox", "gold", "glove", "cs", "strike", "gamma", "doppler"]
+    matched = [
+        c for c in clips
+        if any(k in (c.get("title") or "").lower() for k in keywords)
+        or any(k in (c.get("category") or "").lower() for k in ["counter-strike", "cs2"])
+    ]
+    assert len(matched) > 0, "Expected case opening clips to contain case/knife/unboxing keywords or CS category"
+
+    # Verify API POST endpoint returns clips for 'case opening'
+    res = client.post("/api/clips/search", json={"query": "case opening", "limit": 10})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["count"] > 0
+    assert len(data["clips"]) > 0
+
+
 def test_clip_search_endpoints():
     """Tests FastAPI HTTP routes for Clip Explorer."""
     # 1. Search endpoint POST

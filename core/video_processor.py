@@ -23,6 +23,7 @@ from core.utils import (
 )
 from core.video_ingest import validate_media_file
 from core.subtitles import SubtitleEngine, extract_audio_track
+from core.banner_generator import generate_hook_banner
 
 
 _CACHED_ENCODER_INFO: Optional[Dict[str, Any]] = None
@@ -159,6 +160,8 @@ class VideoProcessor:
         trim_end: Optional[float] = None,
         overlays: Optional[List[Dict[str, Any]]] = None,
         enable_anti_shadowban: bool = ENABLE_ANTI_SHADOWBAN,
+        hook_text: Optional[str] = None,
+        hook_options: Optional[Dict[str, Any]] = None,
         progress_cb: Optional[Callable[[float, str], None]] = None,
     ) -> Path:
         """
@@ -337,6 +340,45 @@ class VideoProcessor:
                 )
                 current_v_layer = next_layer
 
+            # Viral Engagement Hook Banner Generation (Overlay during first 2-5 seconds)
+            hook_banner_path: Optional[Path] = None
+            h_opts = hook_options or {}
+            h_duration = float(h_opts.get("duration", 3.5))
+            h_pos = h_opts.get("position", "top")
+            default_y = 130 if h_pos == "top" else (900 if h_pos == "center" else 1350)
+            h_y = int(h_opts.get("y", default_y))
+            if hook_text and hook_text.strip():
+                clean_hook = hook_text.strip()
+                h_style = h_opts.get("style", "yellow_badge")
+                try:
+                    hook_banner_path = temp_mgr.get_path("_hook_banner.png")
+                    generate_hook_banner(
+                        text=clean_hook,
+                        style=h_style,
+                        width=960,
+                        height=160,
+                        output_path=hook_banner_path,
+                    )
+                except Exception as h_err:
+                    print(f"WARN: Hook banner generation failed: {h_err}")
+                    hook_banner_path = None
+
+            if hook_banner_path and hook_banner_path.is_file():
+                hook_in_idx = 1 + len(valid_overlays)
+                if h_duration > 0:
+                    fade_start = max(0.0, h_duration - 0.4)
+                    filter_chains.append(
+                        f"[{hook_in_idx}:v]format=rgba,fade=t=out:st={fade_start:.2f}:d=0.4:alpha=1[v_hook_faded]"
+                    )
+                    filter_chains.append(
+                        f"[{current_v_layer}][v_hook_faded]overlay=(W-w)/2:{h_y}:enable='between(t,0,{h_duration:.2f})'[v_hooked]"
+                    )
+                else:
+                    filter_chains.append(
+                        f"[{current_v_layer}][{hook_in_idx}:v]overlay=(W-w)/2:{h_y}[v_hooked]"
+                    )
+                current_v_layer = "v_hooked"
+
             # Subtitles burn-in
             if ass_path and ass_path.is_file():
                 escaped_ass = escape_ffmpeg_filter_path(str(ass_path))
@@ -373,6 +415,9 @@ class VideoProcessor:
             else:
                 filter_chains.append(f"[{current_v_layer}]null[v_out]")
 
+            total_extra_inputs = len(valid_overlays) + (1 if (hook_banner_path and hook_banner_path.is_file()) else 0)
+            silent_audio_idx = 1 + total_extra_inputs
+
             # Anti-Shadowban Acoustic Jitter & YouTube Loudness Normalization
             if enable_anti_shadowban:
                 atempo_val = round(random.uniform(0.995, 1.005), 4)
@@ -393,10 +438,12 @@ class VideoProcessor:
             for ovl in valid_overlays:
                 render_cmd.extend(["-i", str(ovl["path"])])
 
+            # Append hook banner input if generated
+            if hook_banner_path and hook_banner_path.is_file():
+                render_cmd.extend(["-i", str(hook_banner_path)])
+
             # Append silent audio input if no audio exists
-            silent_audio_idx = None
             if not meta["has_audio"]:
-                silent_audio_idx = 1 + len(valid_overlays)
                 render_cmd.extend(["-f", "lavfi", "-i", f"anullsrc=r={AUDIO_SAMPLE_RATE}:cl=stereo"])
 
             render_cmd.extend([

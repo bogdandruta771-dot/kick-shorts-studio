@@ -18,8 +18,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image
 
-from core.banner_generator import generate_promo_banner, process_uploaded_overlay
-from core.ai_copywriter import generate_shorts_metadata, get_available_ai_providers
+from core.banner_generator import generate_promo_banner, process_uploaded_overlay, generate_hook_banner
+from core.ai_copywriter import generate_shorts_metadata, get_available_ai_providers, generate_viral_hooks
 from core.audio_detector import analyze_audio_climax
 from core.youtube_uploader import (
     get_youtube_auth_status,
@@ -151,6 +151,9 @@ class OneClickShortRequest(BaseModel):
     category: Optional[str] = None
     preset: Optional[str] = "auto"
     enable_anti_shadowban: Optional[bool] = True
+    enable_hook: Optional[bool] = True
+    hook_text: Optional[str] = None
+    hook_options: Optional[Dict[str, Any]] = None
 
 
 class FrameExtractRequest(BaseModel):
@@ -167,6 +170,19 @@ class ExportPayload(BaseModel):
     trim_end: Optional[float] = None
     overlays: Optional[List[Dict[str, Any]]] = None
     enable_anti_shadowban: Optional[bool] = True
+    hook_text: Optional[str] = None
+    hook_options: Optional[Dict[str, Any]] = None
+
+
+class GenerateHooksRequest(BaseModel):
+    clip_title: Optional[str] = None
+    streamer: Optional[str] = None
+    category: Optional[str] = "general"
+
+
+class PreviewHookBannerRequest(BaseModel):
+    text: str
+    style: Optional[str] = "yellow_badge"
 
 
 class SafeMetadataRequest(BaseModel):
@@ -574,6 +590,16 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
                 export_jobs[job_id]["percent"] = 0.35 + (frac * 0.55)
                 export_jobs[job_id]["message"] = msg
 
+            hook_txt = req.hook_text
+            if not hook_txt and (req.enable_hook if req.enable_hook is not None else True):
+                auto_hooks = generate_viral_hooks(
+                    clip_title=req.title or "Viral Highlight",
+                    streamer=req.streamer,
+                    category=req.category or "general",
+                )
+                if auto_hooks:
+                    hook_txt = auto_hooks[0]
+
             with _RENDER_SEMAPHORE:
                 final_file = processor.process_short(
                     input_video_path=downloaded,
@@ -589,6 +615,8 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
                         "y_position": DEFAULT_SUBTITLE_Y_OFFSET,
                     },
                     enable_anti_shadowban=bool(req.enable_anti_shadowban if req.enable_anti_shadowban is not None else True),
+                    hook_text=hook_txt,
+                    hook_options=req.hook_options or {"duration": 3.5, "style": "yellow_badge", "position": "top"},
                     progress_cb=_prog,
                 )
 
@@ -922,6 +950,40 @@ async def generate_banner_endpoint(req: GenerateBannerRequest):
         raise HTTPException(status_code=500, detail=f"Banner generation failed: {str(exc)}")
 
 
+@app.post("/api/generate-hooks")
+async def generate_hooks_endpoint(req: GenerateHooksRequest):
+    """Generates viral high-CTR engagement hooks for Shorts / TikTok overlays."""
+    hooks = generate_viral_hooks(
+        clip_title=req.clip_title or "",
+        streamer=req.streamer,
+        category=req.category or "general",
+    )
+    return {"success": True, "hooks": hooks}
+
+
+@app.post("/api/preview-hook-banner")
+async def preview_hook_banner_endpoint(req: PreviewHookBannerRequest):
+    """Renders a viral engagement hook banner for real-time live preview."""
+    txt = req.text.strip() if req.text else "WAIT TILL THE END!"
+    ts = int(time.time() * 1000)
+    dest_path = TEMP_DIR / f"hook_preview_{ts}_{uuid.uuid4().hex[:4]}.png"
+    try:
+        generate_hook_banner(
+            text=txt,
+            style=req.style or "yellow_badge",
+            width=960,
+            height=160,
+            output_path=dest_path,
+        )
+        return {
+            "path": str(dest_path),
+            "filename": dest_path.name,
+            "url": f"/temp_media/{dest_path.name}",
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Hook banner preview failed: {str(exc)}")
+
+
 def _resolve_safe_video_path(path_str: Optional[str]) -> Optional[Path]:
     """Resolves video paths robustly across absolute, relative, and temp directory locations."""
     if not path_str:
@@ -1010,6 +1072,8 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
                 trim_end=payload.trim_end,
                 overlays=resolved_overlays,
                 enable_anti_shadowban=bool(payload.enable_anti_shadowban if payload.enable_anti_shadowban is not None else True),
+                hook_text=payload.hook_text,
+                hook_options=payload.hook_options,
                 progress_cb=_prog,
             )
 

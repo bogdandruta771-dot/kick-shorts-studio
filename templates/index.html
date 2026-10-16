@@ -1234,6 +1234,110 @@
                         </div>
                     </div>
 
+                    <!-- Card: Viral Engagement Hook Header (First 2-4s) -->
+                    <div class="glass-panel rounded-2xl p-6 space-y-4 shadow-xl border border-brand-border">
+                        <div class="flex items-center justify-between pb-3 border-b border-brand-border">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                                    <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                        <span>Viral Hook Header Overlay</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25 font-bold uppercase tracking-wider">CTR Booster</span>
+                                    </h2>
+                                    <p class="text-[11px] text-zinc-400">Burn a high-impact hook header during the first 3.5s to stop scrolling and maximize retention</p>
+                                </div>
+                            </div>
+
+                            <!-- Toggle Switch -->
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="hook-enabled-toggle" class="sr-only peer" checked onchange="toggleHookHeader()">
+                                <div class="w-11 h-6 bg-brand-surface peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 border border-brand-border"></div>
+                            </label>
+                        </div>
+
+                        <div id="hook-controls-body" class="space-y-4">
+                            <!-- Hook Text Input + AI Generator Button -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                                        <i data-lucide="type" class="w-3.5 h-3.5 text-amber-400"></i>
+                                        <span>Hook Headline Text</span>
+                                    </label>
+                                    <button type="button" onclick="generateAiHookIdeas(this)" class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold flex items-center gap-1 transition-colors" title="Generate viral hooks tailored to this clip">
+                                        <i data-lucide="sparkles" class="w-3 h-3 text-indigo-400"></i>
+                                        <span>AI Generate Hook</span>
+                                    </button>
+                                </div>
+                                <div class="relative">
+                                    <input type="text" id="hook-text-input" value="WAIT TILL THE END 😱" oninput="updateHookText(this.value)" placeholder="e.g. WAIT TILL THE END 😱 or BRO DID NOT EXPECT THIS 💀" class="w-full bg-brand-bg px-3.5 py-2.5 rounded-xl border border-brand-border text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors">
+                                </div>
+                            </div>
+
+                            <!-- Quick-Pick Preset Pills -->
+                            <div>
+                                <span class="text-[10px] uppercase font-semibold text-zinc-400 block mb-1.5">Viral Hook Templates (1-Click Select):</span>
+                                <div class="flex flex-wrap gap-1.5" id="hook-preset-pills">
+                                    <button type="button" onclick="setHookPreset('WAIT TILL THE END 😱')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">😱 WAIT TILL THE END</button>
+                                    <button type="button" onclick="setHookPreset('BRO DID NOT EXPECT THIS 💀')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">💀 BRO DID NOT EXPECT THIS</button>
+                                    <button type="button" onclick="setHookPreset('THIS ACTUALLY HAPPENED 🚨')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">🚨 THIS ACTUALLY HAPPENED</button>
+                                    <button type="button" onclick="setHookPreset('HE CANNOT BE SERIOUS 😭')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">😭 HE CANNOT BE SERIOUS</button>
+                                    <button type="button" onclick="setHookPreset('1 IN A MILLION MOMENT 🔥')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">🔥 1 IN A MILLION MOMENT</button>
+                                    <button type="button" onclick="setHookPreset('DO NOT BLINK AT THE END 👀')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">👀 DO NOT BLINK</button>
+                                </div>
+                            </div>
+
+                            <!-- Hook Style & Position Options -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <!-- Style Preset -->
+                                <div>
+                                    <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Visual Theme / Badge Style</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <button type="button" onclick="setHookStyle('yellow_badge')" id="hook-style-yellow_badge" class="p-2 rounded-xl border border-amber-500 bg-amber-500/10 text-left transition-all">
+                                            <span class="text-[11px] font-bold text-amber-300 block">⭐ Hormozi Gold</span>
+                                            <span class="text-[9px] text-zinc-400 block">Black + Gold Pop</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('red_alert')" id="hook-style-red_alert" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-rose-400 block">🚨 Red Alert</span>
+                                            <span class="text-[9px] text-zinc-400 block">High Urgency Pop</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('tiktok_white')" id="hook-style-tiktok_white" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-white block">✨ Clean Glass</span>
+                                            <span class="text-[9px] text-zinc-400 block">TikTok Clean White</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('cyber_cyan')" id="hook-style-cyber_cyan" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-cyan-400 block">⚡ Cyber Neon</span>
+                                            <span class="text-[9px] text-zinc-400 block">Electric Gaming</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Timing & Placement -->
+                                <div class="space-y-2.5">
+                                    <div>
+                                        <label class="text-[11px] font-semibold text-zinc-400 block mb-1">On-Screen Duration (Fades Out)</label>
+                                        <div class="grid grid-cols-4 gap-1">
+                                            <button type="button" onclick="setHookDuration(2.5)" id="hook-dur-2.5" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">2.5s</button>
+                                            <button type="button" onclick="setHookDuration(3.5)" id="hook-dur-3.5" class="px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/15 text-[10px] font-bold text-amber-300 transition-all text-center">3.5s ⭐</button>
+                                            <button type="button" onclick="setHookDuration(5.0)" id="hook-dur-5.0" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">5.0s</button>
+                                            <button type="button" onclick="setHookDuration(0)" id="hook-dur-0" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">Full</button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Screen Position</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <button type="button" onclick="setHookPosition('top')" id="hook-pos-top" class="px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/15 text-[10px] font-bold text-amber-300 transition-all text-center">Top Header</button>
+                                            <button type="button" onclick="setHookPosition('center')" id="hook-pos-center" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">Center Gap</button>
+                                            <button type="button" onclick="setHookPosition('bottom')" id="hook-pos-bottom" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">Over Cam</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Card B: Outro Video Appender -->
                     <div class="glass-panel rounded-2xl p-6 space-y-4 shadow-xl">
                         <div class="flex items-center gap-2.5 pb-2 border-b border-brand-border">
@@ -1338,6 +1442,10 @@
                     <div class="p-3 rounded-xl bg-brand-bg border border-brand-border space-y-1">
                         <span class="text-zinc-500 text-[10px] uppercase font-semibold">Ending Outro</span>
                         <p class="text-white font-medium" id="sum-outro-status">None</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-brand-bg border border-brand-border space-y-1">
+                        <span class="text-zinc-500 text-[10px] uppercase font-semibold">Viral Hook Header</span>
+                        <p class="text-white font-medium" id="sum-hook-status">Active (3.5s)</p>
                     </div>
                     <div class="p-3 rounded-xl bg-brand-bg border border-brand-border space-y-1">
                         <span class="text-zinc-500 text-[10px] uppercase font-semibold">Hardware Encoder</span>
@@ -2167,6 +2275,14 @@
                 highlightColor: '#FFD700',
                 yPosition: 1000
             },
+            hook: {
+                enabled: true,
+                text: 'WAIT TILL THE END 😱',
+                style: 'yellow_badge',
+                duration: 3.5,
+                position: 'top',
+                y: 130
+            },
             outroPath: null,
             outroFilename: null,
             currentJobId: null,
@@ -2231,6 +2347,7 @@
                     sessionStorage.setItem('kick_preview', appState.previewBase64 || '');
                     sessionStorage.setItem('kick_crops', JSON.stringify(appState.crops));
                     sessionStorage.setItem('kick_subtitles', JSON.stringify(appState.subtitles));
+                    sessionStorage.setItem('kick_hook', JSON.stringify(appState.hook));
                 }
                 if (appState.outroPath) {
                     sessionStorage.setItem('kick_outroPath', appState.outroPath);
@@ -2313,6 +2430,10 @@
                 const savedSubs = sessionStorage.getItem('kick_subtitles');
                 if (savedSubs) {
                     appState.subtitles = Object.assign(appState.subtitles, JSON.parse(savedSubs));
+                }
+                const savedHook = sessionStorage.getItem('kick_hook');
+                if (savedHook) {
+                    appState.hook = Object.assign(appState.hook || {}, JSON.parse(savedHook));
                 }
                 const savedPreview = sessionStorage.getItem('kick_preview');
                 if (savedPreview) {
@@ -2412,7 +2533,11 @@
             setupPhoneCanvasInteraction();
             setupStep3SubtitleCanvasInteraction();
             syncSubtitleControlsFromState();
+            syncHookControlsFromState();
             const restored = restoreSessionIfAvailable();
+            if (restored) {
+                syncHookControlsFromState();
+            }
             if (!restored) {
                 const serverRestored = await checkServerActiveSession();
                 if (!serverRestored) {
@@ -2497,6 +2622,7 @@
                 setTimeout(updatePhoneCanvas, 50);
             } else if (step === 3) {
                 syncSubtitleControlsFromState();
+                syncHookControlsFromState();
                 setTimeout(updatePhoneCanvas, 50);
             } else if (step === 4) {
                 populateReviewSummary();
@@ -3324,6 +3450,14 @@
                         category: category,
                         preset: 'auto',
                         enable_anti_shadowban: true,
+                        enable_hook: (appState.hook && appState.hook.enabled !== false),
+                        hook_text: (appState.hook && appState.hook.enabled && appState.hook.text) ? appState.hook.text : null,
+                        hook_options: (appState.hook && appState.hook.enabled) ? {
+                            style: appState.hook.style || 'yellow_badge',
+                            duration: parseFloat(appState.hook.duration) || 3.5,
+                            position: appState.hook.position || 'top',
+                            y: (appState.hook.y !== undefined) ? parseInt(appState.hook.y) : 130
+                        } : null
                     })
                 });
                 const data = await res.json();
@@ -4622,6 +4756,163 @@
 
                     ctx.restore();
                 }
+
+                // 6. Draw Viral Engagement Hook Header Preview (First 2-4s)
+                if (appState.hook && appState.hook.enabled && appState.hook.text && appState.hook.text.trim().length > 0) {
+                    ctx.save();
+                    const hookText = appState.hook.text.trim();
+                    const style = appState.hook.style || 'yellow_badge';
+                    const pos = appState.hook.position || 'top';
+                    const dur = (appState.hook.duration && appState.hook.duration > 0) ? `${appState.hook.duration}s` : 'Full';
+
+                    // Compute Y coordinate on canvas (360 x 640)
+                    let hookY = 44; // default 'top'
+                    if (pos === 'center') {
+                        hookY = 295;
+                    } else if (pos === 'bottom') {
+                        hookY = 470;
+                    } else if (appState.hook.y !== undefined) {
+                        hookY = Math.round(appState.hook.y * (ch / 1920));
+                    }
+
+                    // Card dimensions on 360 canvas (corresponds to ~960x160 on 1080)
+                    const cardW = 320;
+                    const cardH = 54;
+                    const cardX = Math.round((cw - cardW) / 2);
+                    const radius = 10;
+
+                    // Style configs
+                    let bgGradStart, bgGradEnd, borderColor, tagBg, tagText, tagColor, mainTextColor, mainStrokeColor;
+                    if (style === 'yellow_badge') {
+                        bgGradStart = 'rgba(15, 12, 5, 0.94)';
+                        bgGradEnd = 'rgba(25, 20, 8, 0.96)';
+                        borderColor = '#f59e0b';
+                        tagBg = '#f59e0b';
+                        tagText = '★ WAIT FOR IT ★';
+                        tagColor = '#000000';
+                        mainTextColor = '#ffffff';
+                        mainStrokeColor = '#000000';
+                    } else if (style === 'red_alert') {
+                        bgGradStart = 'rgba(30, 8, 12, 0.95)';
+                        bgGradEnd = 'rgba(45, 10, 15, 0.96)';
+                        borderColor = '#ef4444';
+                        tagBg = '#ef4444';
+                        tagText = '🚨 WARNING 🚨';
+                        tagColor = '#ffffff';
+                        mainTextColor = '#ffffff';
+                        mainStrokeColor = '#000000';
+                    } else if (style === 'tiktok_white') {
+                        bgGradStart = 'rgba(250, 250, 252, 0.95)';
+                        bgGradEnd = 'rgba(235, 238, 245, 0.96)';
+                        borderColor = '#e2e8f0';
+                        tagBg = '#0f172a';
+                        tagText = '★ VIRAL MOMENT ★';
+                        tagColor = '#ffffff';
+                        mainTextColor = '#09090b';
+                        mainStrokeColor = 'transparent';
+                    } else {
+                        bgGradStart = 'rgba(4, 18, 28, 0.95)';
+                        bgGradEnd = 'rgba(6, 28, 44, 0.96)';
+                        borderColor = '#06b6d4';
+                        tagBg = '#06b6d4';
+                        tagText = '⚡ MUST WATCH ⚡';
+                        tagColor = '#000000';
+                        mainTextColor = '#ffffff';
+                        mainStrokeColor = '#000000';
+                    }
+
+                    // Dropshadow
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetY = 4;
+
+                    // Rounded card background
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(cardX, hookY, cardW, cardH, radius);
+                    } else {
+                        ctx.rect(cardX, hookY, cardW, cardH);
+                    }
+                    const grad = ctx.createLinearGradient(cardX, hookY, cardX, hookY + cardH);
+                    grad.addColorStop(0, bgGradStart);
+                    grad.addColorStop(1, bgGradEnd);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+
+                    // Card border
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.strokeStyle = borderColor;
+                    ctx.lineWidth = 1.75;
+                    ctx.stroke();
+
+                    // Pill Tag at top of card
+                    const tagW = 90;
+                    const tagH = 14;
+                    const tagX = Math.round(cardX + (cardW - tagW) / 2);
+                    const tagY = hookY + 6;
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(tagX, tagY, tagW, tagH, 7);
+                    } else {
+                        ctx.rect(tagX, tagY, tagW, tagH);
+                    }
+                    ctx.fillStyle = tagBg;
+                    ctx.fill();
+
+                    ctx.fillStyle = tagColor;
+                    ctx.font = 'bold 8px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(tagText, tagX + (tagW / 2), tagY + (tagH / 2) + 0.5);
+
+                    // Duration pill badge on right side
+                    const durW = 40;
+                    const durH = 13;
+                    const durX = cardX + cardW - durW - 6;
+                    const durY = hookY + 6;
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(durX, durY, durW, durH, 6);
+                    } else {
+                        ctx.rect(durX, durY, durW, durH);
+                    }
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 0.75;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fde047';
+                    ctx.font = 'bold 7.5px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`${dur} ⏱`, durX + (durW / 2), durY + (durH / 2));
+
+                    // Main Hook Headline Text
+                    let headlineFontPx = 14;
+                    ctx.font = `900 ${headlineFontPx}px "Arial Black", Impact, sans-serif`;
+                    while (ctx.measureText(hookText).width > (cardW - 20) && headlineFontPx > 9) {
+                        headlineFontPx -= 0.5;
+                        ctx.font = `900 ${headlineFontPx}px "Arial Black", Impact, sans-serif`;
+                    }
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const textY = hookY + 34;
+
+                    if (mainStrokeColor !== 'transparent') {
+                        ctx.strokeStyle = mainStrokeColor;
+                        ctx.lineWidth = 3;
+                        ctx.lineJoin = 'round';
+                        ctx.miterLimit = 2;
+                        ctx.strokeText(hookText, cw / 2, textY);
+                    }
+                    ctx.fillStyle = mainTextColor;
+                    ctx.fillText(hookText, cw / 2, textY);
+
+                    ctx.restore();
+                }
             });
         }
 
@@ -5079,6 +5370,214 @@
             });
         }
 
+        // =========================================================================
+        // VIRAL HOOK HEADER HANDLERS (STEP 3 & STEP 4 INTEGRATION)
+        // =========================================================================
+        function toggleHookHeader() {
+            const chk = document.getElementById('hook-enabled-toggle');
+            const enabled = chk ? chk.checked : true;
+            if (!appState.hook) appState.hook = {};
+            appState.hook.enabled = enabled;
+
+            const body = document.getElementById('hook-controls-body');
+            if (body) {
+                if (enabled) {
+                    body.classList.remove('opacity-40', 'pointer-events-none');
+                } else {
+                    body.classList.add('opacity-40', 'pointer-events-none');
+                }
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function updateHookText(val) {
+            if (!appState.hook) appState.hook = {};
+            appState.hook.text = (val || '').trim();
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setHookPreset(txt) {
+            if (!appState.hook) appState.hook = {};
+            appState.hook.text = txt;
+            const input = document.getElementById('hook-text-input');
+            if (input) input.value = txt;
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setHookStyle(styleId) {
+            if (!appState.hook) appState.hook = {};
+            appState.hook.style = styleId;
+
+            ['yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+                const btn = document.getElementById(`hook-style-${s}`);
+                if (!btn) return;
+                if (s === styleId) {
+                    btn.className = 'p-2 rounded-xl border border-amber-500 bg-amber-500/15 text-left transition-all ring-1 ring-amber-500/50 shadow-sm';
+                } else {
+                    btn.className = 'p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all';
+                }
+            });
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setHookDuration(dur) {
+            if (!appState.hook) appState.hook = {};
+            appState.hook.duration = parseFloat(dur);
+
+            [2.5, 3.5, 5.0, 0].forEach(d => {
+                const btn = document.getElementById(`hook-dur-${d}`);
+                if (!btn) return;
+                if (Math.abs((appState.hook.duration || 0) - d) < 0.1) {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/20 text-[10px] font-bold text-amber-300 transition-all text-center';
+                } else {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
+                }
+            });
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setHookPosition(pos) {
+            if (!appState.hook) appState.hook = {};
+            appState.hook.position = pos;
+            if (pos === 'top') appState.hook.y = 130;
+            else if (pos === 'center') appState.hook.y = 920;
+            else if (pos === 'bottom') appState.hook.y = 1420;
+
+            ['top', 'center', 'bottom'].forEach(p => {
+                const btn = document.getElementById(`hook-pos-${p}`);
+                if (!btn) return;
+                if (p === pos) {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/20 text-[10px] font-bold text-amber-300 transition-all text-center';
+                } else {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
+                }
+            });
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        async function generateAiHookIdeas(btnEl) {
+            const origHtml = btnEl ? btnEl.innerHTML : '';
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 text-amber-400 animate-spin"></i><span>Generating...</span>`;
+            }
+
+            try {
+                const title = appState.meta?.filename || 'Epic Streamer Moment';
+                const streamer = (clipExplorerState && clipExplorerState.activePreviewClip && clipExplorerState.activePreviewClip.streamer) || '';
+                const category = appState.aiCategory || 'general';
+
+                const res = await fetch('/api/generate-hooks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clip_title: title,
+                        streamer: streamer,
+                        category: category
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.detail || 'Could not generate hooks');
+                }
+
+                const hooks = data.hooks || [];
+                if (hooks.length > 0) {
+                    const pillsContainer = document.getElementById('hook-preset-pills');
+                    if (pillsContainer) {
+                        pillsContainer.innerHTML = hooks.map(h => {
+                            const safe = h.replace(/'/g, "\\'");
+                            return `<button type="button" onclick="setHookPreset('${safe}')" class="px-2.5 py-1 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/40 hover:border-amber-400 text-[11px] text-zinc-200 hover:text-amber-300 transition-colors animate-pulse">${escapeHtml(h)}</button>`;
+                        }).join('');
+                        setTimeout(() => {
+                            pillsContainer.querySelectorAll('button').forEach(b => b.classList.remove('animate-pulse'));
+                        }, 1200);
+                    }
+                    setHookPreset(hooks[0]);
+                    showToast('Generated 6 viral hooks with AI!', 'success');
+                }
+            } catch (err) {
+                showToast('Failed to generate AI hooks: ' + err.message, 'error');
+            } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function syncHookControlsFromState() {
+            if (!appState.hook) {
+                appState.hook = {
+                    enabled: true,
+                    text: 'WAIT TILL THE END 😱',
+                    style: 'yellow_badge',
+                    duration: 3.5,
+                    position: 'top',
+                    y: 130
+                };
+            }
+            const hook = appState.hook;
+            const chk = document.getElementById('hook-enabled-toggle');
+            if (chk) chk.checked = !!hook.enabled;
+
+            const body = document.getElementById('hook-controls-body');
+            if (body) {
+                if (hook.enabled) {
+                    body.classList.remove('opacity-40', 'pointer-events-none');
+                } else {
+                    body.classList.add('opacity-40', 'pointer-events-none');
+                }
+            }
+
+            const input = document.getElementById('hook-text-input');
+            if (input && hook.text) input.value = hook.text;
+
+            // Styles
+            const activeStyle = hook.style || 'yellow_badge';
+            ['yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+                const btn = document.getElementById(`hook-style-${s}`);
+                if (!btn) return;
+                if (s === activeStyle) {
+                    btn.className = 'p-2 rounded-xl border border-amber-500 bg-amber-500/15 text-left transition-all ring-1 ring-amber-500/50 shadow-sm';
+                } else {
+                    btn.className = 'p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all';
+                }
+            });
+
+            // Duration
+            const curDur = parseFloat(hook.duration !== undefined ? hook.duration : 3.5);
+            [2.5, 3.5, 5.0, 0].forEach(d => {
+                const btn = document.getElementById(`hook-dur-${d}`);
+                if (!btn) return;
+                if (Math.abs(curDur - d) < 0.1) {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/20 text-[10px] font-bold text-amber-300 transition-all text-center';
+                } else {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
+                }
+            });
+
+            // Position
+            const curPos = hook.position || 'top';
+            ['top', 'center', 'bottom'].forEach(p => {
+                const btn = document.getElementById(`hook-pos-${p}`);
+                if (!btn) return;
+                if (p === curPos) {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/20 text-[10px] font-bold text-amber-300 transition-all text-center';
+                } else {
+                    btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
+                }
+            });
+        }
+
         // Outro Video Selection
         async function handleOutroSelect(e) {
             if (!e.target.files || !e.target.files[0]) return;
@@ -5140,6 +5639,19 @@
             document.getElementById('sum-source-name').innerText = `${appState.meta.filename || 'Clip'} • ${trimDesc}`;
             document.getElementById('sum-sub-status').innerText = appState.subtitles.enabled ? `Enabled (${appState.subtitles.preset})` : 'Disabled';
             document.getElementById('sum-outro-status').innerText = appState.outroPath ? (appState.outroFilename || 'Attached') : 'None';
+
+            const hookEl = document.getElementById('sum-hook-status');
+            if (hookEl) {
+                if (appState.hook && appState.hook.enabled && appState.hook.text && appState.hook.text.trim()) {
+                    const dur = (appState.hook.duration && appState.hook.duration > 0) ? `${appState.hook.duration}s` : 'Full';
+                    const truncated = appState.hook.text.length > 20 ? appState.hook.text.slice(0, 18) + '...' : appState.hook.text;
+                    hookEl.innerText = `Active ("${truncated}", ${dur})`;
+                    hookEl.classList.add('text-amber-300');
+                } else {
+                    hookEl.innerText = 'Disabled';
+                    hookEl.classList.remove('text-amber-300');
+                }
+            }
 
             const ovlCount = (appState.overlays || []).length;
             const ovlEl = document.getElementById('sum-overlays-status');
@@ -5210,7 +5722,14 @@
                     w: Math.round(o.w),
                     h: Math.round(o.h),
                     opacity: o.opacity !== undefined ? Number(o.opacity) : 1.0
-                }))
+                })),
+                hook_text: (appState.hook && appState.hook.enabled && appState.hook.text) ? appState.hook.text.trim() : null,
+                hook_options: (appState.hook && appState.hook.enabled) ? {
+                    style: appState.hook.style || 'yellow_badge',
+                    duration: parseFloat(appState.hook.duration) || 3.5,
+                    position: appState.hook.position || 'top',
+                    y: (appState.hook.y !== undefined) ? parseInt(appState.hook.y) : 130
+                } : null
             };
 
             // Switch to progress view

@@ -197,4 +197,81 @@ def test_no_unwanted_autoplay_and_audio_silence_controls():
     assert "e.key === 'Escape'" in html
 
 
+def test_viral_hook_ai_and_banner_generation(tmp_path):
+    """Verifies viral hook copywriting and PNG banner generator."""
+    from core.ai_copywriter import generate_viral_hooks
+    from core.banner_generator import generate_hook_banner
+
+    # 1. Test AI hooks generation
+    hooks = generate_viral_hooks("INSANE 5000X MAX WIN ON GATES", "Roshtein", "slots")
+    assert isinstance(hooks, list)
+    assert len(hooks) >= 4
+    assert any("WIN" in h.upper() or "😱" in h or "💀" in h or "🚨" in h for h in hooks)
+
+    # 2. Test banner generation across all 4 visual styles
+    styles = ["yellow_badge", "red_alert", "tiktok_white", "cyber_cyan"]
+    for s in styles:
+        out_png = tmp_path / f"hook_{s}.png"
+        res_path = generate_hook_banner("WAIT TILL THE VERY END 😱", style=s, output_path=str(out_png))
+        assert out_png.exists()
+        assert out_png.stat().st_size > 500
+
+
+def test_hook_api_endpoints():
+    """Verifies FastAPI endpoints for hook generation and banner preview."""
+    # 1. Generate hooks endpoint
+    res_gen = client.post("/api/generate-hooks", json={
+        "clip_title": "Craziest Valorant 1v5 Clutch",
+        "streamer": "Tarik",
+        "category": "gaming"
+    })
+    assert res_gen.status_code == 200
+    data = res_gen.json()
+    assert data["success"] is True
+    assert isinstance(data["hooks"], list)
+    assert len(data["hooks"]) > 0
+
+    # 2. Preview banner endpoint
+    res_prev = client.post("/api/preview-hook-banner", json={
+        "text": "BRO DID NOT EXPECT THIS 💀",
+        "style": "red_alert"
+    })
+    assert res_prev.status_code == 200
+    prev_data = res_prev.json()
+    assert "url" in prev_data
+    assert "path" in prev_data
+    assert prev_data["filename"].endswith(".png")
+
+
+def test_ui_hook_header_card_and_handlers():
+    """Verifies HTML template contains the hook header card, presets, and JS handlers."""
+    res_home = client.get("/")
+    assert res_home.status_code == 200
+    html = res_home.text
+
+    # Card & Inputs
+    assert "Viral Hook Header Overlay" in html
+    assert 'id="hook-enabled-toggle"' in html
+    assert 'id="hook-text-input"' in html
+    assert 'id="hook-preset-pills"' in html
+    assert 'id="hook-style-yellow_badge"' in html
+    assert 'id="hook-style-red_alert"' in html
+    assert 'id="hook-style-tiktok_white"' in html
+    assert 'id="hook-style-cyber_cyan"' in html
+    assert 'id="sum-hook-status"' in html
+
+    # JavaScript Functions
+    assert "function toggleHookHeader()" in html
+    assert "function updateHookText(" in html
+    assert "function setHookPreset(" in html
+    assert "function setHookStyle(" in html
+    assert "function setHookDuration(" in html
+    assert "function setHookPosition(" in html
+    assert "async function generateAiHookIdeas(" in html
+    assert "function syncHookControlsFromState()" in html
+    assert "hook_text" in html
+    assert "hook_options" in html
+
+
+
 

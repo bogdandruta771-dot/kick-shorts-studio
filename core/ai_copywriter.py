@@ -802,3 +802,55 @@ def generate_safe_metadata(
         "safe_compliance": True,
     }
 
+
+def generate_viral_hooks(
+    clip_title: str = "",
+    streamer: Optional[str] = None,
+    category: str = "general",
+) -> List[str]:
+    """
+    Generates high-CTR engagement hooks tailored for YouTube Shorts and TikTok overlays.
+    Applies proven viral psychology: Curiosity Gaps, Cliffhangers, Extreme Stakes, and Relatable Shock.
+    """
+    name = (streamer or "He").strip()
+    cat = (category or "general").lower()
+    title = (clip_title or "").lower()
+
+    if "slot" in cat or "casino" in cat or any(w in title for w in ["win", "spin", "multiplier", "$", "bonus"]):
+        return [
+            "WAIT TILL THE END... 😱",
+            "HE WAS DOWN TO HIS LAST $10 🚨",
+            "BIGGEST WIN OF THE YEAR?! 🤯",
+            "WATCH HIS REAL REACTION 💀",
+            "BRO COULD NOT BELIEVE THIS 😭",
+            "1 IN A MILLION MULTIPLIER 🔥",
+        ]
+    elif any(w in cat or w in title for w in ["valorant", "cs2", "fortnite", "clutch", "gaming", "warzone", "ace", "ranked"]):
+        return [
+            "BRO DID NOT JUST HIT THAT! 😱",
+            "HOW DID HE SURVIVE THIS?! 🤯",
+            "WAIT TILL THE LAST SECOND... 💀",
+            f"WHY DID {name.upper()} DO THIS?! 😭",
+            "THE CLEANEST CLUTCH EVER 🔥",
+            "WATCH HIS HANDS SHAKE AT THE END 🎯",
+        ]
+    elif any(w in cat or w in title for w in ["chatting", "irl", "react", "drama", "podcast"]):
+        return [
+            "HE DID NOT MEAN TO SAY THIS 💀",
+            "WAIT FOR HIS REAL REACTION 😳",
+            "THINGS GOT OUT OF HAND FAST... 🚨",
+            "BRO THOUGHT THE MIC WAS MUTED 😭",
+            "I STILL CANNOT BELIEVE THIS HAPPENED 🤯",
+            "DO NOT BLINK AT THE END 👀",
+        ]
+    else:
+        return [
+            "WAIT TILL THE END... 😱",
+            "BRO DID NOT EXPECT THIS 💀",
+            "THIS ACTUALLY HAPPENED ON STREAM 🚨",
+            "HE CANNOT BE SERIOUS 😭",
+            "DO NOT SCROLL PAST THIS! 👀",
+            "1 IN A MILLION MOMENT 🔥",
+        ]
+
+

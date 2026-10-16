@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 def _get_font(font_size: int, bold: bool = True) -> ImageFont.ImageFont:
     """Loads a high-quality system font or falls back cleanly."""
     candidate_names = (
-        ["arialbd.ttf", "segoeuib.ttf", "calibrib.ttf"]
+        ["impact.ttf", "arialbd.ttf", "segoeuib.ttf", "calibrib.ttf"]
         if bold
         else ["arial.ttf", "segoeui.ttf", "calibri.ttf"]
     )
@@ -160,3 +160,140 @@ def process_uploaded_overlay(
         output_path.parent.mkdir(parents=True, exist_ok=True)
         rgba.save(str(output_path), format="PNG")
         return rgba.size
+
+
+def generate_hook_banner(
+    text: str,
+    style: str = "yellow_badge",
+    width: int = 960,
+    height: int = 160,
+    output_path: Optional[Path] = None,
+) -> Path:
+    """
+    Renders a punchy, high-CTR viral engagement hook overlay banner (first 2-4s of Short).
+    Designed to hook scrolling users immediately on TikTok/YouTube Shorts.
+    """
+    if output_path is None:
+        raise ValueError("output_path must be provided.")
+    output_path = Path(output_path)
+
+    clean_text = text.strip() if text else "WAIT TILL THE END!"
+
+    styles = {
+        "yellow_badge": {
+            "bg": "#0c0f17",
+            "border": "#ffd700",
+            "badge_bg": "#ffd700",
+            "badge_text": "#000000",
+            "badge_label": "★ WAIT FOR IT ★",
+            "text": "#ffffff",
+        },
+        "red_alert": {
+            "bg": "#15080b",
+            "border": "#ff2a4b",
+            "badge_bg": "#ff2a4b",
+            "badge_text": "#ffffff",
+            "badge_label": "🚨 DANGER / HIGH ALERT 🚨",
+            "text": "#ffffff",
+        },
+        "tiktok_white": {
+            "bg": "#07090e",
+            "border": "#e2e8f0",
+            "badge_bg": "#3b82f6",
+            "badge_text": "#ffffff",
+            "badge_label": "👀 WATCH THIS PLAY 👀",
+            "text": "#ffffff",
+        },
+        "cyber_cyan": {
+            "bg": "#040e17",
+            "border": "#00f0ff",
+            "badge_bg": "#ec4899",
+            "badge_text": "#ffffff",
+            "badge_label": "⚡ 1 IN A MILLION ⚡",
+            "text": "#00f0ff",
+        },
+        "purple_glow": {
+            "bg": "#0f081c",
+            "border": "#a855f7",
+            "badge_bg": "#a855f7",
+            "badge_text": "#ffffff",
+            "badge_label": "🔥 VIRAL MOMENT 🔥",
+            "text": "#ffffff",
+        },
+    }
+
+    st = styles.get(style, styles["yellow_badge"])
+
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    bg_rgba = hex_to_rgba(st["bg"], 240)
+    border_rgba = hex_to_rgba(st["border"], 240)
+    badge_bg_rgba = hex_to_rgba(st["badge_bg"], 240)
+    badge_text_rgba = hex_to_rgba(st["badge_text"], 255)
+    text_rgba = hex_to_rgba(st["text"], 255)
+
+    # 1. Main Container Card
+    corner_radius = 20
+    draw.rounded_rectangle(
+        [(4, 4), (width - 4, height - 4)],
+        radius=corner_radius,
+        fill=bg_rgba,
+        outline=border_rgba,
+        width=3,
+    )
+
+    # 2. Top floating badge pill
+    font_badge = _get_font(18, bold=True) or ImageFont.load_default()
+    b_label = st["badge_label"]
+    bbox_b = draw.textbbox((0, 0), b_label, font=font_badge)
+    bw = (bbox_b[2] - bbox_b[0]) + 24
+    bh = (bbox_b[3] - bbox_b[1]) + 10
+    bx = (width - bw) // 2
+    by = 12
+    draw.rounded_rectangle(
+        [(bx, by), (bx + bw, by + bh)],
+        radius=8,
+        fill=badge_bg_rgba,
+    )
+    draw.text(
+        (bx + bw // 2, by + bh // 2),
+        b_label,
+        font=font_badge,
+        fill=badge_text_rgba,
+        anchor="mm",
+    )
+
+    # 3. Main Hook Text
+    font_size = 46
+    if len(clean_text) > 34:
+        font_size = 32
+    elif len(clean_text) > 26:
+        font_size = 38
+    elif len(clean_text) > 20:
+        font_size = 42
+
+    font_main = _get_font(font_size, bold=True) or ImageFont.load_default()
+    main_y = by + bh + ((height - (by + bh)) // 2)
+
+    # Drop shadow
+    shadow_offset = 3
+    draw.text(
+        ((width // 2) + shadow_offset, main_y + shadow_offset),
+        clean_text,
+        font=font_main,
+        fill=(0, 0, 0, 220),
+        anchor="mm",
+    )
+    # Main text
+    draw.text(
+        (width // 2, main_y),
+        clean_text,
+        font=font_main,
+        fill=text_rgba,
+        anchor="mm",
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(str(output_path), format="PNG")
+    return output_path

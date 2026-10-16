@@ -181,3 +181,20 @@ def test_ui_youtube_svg_and_preview_integrity():
     assert 'clips.twitch.tv/embed?clip=' in html
 
 
+def test_no_unwanted_autoplay_and_audio_silence_controls():
+    """Verifies final video player does not autoplay on page load and pauseAllMediaPlayers is wired."""
+    res_home = client.get("/")
+    assert res_home.status_code == 200
+    html = res_home.text
+
+    # Final video player must NOT have autoplay in HTML to avoid background blasting on page load
+    assert 'id="final-video-player" controls autoplay' not in html
+    assert 'id="final-video-player" controls loop' in html
+
+    # pauseAllMediaPlayers function and Escape key handler must be present
+    assert 'function pauseAllMediaPlayers()' in html
+    assert 'closeClipPreviewModal()' in html
+    assert "e.key === 'Escape'" in html
+
+
+

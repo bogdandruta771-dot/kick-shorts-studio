@@ -1429,7 +1429,7 @@
 
                 <!-- High-Res Vertical Video Player -->
                 <div class="relative w-[240px] sm:w-[260px] h-[426px] sm:h-[462px] mx-auto rounded-[28px] overflow-hidden border-[6px] border-[#222738] bg-black shadow-2xl">
-                    <video id="final-video-player" controls autoplay loop class="w-full h-full object-cover">
+                    <video id="final-video-player" controls loop class="w-full h-full object-cover">
                         <source src="" type="video/mp4">
                     </video>
                 </div>
@@ -2270,6 +2270,10 @@
             const videoPlayer = document.getElementById('final-video-player');
             if (videoPlayer) {
                 videoPlayer.src = exportData.output_url;
+                try {
+                    videoPlayer.pause();
+                    videoPlayer.currentTime = 0;
+                } catch (_) {}
             }
             const fnTxt = document.getElementById('final-filename-txt');
             if (fnTxt) fnTxt.innerText = exportData.output_filename || 'short.mp4';
@@ -2415,6 +2419,8 @@
                     initDefaultDemoSnapshot();
                 }
             }
+            // Guarantee that any restored media or exported short starts muted/paused on page load
+            pauseAllMediaPlayers();
             initAiProvider();
             checkYouTubeAuthStatus();
             loadTrendingClips();
@@ -2445,6 +2451,8 @@
 
         // Stepper Navigation - Free movement once video is ingested
         function goToStep(step) {
+            pauseAllMediaPlayers();
+
             if (step > 1 && !appState.activeVideoPath) {
                 const saved = sessionStorage.getItem('kick_activeVideoPath');
                 if (saved) {
@@ -3080,18 +3088,32 @@
             if (viewsEl) viewsEl.innerText = viewTxt ? `${viewTxt} views` : '';
             if (extLink) extLink.href = url || '#';
 
-            // Clean up previous playback
+            // Clean up any other active or previous playback
+            const cutPlayer = document.getElementById('cut-preview-player');
+            if (cutPlayer) {
+                try { cutPlayer.pause(); } catch (_) {}
+            }
+            const finalPlayer = document.getElementById('final-video-player');
+            if (finalPlayer) {
+                try { finalPlayer.pause(); } catch (_) {}
+            }
             if (activeHls) {
-                activeHls.destroy();
+                try { activeHls.destroy(); } catch (_) {}
                 activeHls = null;
             }
             if (videoEl) {
-                videoEl.pause();
-                videoEl.removeAttribute('src');
-                videoEl.load();
+                try {
+                    videoEl.pause();
+                    videoEl.currentTime = 0;
+                    videoEl.removeAttribute('src');
+                    videoEl.load();
+                } catch (_) {}
             }
             if (iframeEl) {
-                iframeEl.src = 'about:blank';
+                try {
+                    iframeEl.src = 'about:blank';
+                    iframeEl.removeAttribute('src');
+                } catch (_) {}
             }
 
             if (platform === 'twitch') {
@@ -3151,26 +3173,67 @@
             lucide.createIcons();
         }
 
+        function pauseAllMediaPlayers() {
+            // Cut preview player in Step 1
+            const cutPlayer = document.getElementById('cut-preview-player');
+            if (cutPlayer) {
+                try { cutPlayer.pause(); } catch (_) {}
+            }
+            // Final export player in Step 4
+            const finalPlayer = document.getElementById('final-video-player');
+            if (finalPlayer) {
+                try {
+                    finalPlayer.pause();
+                    finalPlayer.currentTime = 0;
+                } catch (_) {}
+            }
+            // Quick preview modal players
+            closeClipPreviewModal();
+        }
+
         function closeClipPreviewModal() {
             const modal = document.getElementById('modal-clip-preview');
             const videoEl = document.getElementById('preview-modal-video');
             const iframeEl = document.getElementById('preview-modal-iframe');
 
             if (activeHls) {
-                activeHls.destroy();
+                try {
+                    activeHls.destroy();
+                } catch (_) {}
                 activeHls = null;
             }
             if (videoEl) {
-                videoEl.pause();
-                videoEl.removeAttribute('src');
-                videoEl.load();
+                try {
+                    videoEl.pause();
+                    videoEl.currentTime = 0;
+                    videoEl.removeAttribute('src');
+                    videoEl.load();
+                } catch (_) {}
             }
             if (iframeEl) {
-                iframeEl.src = 'about:blank';
-                iframeEl.classList.add('hidden');
+                try {
+                    iframeEl.src = 'about:blank';
+                    iframeEl.removeAttribute('src');
+                    iframeEl.classList.add('hidden');
+                } catch (_) {}
             }
             if (modal) modal.classList.add('hidden');
+            clipExplorerState.activePreviewClip = null;
         }
+
+        // Global Escape key listener to dismiss preview modals and halt audio immediately
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const previewModal = document.getElementById('modal-clip-preview');
+                if (previewModal && !previewModal.classList.contains('hidden')) {
+                    closeClipPreviewModal();
+                }
+                const oneClickModal = document.getElementById('modal-oneclick-progress');
+                if (oneClickModal && !oneClickModal.classList.contains('hidden')) {
+                    closeOneClickModal();
+                }
+            }
+        });
 
         function previewModalOneClickShort() {
             if (!clipExplorerState.activePreviewClip) return;
@@ -3188,6 +3251,7 @@
 
         // --- IMPORT CLIP TO STUDIO (STEP 2 FRAMING) ---
         async function importClipToStudio(clipUrl, title, streamer, category, platform, btnEl) {
+            pauseAllMediaPlayers();
             let originalHtml = '';
             if (btnEl) {
                 originalHtml = btnEl.innerHTML;
@@ -3230,6 +3294,7 @@
 
         // --- 1-CLICK VIRAL SHORT AUTOMATION ---
         async function triggerOneClickShort(clipUrl, title, streamer, category, btnEl) {
+            pauseAllMediaPlayers();
             const modal = document.getElementById('modal-oneclick-progress');
             const titleEl = document.getElementById('oneclick-modal-title');
             const subEl = document.getElementById('oneclick-modal-subtitle');
@@ -3346,6 +3411,7 @@
             }
             const modal = document.getElementById('modal-oneclick-progress');
             if (modal) modal.classList.add('hidden');
+            pauseAllMediaPlayers();
         }
 
         function openOneClickResultInStudio() {

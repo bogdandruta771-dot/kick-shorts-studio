@@ -829,6 +829,12 @@
                             <option value="roulette_table">🎡 Live Roulette / Table</option>
                             <option value="full_reel">📱 Full Width Reels</option>
                         </optgroup>
+                        <optgroup label="🌟 Modern Viral Shorts Styles">
+                            <option value="pip_corner_cam">📌 Picture-in-Picture (Full Game + Floating Corner Cam)</option>
+                            <option value="triple_stack">📊 Triple Stack (Top Cam + Mid Game + Bottom Chat/Reel)</option>
+                            <option value="cinema_letterbox">🎬 Cinematic 16:9 (Letterbox with Ambient Wings)</option>
+                            <option value="full_bleed_9_16">📱 Full 9:16 Vertical Immersion (Direct Center Action)</option>
+                        </optgroup>
                         <optgroup label="📱 Ambient & Fullscreen">
                             <option value="ambient_blur_16_9">✨ Ambient Blur Background (16:9 in 9:16)</option>
                         </optgroup>
@@ -1302,7 +1308,7 @@
                                 <!-- Style Preset -->
                                 <div>
                                     <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Visual Theme / Badge Style</label>
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
                                         <button type="button" onclick="setHookStyle('floating_yellow')" id="hook-style-floating_yellow" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
                                             <span class="text-[11px] font-bold text-yellow-400 block">🎮 OhnePixel Seam</span>
                                             <span class="text-[9px] text-zinc-400 block">Floating White + Gold</span>
@@ -1310,6 +1316,22 @@
                                         <button type="button" onclick="setHookStyle('reddit_card')" id="hook-style-reddit_card" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
                                             <span class="text-[11px] font-bold text-orange-400 block">📱 Reddit Post</span>
                                             <span class="text-[9px] text-zinc-400 block">Dark Reaction Card</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('twitter_x_card')" id="hook-style-twitter_x_card" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-sky-400 block">𝕏 Tweet Card</span>
+                                            <span class="text-[9px] text-zinc-400 block">Dark Mode Tweet</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('tiktok_comment')" id="hook-style-tiktok_comment" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-rose-400 block">💬 TikTok Reply</span>
+                                            <span class="text-[9px] text-zinc-400 block">Comment Bubble</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('mrbeast_impact')" id="hook-style-mrbeast_impact" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-emerald-400 block">⚡ MrBeast Neon</span>
+                                            <span class="text-[9px] text-zinc-400 block">Punchy Big Impact</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('breaking_news')" id="hook-style-breaking_news" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-red-500 block">🔴 Breaking News</span>
+                                            <span class="text-[9px] text-zinc-400 block">Broadcast Ticker</span>
                                         </button>
                                         <button type="button" onclick="setHookStyle('yellow_badge')" id="hook-style-yellow_badge" class="p-2 rounded-xl border border-amber-500 bg-amber-500/10 text-left transition-all">
                                             <span class="text-[11px] font-bold text-amber-300 block">⭐ Hormozi Gold</span>
@@ -2354,6 +2376,26 @@
             roulette_table: {
                 gp: { x: 100, y: 60, w: 1720, h: 960 },
                 fc: { x: 40, y: 680, w: 540, h: 380 }
+            },
+            pip_corner_cam: {
+                gp: { x: 420, y: 0, w: 1080, h: 1080 },
+                fc: { x: 1380, y: 680, w: 520, h: 400 },
+                stack_mode: 'pip_corner'
+            },
+            triple_stack: {
+                gp: { x: 0, y: 0, w: 1920, h: 1080 },
+                fc: { x: 1380, y: 680, w: 520, h: 400 },
+                stack_mode: 'triple_stack'
+            },
+            cinema_letterbox: {
+                gp: { x: 0, y: 0, w: 1920, h: 1080 },
+                fc: { x: 0, y: 0, w: 1920, h: 1080 },
+                stack_mode: 'cinema_centered'
+            },
+            full_bleed_9_16: {
+                gp: { x: 420, y: 0, w: 608, h: 1080 },
+                fc: { x: 0, y: 0, w: 0, h: 0 },
+                stack_mode: 'full_screen_9_16'
             },
             full_reel: {
                 gp: { x: 0, y: 0, w: 1920, h: 1080 },
@@ -4626,7 +4668,12 @@
                 const normX = nw / origW;
                 const normY = nh / origH;
 
-                const isCamTop = (appState.crops.stack_mode === 'cam_top');
+                const stackMode = (appState.crops.stack_mode || 'standard').toLowerCase();
+                const isCamTop = (stackMode === 'cam_top' || stackMode === 'reaction_top' || stackMode === 'ohnepixel');
+                const isPiP = (stackMode === 'pip_corner' || stackMode === 'pip_top_right' || stackMode === 'pip');
+                const isTriple = (stackMode === 'triple_stack' || stackMode === 'triple');
+                const isCinema = (stackMode === 'cinema_centered' || stackMode === 'cinema_letterbox' || stackMode === 'cinema');
+                const isFullBleed = (stackMode === 'full_screen_9_16' || stackMode === 'immersion' || stackMode === 'full_bleed');
 
                 if (isCamTop) {
                     // OhnePixel Reaction Mode: Top Facecam + Bottom Gameplay
@@ -4662,6 +4709,105 @@
                         ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
                         ctx.fillStyle = '#00ff55';
                         ctx.fillRect(0, gpY, cw, 2);
+                    }
+                } else if (isPiP) {
+                    // Picture-in-Picture: Centered 9:16 Action + Floating Corner Cam
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+
+                    const gpScale = Math.min(cw / src_gw, ch / src_gh);
+                    const gpW = Math.round(src_gw * gpScale);
+                    const gpH = Math.round(src_gh * gpScale);
+                    const gpX = Math.round((cw - gpW) / 2);
+                    const gpY = Math.round((ch - gpH) / 2);
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                    }
+
+                    // Floating Cam in top-right
+                    const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
+                    const src_cy = Math.max(0, Math.min(nh - 4, cam_y * normY));
+                    const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
+                    const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
+
+                    if (src_cw > 4 && src_ch > 4) {
+                        const pipW = 110;
+                        const pipH = 82;
+                        const pipX = cw - pipW - 12;
+                        const pipY = 20;
+
+                        ctx.save();
+                        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+                        ctx.shadowBlur = 10;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2.5;
+                        ctx.strokeRect(pipX, pipY, pipW, pipH);
+                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, pipX, pipY, pipW, pipH);
+                        ctx.restore();
+                    }
+                } else if (isTriple) {
+                    // Triple Stack: Top Cam + Mid Game + Bottom Ambient / Chat
+                    const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
+                    const src_cy = Math.max(0, Math.min(nh - 4, cam_y * normY));
+                    const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
+                    const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
+
+                    const camScale = Math.min(cw / src_cw, (ch * 0.28) / src_ch);
+                    const cW = Math.round(src_cw * camScale);
+                    const cH = Math.round(src_ch * camScale);
+                    const cX = Math.round((cw - cW) / 2);
+                    const cY = 0;
+
+                    if (src_cw > 4 && src_ch > 4) {
+                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                        ctx.fillStyle = '#ff00b4';
+                        ctx.fillRect(0, cY + cH, cw, 2);
+                    }
+
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+
+                    const gpScale = Math.min(cw / src_gw, (ch * 0.46) / src_gh);
+                    const gpW = Math.round(src_gw * gpScale);
+                    const gpH = Math.round(src_gh * gpScale);
+                    const gpX = Math.round((cw - gpW) / 2);
+                    const gpY = Math.round(ch * 0.29);
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                        ctx.fillStyle = '#00ff55';
+                        ctx.fillRect(0, gpY + gpH, cw, 2);
+                    }
+                } else if (isCinema) {
+                    // Cinema Letterbox: Centered 16:9 gameplay with blurred mirror wings
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+
+                    const gpScale = Math.min(cw / src_gw, ch / src_gh);
+                    const gpW = Math.round(src_gw * gpScale);
+                    const gpH = Math.round(src_gh * gpScale);
+                    const gpX = Math.round((cw - gpW) / 2);
+                    const gpY = Math.round((ch - gpH) / 2);
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                    }
+                } else if (isFullBleed) {
+                    // Full 9:16 Vertical Direct Immersion
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, 0, 0, cw, ch);
                     }
                 } else {
                     // Standard: Top Gameplay + Bottom Facecam
@@ -4950,6 +5096,155 @@
                         ctx.font = 'bold 8px monospace';
                         ctx.textAlign = 'center';
                         ctx.fillText('▲ 14.2k ▼', cardX + 38, rCardY + 59);
+
+                        ctx.restore();
+                        return;
+                    } else if (style === 'twitter_x_card' || style === 'x_card') {
+                        // Twitter / X Dark Mode Tweet Post Card
+                        const twCardH = 72;
+                        const twCardY = (pos === 'center') ? 260 : hookY;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(cardX, twCardY, cardW, twCardH, 8);
+                        else ctx.rect(cardX, twCardY, cardW, twCardH);
+                        ctx.fillStyle = 'rgba(15, 20, 25, 0.96)';
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(47, 51, 54, 0.9)';
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        // Avatar circle (X Blue)
+                        ctx.beginPath();
+                        ctx.arc(cardX + 16, twCardY + 16, 7, 0, Math.PI * 2);
+                        ctx.fillStyle = '#1d9bf0';
+                        ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 7px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('S', cardX + 16, twCardY + 18.5);
+
+                        // Author & Checkmark & 𝕏
+                        ctx.fillStyle = '#e7e9ea';
+                        ctx.font = 'bold 8.5px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.fillText('Streamer Clips', cardX + 28, twCardY + 18);
+                        ctx.fillStyle = '#1d9bf0';
+                        ctx.fillText('✓', cardX + 96, twCardY + 18);
+                        ctx.fillStyle = '#71767b';
+                        ctx.font = '7.5px sans-serif';
+                        ctx.fillText('@streamer • 2h', cardX + 106, twCardY + 18);
+                        ctx.fillStyle = '#e7e9ea';
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.fillText('𝕏', cardX + cardW - 16, twCardY + 18);
+
+                        // Tweet text
+                        ctx.fillStyle = '#f5f5f7';
+                        ctx.font = 'bold 10px sans-serif';
+                        const cleanTw = hookText.replace(/\*/g, '');
+                        ctx.fillText(cleanTw.length > 40 ? cleanTw.slice(0, 38) + '...' : cleanTw, cardX + 12, twCardY + 38);
+
+                        // Stats bar
+                        ctx.fillStyle = '#71767b';
+                        ctx.font = '7.5px monospace';
+                        ctx.fillText('💬 1.4K    🔁 18.2K    ❤️ 84.9K    📊 1.2M', cardX + 12, twCardY + 58);
+
+                        ctx.restore();
+                        return;
+                    } else if (style === 'tiktok_comment' || style === 'comment_bubble') {
+                        // TikTok Comment Bubble
+                        const cmtH = 58;
+                        const cmtY = (pos === 'center') ? 265 : hookY;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(cardX, cmtY, cardW, cmtH, 10);
+                        else ctx.rect(cardX, cmtY, cardW, cmtH);
+                        ctx.fillStyle = 'rgba(24, 26, 32, 0.96)';
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(44, 48, 58, 0.9)';
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        // Avatar circle
+                        ctx.beginPath();
+                        ctx.arc(cardX + 16, cmtY + 16, 7, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fe2c55';
+                        ctx.fill();
+
+                        ctx.fillStyle = '#a0a2aa';
+                        ctx.font = '7.5px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.fillText('Replying to @viewer_clip', cardX + 28, cmtY + 18);
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 10px sans-serif';
+                        const cleanCmt = hookText.replace(/\*/g, '');
+                        ctx.fillText(cleanCmt.length > 36 ? cleanCmt.slice(0, 34) + '...' : cleanCmt, cardX + 28, cmtY + 36);
+
+                        ctx.fillStyle = '#fe2c55';
+                        ctx.font = '10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('❤️', cardX + cardW - 16, cmtY + 22);
+                        ctx.fillStyle = '#a0a2aa';
+                        ctx.font = 'bold 7px sans-serif';
+                        ctx.fillText('48.2k', cardX + cardW - 16, cmtY + 34);
+
+                        ctx.restore();
+                        return;
+                    } else if (style === 'mrbeast_impact' || style === 'impact_neon') {
+                        // MrBeast Impact
+                        const impY = (pos === 'center') ? 280 : hookY;
+                        // Pill badge
+                        ctx.fillStyle = 'rgba(10, 10, 15, 0.9)';
+                        ctx.strokeStyle = '#22c55e';
+                        ctx.lineWidth = 1.5;
+                        const pbW = 140;
+                        const pbH = 16;
+                        const pbX = (cw - pbW) / 2;
+                        if (ctx.roundRect) ctx.roundRect(pbX, impY - 14, pbW, pbH, 5);
+                        else ctx.rect(pbX, impY - 14, pbW, pbH);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#22c55e';
+                        ctx.font = 'bold 7.5px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('🔥 MUST WATCH MOMENT 🔥', cw / 2, impY - 3);
+
+                        // Big impact text
+                        const cleanImp = hookText.replace(/\*/g, '').toUpperCase();
+                        ctx.font = '900 17px Impact, Arial Black, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 5;
+                        ctx.strokeText(cleanImp.length > 30 ? cleanImp.slice(0, 28) + '...' : cleanImp, cw / 2, impY + 20);
+                        ctx.fillStyle = '#22c55e';
+                        ctx.fillText(cleanImp.length > 30 ? cleanImp.slice(0, 28) + '...' : cleanImp, cw / 2, impY + 20);
+
+                        ctx.restore();
+                        return;
+                    } else if (style === 'breaking_news' || style === 'news_ticker') {
+                        // Breaking News Banner
+                        const bnY = (pos === 'center') ? 265 : hookY;
+                        const bnH = 54;
+                        ctx.fillStyle = 'rgba(15, 23, 42, 0.96)';
+                        ctx.fillRect(cardX, bnY + 12, cardW, bnH - 12);
+                        ctx.fillStyle = '#facc15';
+                        ctx.fillRect(cardX, bnY + bnH - 2, cardW, 2);
+
+                        // Red Tab
+                        ctx.fillStyle = '#dc2626';
+                        ctx.fillRect(cardX, bnY, 110, 14);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 7.5px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('🔴 BREAKING NEWS', cardX + 55, bnY + 10);
+
+                        // Headline
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 11px sans-serif';
+                        const cleanBn = hookText.replace(/\*/g, '').toUpperCase();
+                        ctx.fillText(cleanBn.length > 34 ? cleanBn.slice(0, 32) + '...' : cleanBn, cardX + cardW / 2, bnY + 30);
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.font = '7px sans-serif';
+                        ctx.fillText('▶ MOMENTS AGO ON LIVE STREAM • VIRAL CLIP OF THE DAY', cardX + cardW / 2, bnY + 44);
 
                         ctx.restore();
                         return;
@@ -5618,7 +5913,7 @@
             if (!appState.hook) appState.hook = {};
             appState.hook.style = styleId;
 
-            ['floating_yellow', 'reddit_card', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+            ['floating_yellow', 'reddit_card', 'twitter_x_card', 'tiktok_comment', 'mrbeast_impact', 'breaking_news', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
                 const btn = document.getElementById(`hook-style-${s}`);
                 if (!btn) return;
                 if (s === styleId) {
@@ -5750,7 +6045,7 @@
 
             // Styles
             const activeStyle = hook.style || 'yellow_badge';
-            ['floating_yellow', 'reddit_card', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+            ['floating_yellow', 'reddit_card', 'twitter_x_card', 'tiktok_comment', 'mrbeast_impact', 'breaking_news', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
                 const btn = document.getElementById(`hook-style-${s}`);
                 if (!btn) return;
                 if (s === activeStyle) {

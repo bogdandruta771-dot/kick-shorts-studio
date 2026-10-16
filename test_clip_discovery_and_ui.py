@@ -208,8 +208,12 @@ def test_viral_hook_ai_and_banner_generation(tmp_path):
     assert len(hooks) >= 4
     assert any("WIN" in h.upper() or "😱" in h or "💀" in h or "🚨" in h for h in hooks)
 
-    # 2. Test banner generation across all 6 visual styles (including OhnePixel styles)
-    styles = ["floating_yellow", "reddit_card", "yellow_badge", "red_alert", "tiktok_white", "cyber_cyan"]
+    # 2. Test banner generation across all 10 visual styles (including modern viral styles)
+    styles = [
+        "floating_yellow", "reddit_card", "twitter_x_card", "tiktok_comment",
+        "mrbeast_impact", "breaking_news", "yellow_badge", "red_alert",
+        "tiktok_white", "cyber_cyan"
+    ]
     for s in styles:
         out_png = tmp_path / f"hook_{s}.png"
         res_path = generate_hook_banner("WAIT TILL THE VERY END 😱", style=s, output_path=str(out_png))
@@ -248,13 +252,21 @@ def test_hook_api_endpoints():
     assert "path" in prev_data
     assert prev_data["filename"].endswith(".png")
 
-    # 3. Preview banner endpoint with reddit_card
-    res_reddit = client.post("/api/preview-hook-banner", json={
-        "text": "What are the odds of this happening?!",
-        "style": "reddit_card"
+    # 3. Preview banner endpoint with twitter_x_card
+    res_twitter = client.post("/api/preview-hook-banner", json={
+        "text": "Bro actually pulled this off live",
+        "style": "twitter_x_card"
     })
-    assert res_reddit.status_code == 200
-    assert res_reddit.json()["filename"].endswith(".png")
+    assert res_twitter.status_code == 200
+    assert res_twitter.json()["filename"].endswith(".png")
+
+    # 4. Preview banner endpoint with mrbeast_impact
+    res_beast = client.post("/api/preview-hook-banner", json={
+        "text": "1 IN A BILLION MOMENT 🔥",
+        "style": "mrbeast_impact"
+    })
+    assert res_beast.status_code == 200
+    assert res_beast.json()["filename"].endswith(".png")
 
 
 def test_ui_hook_header_card_and_handlers():
@@ -270,16 +282,24 @@ def test_ui_hook_header_card_and_handlers():
     assert 'id="hook-preset-pills"' in html
     assert 'id="hook-style-floating_yellow"' in html
     assert 'id="hook-style-reddit_card"' in html
+    assert 'id="hook-style-twitter_x_card"' in html
+    assert 'id="hook-style-tiktok_comment"' in html
+    assert 'id="hook-style-mrbeast_impact"' in html
+    assert 'id="hook-style-breaking_news"' in html
     assert 'id="hook-style-yellow_badge"' in html
     assert 'id="hook-style-red_alert"' in html
     assert 'id="hook-style-tiktok_white"' in html
     assert 'id="hook-style-cyber_cyan"' in html
     assert 'id="sum-hook-status"' in html
 
-    # OhnePixel Reaction Presets & Cam on Top Toolbar
+    # Layout Framing Presets
     assert 'id="btn-toggle-cam-stack"' in html
     assert "reaction_cam_top" in html
     assert "reddit_reaction" in html
+    assert "pip_corner_cam" in html
+    assert "triple_stack" in html
+    assert "cinema_letterbox" in html
+    assert "full_bleed_9_16" in html
     assert "toggleCamStackMode" in html
 
     # JavaScript Functions
@@ -296,14 +316,15 @@ def test_ui_hook_header_card_and_handlers():
 
 
 def test_ohnepixel_video_processor_stack_mode(tmp_path):
-    """Verifies VideoProcessor properly processes a short with stack_mode='cam_top'."""
+    """Verifies VideoProcessor properly processes shorts with various stack_modes."""
     import subprocess
     from core.utils import resolve_binary_paths
     from core.video_processor import VideoProcessor
 
     ffmpeg, _ = resolve_binary_paths()
     sample_mp4 = tmp_path / "sample_clip.mp4"
-    out_short = tmp_path / "output_short_cam_top.mp4"
+    out_cam_top = tmp_path / "output_short_cam_top.mp4"
+    out_pip = tmp_path / "output_short_pip.mp4"
 
     # Generate a lightweight 1-second 1280x720 video clip
     cmd = [
@@ -319,20 +340,34 @@ def test_ohnepixel_video_processor_stack_mode(tmp_path):
     assert sample_mp4.exists()
 
     vp = VideoProcessor()
-    crops = {
+    crops_cam_top = {
         "gameplay": {"x": 0, "y": 0, "width": 1280, "height": 720},
         "camera": {"x": 100, "y": 50, "width": 300, "height": 300},
         "stack_mode": "cam_top"
     }
 
-    result = vp.process_short(
+    res_cam = vp.process_short(
         input_video_path=sample_mp4,
-        output_video_path=out_short,
-        crops=crops,
+        output_video_path=out_cam_top,
+        crops=crops_cam_top,
         generate_subtitles=False
     )
-    assert result.is_file()
-    assert result.stat().st_size > 1000
+    assert res_cam.is_file()
+    assert res_cam.stat().st_size > 1000
+
+    crops_pip = {
+        "gameplay": {"x": 0, "y": 0, "width": 1280, "height": 720},
+        "camera": {"x": 100, "y": 50, "width": 300, "height": 300},
+        "stack_mode": "pip_corner"
+    }
+    res_pip = vp.process_short(
+        input_video_path=sample_mp4,
+        output_video_path=out_pip,
+        crops=crops_pip,
+        generate_subtitles=False
+    )
+    assert res_pip.is_file()
+    assert res_pip.stat().st_size > 1000
 
 
 

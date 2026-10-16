@@ -50,10 +50,23 @@ CROP_PRESETS: Dict[str, Dict[str, Any]] = {
     },
 
     # --- 💬 Reaction & Just Chatting ---
+    "reaction_cam_top": {
+        "label": "👑 OhnePixel Style: Top Facecam + Bottom Video Reaction",
+        "gameplay": {"x": 0, "y": 0, "w": 1360, "h": 1080},
+        "facecam": {"x": 1360, "y": 460, "w": 560, "h": 620},
+        "stack_mode": "cam_top",
+    },
+    "reddit_reaction": {
+        "label": "🔥 Reddit Post Reaction (Top Facecam + Bottom Reddit/Gameplay)",
+        "gameplay": {"x": 0, "y": 0, "w": 1360, "h": 1080},
+        "facecam": {"x": 1360, "y": 460, "w": 560, "h": 620},
+        "stack_mode": "cam_top",
+    },
     "reaction_standard": {
         "label": "💬 Reaction: Top 16:9 Video + Bottom Streamer Webcam",
         "gameplay": {"x": 0, "y": 0, "w": 1360, "h": 1080},
         "facecam": {"x": 1360, "y": 460, "w": 560, "h": 620},
+        "stack_mode": "standard",
     },
     "reaction_interview": {
         "label": "👥 Dual Cam / Split Screen (50/50 Interview)",

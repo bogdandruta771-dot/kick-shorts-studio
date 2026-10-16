@@ -827,6 +827,8 @@ def generate_viral_hooks(
         ]
     elif any(w in cat or w in title for w in ["valorant", "cs2", "fortnite", "clutch", "gaming", "warzone", "ace", "ranked"]):
         return [
+            "Worst *possible* timing 😳",
+            "this gotta be *scripted* 💀",
             "BRO DID NOT JUST HIT THAT! 😱",
             "HOW DID HE SURVIVE THIS?! 🤯",
             "WAIT TILL THE LAST SECOND... 💀",
@@ -834,8 +836,10 @@ def generate_viral_hooks(
             "THE CLEANEST CLUTCH EVER 🔥",
             "WATCH HIS HANDS SHAKE AT THE END 🎯",
         ]
-    elif any(w in cat or w in title for w in ["chatting", "irl", "react", "drama", "podcast"]):
+    elif any(w in cat or w in title for w in ["chatting", "irl", "react", "drama", "podcast", "reddit"]):
         return [
+            "Worst *possible* timing 😳",
+            "this gotta be *scripted* 💀",
             "HE DID NOT MEAN TO SAY THIS 💀",
             "WAIT FOR HIS REAL REACTION 😳",
             "THINGS GOT OUT OF HAND FAST... 🚨",
@@ -845,6 +849,8 @@ def generate_viral_hooks(
         ]
     else:
         return [
+            "Worst *possible* timing 😳",
+            "this gotta be *scripted* 💀",
             "WAIT TILL THE END... 😱",
             "BRO DID NOT EXPECT THIS 💀",
             "THIS ACTUALLY HAPPENED ON STREAM 🚨",

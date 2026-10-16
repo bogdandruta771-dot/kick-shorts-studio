@@ -579,6 +579,9 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
             preset_cfg = CROP_PRESETS.get(preset_key, CROP_PRESETS["ambient_blur_16_9"])
             gp = preset_cfg["gameplay"]
             fc = preset_cfg["facecam"]
+            stack_mode = preset_cfg.get("stack_mode", "standard")
+            if req.preset in ("reaction_cam_top", "reddit_reaction"):
+                stack_mode = "cam_top"
 
             export_jobs[job_id]["message"] = "Processing video, generating subtitles & anti-shadowban FX..."
             export_jobs[job_id]["percent"] = 0.35
@@ -606,6 +609,7 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
                     output_video_path=out_path,
                     gameplay_crop=gp,
                     facecam_crop=fc,
+                    stack_mode=stack_mode,
                     enable_subtitles=True,
                     subtitle_options={
                         "font_name": DEFAULT_FONT_NAME,
@@ -1018,17 +1022,20 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
             export_jobs[job_id]["message"] = msg
 
     crops = payload.crops or {}
+    stack_mode = crops.get("stack_mode", "standard")
     gameplay_crop = {
         "x": int(float(crops.get("gx", 260))),
         "y": int(float(crops.get("gy", 80))),
         "w": int(float(crops.get("gw", 1400))),
         "h": int(float(crops.get("gh", 920))),
+        "stack_mode": stack_mode,
     }
     facecam_crop = {
         "x": int(float(crops.get("cx", 1380))),
         "y": int(float(crops.get("cy", 680))),
         "w": int(float(crops.get("cw", 520))),
         "h": int(float(crops.get("ch", 380))),
+        "stack_mode": stack_mode,
     }
 
     sub_opts = payload.subtitles or {}
@@ -1065,6 +1072,8 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
                 output_video_path=out_path,
                 gameplay_crop=gameplay_crop,
                 facecam_crop=facecam_crop,
+                crops=crops,
+                stack_mode=stack_mode,
                 enable_subtitles=bool(sub_opts.get("enabled", True)),
                 subtitle_options=subtitle_options,
                 outro_video_path=outro_file,

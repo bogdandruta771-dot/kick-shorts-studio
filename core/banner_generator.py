@@ -179,6 +179,143 @@ def generate_hook_banner(
 
     clean_text = text.strip() if text else "WAIT TILL THE END!"
 
+    if style in ("floating_yellow", "ohnepixel_seam"):
+        # Style: Floating White + Yellow Accent Headline (OhnePixel Seam Style)
+        # Transparent background, no card box, pure punchy viral typography
+        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        raw_tokens = clean_text.split()
+        tokens = []
+        for t in raw_tokens:
+            if t.startswith("*") and t.endswith("*") and len(t) > 2:
+                tokens.append((t[1:-1], True))
+            else:
+                tokens.append((t, False))
+
+        has_hl = any(h for _, h in tokens)
+        if not has_hl and len(tokens) >= 2:
+            hl_idx = 1
+            for i, (w, _) in enumerate(tokens):
+                if len(w) >= 6:
+                    hl_idx = i
+                    break
+            tokens[hl_idx] = (tokens[hl_idx][0], True)
+
+        font_size = 54
+        if len(clean_text) > 34:
+            font_size = 38
+        elif len(clean_text) > 24:
+            font_size = 46
+
+        font = _get_font(font_size, bold=True) or ImageFont.load_default()
+        space_w = draw.textlength(" ", font=font)
+        word_widths = [draw.textlength(w, font=font) for w, _ in tokens]
+        total_w = sum(word_widths) + (space_w * (len(tokens) - 1))
+
+        start_x = (width - total_w) / 2
+        mid_y = height / 2
+
+        cur_x = start_x
+        for (w, hl), ww in zip(tokens, word_widths):
+            fill_col = (255, 215, 0, 255) if hl else (255, 255, 255, 255)
+            word_center_x = cur_x + ww / 2
+            # Drop shadow
+            draw.text(
+                (word_center_x + 4, mid_y + 4),
+                w,
+                font=font,
+                fill=(0, 0, 0, 220),
+                anchor="mm",
+                stroke_width=6,
+                stroke_fill=(0, 0, 0, 220),
+            )
+            # Main word with thick black stroke
+            draw.text(
+                (word_center_x, mid_y),
+                w,
+                font=font,
+                fill=fill_col,
+                anchor="mm",
+                stroke_width=5,
+                stroke_fill=(0, 0, 0, 255),
+            )
+            cur_x += ww + space_w
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
+    elif style == "reddit_card":
+        # Style: Authentic Reddit Dark Mode Post Card (Viral Reaction Opener)
+        card_h = min(height, 220)
+        img = Image.new("RGBA", (width, card_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Card container
+        draw.rounded_rectangle(
+            [(4, 4), (width - 4, card_h - 4)],
+            radius=16,
+            fill=(26, 26, 27, 245),
+            outline=(52, 53, 54, 255),
+            width=2,
+        )
+
+        # Reddit logo avatar
+        draw.ellipse([(24, 18), (52, 46)], fill=(255, 69, 0, 255))
+        draw.ellipse([(32, 26), (44, 38)], fill=(255, 255, 255, 255))
+
+        font_meta = _get_font(18, bold=False) or ImageFont.load_default()
+        draw.text(
+            (62, 22),
+            "r/GlobalOffensive  •  Posted by u/gamer  •  14h ago",
+            font=font_meta,
+            fill=(129, 131, 132, 255),
+        )
+
+        # Title
+        post_title = clean_text.replace("*", "")
+        font_title = _get_font(28, bold=True) or ImageFont.load_default()
+        draw.text(
+            (24, 62),
+            post_title,
+            font=font_title,
+            fill=(215, 218, 220, 255),
+        )
+
+        # Flair badge
+        t_bbox = draw.textbbox((24, 62), post_title, font=font_title)
+        flair_x = t_bbox[2] + 16
+        if flair_x < width - 130:
+            draw.rounded_rectangle(
+                [(flair_x, 64), (flair_x + 95, 92)],
+                radius=6,
+                fill=(0, 121, 211, 255),
+            )
+            font_flair = _get_font(15, bold=True) or ImageFont.load_default()
+            draw.text(
+                (flair_x + 47, 78),
+                "Gameplay",
+                font=font_flair,
+                fill=(255, 255, 255, 255),
+                anchor="mm",
+            )
+
+        # Bottom stat pills
+        font_pill = _get_font(16, bold=True) or ImageFont.load_default()
+        draw.rounded_rectangle([(24, 144), (140, 186)], radius=12, fill=(39, 39, 41, 255))
+        draw.text((82, 165), "▲ 14.2k ▼", font=font_pill, fill=(129, 131, 132, 255), anchor="mm")
+
+        draw.rounded_rectangle([(152, 144), (248, 186)], radius=12, fill=(39, 39, 41, 255))
+        draw.text((200, 165), "🗨 842", font=font_pill, fill=(129, 131, 132, 255), anchor="mm")
+
+        draw.rounded_rectangle([(260, 144), (350, 186)], radius=12, fill=(39, 39, 41, 255))
+        draw.text((305, 165), "Share", font=font_pill, fill=(129, 131, 132, 255), anchor="mm")
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
     styles = {
         "yellow_badge": {
             "bg": "#0c0f17",

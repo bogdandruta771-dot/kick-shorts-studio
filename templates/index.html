@@ -808,13 +808,17 @@
                         <span>Crop Preset:</span>
                     </span>
                     <select id="presetSelect" onchange="applyPreset(this.value)" class="bg-brand-surface text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-border focus:outline-none focus:border-indigo-500 cursor-pointer">
+                        <optgroup label="🔥 Streamer Reaction (OhnePixel Style)">
+                            <option value="reaction_cam_top">🔥 OhnePixel Reaction (Cam on TOP + Game on BOTTOM)</option>
+                            <option value="reddit_reaction">📱 Reddit Reaction (Top Cam + Content Below)</option>
+                        </optgroup>
                         <optgroup label="🎮 Gaming & Esports (FPS / MOBA / Centered)">
                             <option value="gaming_fps">🎮 Gaming FPS (Valorant, CS2, Apex - Game Top + Cam)</option>
                             <option value="gaming_moba">⚔️ Gaming MOBA (League, Dota 2 - Minimap Safe)</option>
                             <option value="gaming_centered">🎯 Gaming Centered (HUD Focus)</option>
                         </optgroup>
                         <optgroup label="💬 Just Chatting & Reaction">
-                            <option value="reaction_standard">💬 Reaction (Top Media 60% + Streamer 40%)</option>
+                            <option value="reaction_standard">💬 Standard Reaction (Top Media 60% + Cam 40%)</option>
                             <option value="reaction_interview">👥 Dual Cam / Split Screen (50/50)</option>
                         </optgroup>
                         <optgroup label="🎙️ Podcasts & Shows">
@@ -829,6 +833,10 @@
                             <option value="ambient_blur_16_9">✨ Ambient Blur Background (16:9 in 9:16)</option>
                         </optgroup>
                     </select>
+                    <button type="button" onclick="toggleCamStackMode()" id="btn-toggle-cam-stack" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-indigo-400 hover:text-white border border-brand-border transition-all flex items-center gap-1.5 font-medium" title="Flip layout between Standard (Game Top / Cam Bottom) and OhnePixel Reaction (Cam Top / Game Bottom)">
+                        <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span id="lbl-cam-stack-mode">⇅ Cam on Top (OhnePixel)</span>
+                    </button>
                     <button type="button" onclick="snapCam('br')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Right</button>
                     <button type="button" onclick="snapCam('bl')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Left</button>
                 </div>
@@ -1279,12 +1287,13 @@
                             <div>
                                 <span class="text-[10px] uppercase font-semibold text-zinc-400 block mb-1.5">Viral Hook Templates (1-Click Select):</span>
                                 <div class="flex flex-wrap gap-1.5" id="hook-preset-pills">
+                                    <button type="button" onclick="setHookPreset('Worst *possible* timing 😳')" class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-[11px] text-amber-300 font-semibold transition-colors">🔥 Worst *possible* timing 😳</button>
+                                    <button type="button" onclick="setHookPreset('this gotta be *scripted* 💀')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">💀 this gotta be *scripted*</button>
                                     <button type="button" onclick="setHookPreset('WAIT TILL THE END 😱')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">😱 WAIT TILL THE END</button>
                                     <button type="button" onclick="setHookPreset('BRO DID NOT EXPECT THIS 💀')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">💀 BRO DID NOT EXPECT THIS</button>
                                     <button type="button" onclick="setHookPreset('THIS ACTUALLY HAPPENED 🚨')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">🚨 THIS ACTUALLY HAPPENED</button>
                                     <button type="button" onclick="setHookPreset('HE CANNOT BE SERIOUS 😭')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">😭 HE CANNOT BE SERIOUS</button>
                                     <button type="button" onclick="setHookPreset('1 IN A MILLION MOMENT 🔥')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">🔥 1 IN A MILLION MOMENT</button>
-                                    <button type="button" onclick="setHookPreset('DO NOT BLINK AT THE END 👀')" class="px-2.5 py-1 rounded-lg bg-brand-bg hover:bg-brand-surface border border-brand-border hover:border-amber-500/50 text-[11px] text-zinc-300 hover:text-amber-300 transition-colors">👀 DO NOT BLINK</button>
                                 </div>
                             </div>
 
@@ -1293,7 +1302,15 @@
                                 <!-- Style Preset -->
                                 <div>
                                     <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Visual Theme / Badge Style</label>
-                                    <div class="grid grid-cols-2 gap-1.5">
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                        <button type="button" onclick="setHookStyle('floating_yellow')" id="hook-style-floating_yellow" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-yellow-400 block">🎮 OhnePixel Seam</span>
+                                            <span class="text-[9px] text-zinc-400 block">Floating White + Gold</span>
+                                        </button>
+                                        <button type="button" onclick="setHookStyle('reddit_card')" id="hook-style-reddit_card" class="p-2 rounded-xl border border-brand-border bg-brand-bg text-left hover:border-zinc-500 transition-all">
+                                            <span class="text-[11px] font-bold text-orange-400 block">📱 Reddit Post</span>
+                                            <span class="text-[9px] text-zinc-400 block">Dark Reaction Card</span>
+                                        </button>
                                         <button type="button" onclick="setHookStyle('yellow_badge')" id="hook-style-yellow_badge" class="p-2 rounded-xl border border-amber-500 bg-amber-500/10 text-left transition-all">
                                             <span class="text-[11px] font-bold text-amber-300 block">⭐ Hormozi Gold</span>
                                             <span class="text-[9px] text-zinc-400 block">Black + Gold Pop</span>
@@ -2264,7 +2281,8 @@
             crops: {
                 gx: 260, gy: 80, gw: 1400, gh: 920,
                 cx: 1380, cy: 680, cw: 520, ch: 380,
-                origW: 1920, origH: 1080
+                origW: 1920, origH: 1080,
+                stack_mode: 'standard'
             },
             subtitles: {
                 enabled: true,
@@ -2277,11 +2295,11 @@
             },
             hook: {
                 enabled: true,
-                text: 'WAIT TILL THE END 😱',
-                style: 'yellow_badge',
+                text: 'Worst *possible* timing 😳',
+                style: 'floating_yellow',
                 duration: 3.5,
-                position: 'top',
-                y: 130
+                position: 'center',
+                y: 880
             },
             outroPath: null,
             outroFilename: null,
@@ -2291,6 +2309,16 @@
 
         // Layout Presets Definition (Universal: Gaming, IRL, Podcasts, Casino, Ambient)
         const PRESETS = {
+            reaction_cam_top: {
+                gp: { x: 0, y: 0, w: 1920, h: 1080 },
+                fc: { x: 1300, y: 350, w: 620, h: 730 },
+                stack_mode: 'cam_top'
+            },
+            reddit_reaction: {
+                gp: { x: 0, y: 0, w: 1920, h: 1080 },
+                fc: { x: 1300, y: 350, w: 620, h: 730 },
+                stack_mode: 'cam_top'
+            },
             gaming_fps: {
                 gp: { x: 160, y: 0, w: 1600, h: 900 },
                 fc: { x: 1440, y: 720, w: 480, h: 360 }
@@ -4598,42 +4626,78 @@
                 const normX = nw / origW;
                 const normY = nh / origH;
 
-                // 2. Draw Top Gameplay (Slot Reel)
-                const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
-                const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
-                const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
-                const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+                const isCamTop = (appState.crops.stack_mode === 'cam_top');
 
-                const gpScale = Math.min(cw / src_gw, (ch * 0.55) / src_gh);
-                const gpW = Math.round(src_gw * gpScale);
-                const gpH = Math.round(src_gh * gpScale);
-                const gpX = Math.round((cw - gpW) / 2);
-                const gpY = 0;
+                if (isCamTop) {
+                    // OhnePixel Reaction Mode: Top Facecam + Bottom Gameplay
+                    const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
+                    const src_cy = Math.max(0, Math.min(nh - 4, cam_y * normY));
+                    const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
+                    const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
 
-                if (src_gw > 4 && src_gh > 4) {
-                    ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
-                    // Neon green bottom border
-                    ctx.fillStyle = '#00ff55';
-                    ctx.fillRect(0, gpY + gpH, cw, 3);
-                }
+                    const camScale = Math.min(cw / src_cw, (ch * 0.46) / src_ch);
+                    const cW = Math.round(src_cw * camScale);
+                    const cH = Math.round(src_ch * camScale);
+                    const cX = Math.round((cw - cW) / 2);
+                    const cY = 0;
 
-                // 3. Draw Bottom Facecam (Streamer)
-                const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
-                const src_cy = Math.max(0, Math.min(nh - 4, cam_y * normY));
-                const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
-                const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
+                    if (src_cw > 4 && src_ch > 4) {
+                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                        ctx.fillStyle = '#ff00b4';
+                        ctx.fillRect(0, cY + cH, cw, 2);
+                    }
 
-                const camScale = Math.min(cw / src_cw, (ch * 0.40) / src_ch);
-                const cW = Math.round(src_cw * camScale);
-                const cH = Math.round(src_ch * camScale);
-                const cX = Math.round((cw - cW) / 2);
-                const cY = Math.round(ch - cH);
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
 
-                if (src_cw > 4 && src_cw > 4) {
-                    ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
-                    // Neon magenta top border
-                    ctx.fillStyle = '#ff00b4';
-                    ctx.fillRect(0, cY, cw, 3);
+                    const gpScale = Math.min(cw / src_gw, (ch * 0.58) / src_gh);
+                    const gpW = Math.round(src_gw * gpScale);
+                    const gpH = Math.round(src_gh * gpScale);
+                    const gpX = Math.round((cw - gpW) / 2);
+                    const gpY = Math.round(ch - gpH);
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                        ctx.fillStyle = '#00ff55';
+                        ctx.fillRect(0, gpY, cw, 2);
+                    }
+                } else {
+                    // Standard: Top Gameplay + Bottom Facecam
+                    const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
+                    const src_gy = Math.max(0, Math.min(nh - 4, gy * normY));
+                    const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
+                    const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
+
+                    const gpScale = Math.min(cw / src_gw, (ch * 0.55) / src_gh);
+                    const gpW = Math.round(src_gw * gpScale);
+                    const gpH = Math.round(src_gh * gpScale);
+                    const gpX = Math.round((cw - gpW) / 2);
+                    const gpY = 0;
+
+                    if (src_gw > 4 && src_gh > 4) {
+                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                        ctx.fillStyle = '#00ff55';
+                        ctx.fillRect(0, gpY + gpH, cw, 3);
+                    }
+
+                    const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
+                    const src_cy = Math.max(0, Math.min(nh - 4, cam_y * normY));
+                    const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
+                    const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
+
+                    const camScale = Math.min(cw / src_cw, (ch * 0.40) / src_ch);
+                    const cW = Math.round(src_cw * camScale);
+                    const cH = Math.round(src_ch * camScale);
+                    const cX = Math.round((cw - cW) / 2);
+                    const cY = Math.round(ch - cH);
+
+                    if (src_cw > 4 && src_ch > 4) {
+                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                        ctx.fillStyle = '#ff00b4';
+                        ctx.fillRect(0, cY, cw, 3);
+                    }
                 }
 
                 // 4. Draw Active Cover & Promo Overlays (Scaled to 360x640 canvas from 1080x1920)
@@ -4780,6 +4844,116 @@
                     const cardH = 54;
                     const cardX = Math.round((cw - cardW) / 2);
                     const radius = 10;
+
+                    if (style === 'floating_yellow' || style === 'ohnepixel_seam') {
+                        // Style: OhnePixel Floating White + Yellow Accent Headline
+                        const tokens = hookText.split(/\s+/).map(t => {
+                            if (t.startsWith('*') && t.endsWith('*') && t.length > 2) {
+                                return { text: t.slice(1, -1), highlight: true };
+                            }
+                            return { text: t, highlight: false };
+                        });
+                        const hasHl = tokens.some(t => t.highlight);
+                        if (!hasHl && tokens.length >= 2) {
+                            let hlIdx = 1;
+                            tokens.forEach((t, i) => { if (t.text.length >= 6) hlIdx = i; });
+                            tokens[hlIdx].highlight = true;
+                        }
+
+                        let fontPx = 17;
+                        ctx.font = `900 ${fontPx}px "Arial Black", Impact, sans-serif`;
+                        let spaceW = ctx.measureText(' ').width;
+                        let tokenWidths = tokens.map(t => ctx.measureText(t.text).width);
+                        let totalW = tokenWidths.reduce((a, b) => a + b, 0) + (spaceW * (tokens.length - 1));
+
+                        while (totalW > (cw - 24) && fontPx > 11) {
+                            fontPx -= 1;
+                            ctx.font = `900 ${fontPx}px "Arial Black", Impact, sans-serif`;
+                            spaceW = ctx.measureText(' ').width;
+                            tokenWidths = tokens.map(t => ctx.measureText(t.text).width);
+                            totalW = tokenWidths.reduce((a, b) => a + b, 0) + (spaceW * (tokens.length - 1));
+                        }
+
+                        let curX = (cw - totalW) / 2;
+                        const textY = (pos === 'center') ? 292 : hookY;
+
+                        tokens.forEach((t, i) => {
+                            const tw = tokenWidths[i];
+                            const midX = curX + tw / 2;
+
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                            ctx.shadowBlur = 8;
+                            ctx.shadowOffsetY = 2;
+
+                            ctx.strokeStyle = '#000000';
+                            ctx.lineWidth = 4.5;
+                            ctx.lineJoin = 'round';
+                            ctx.strokeText(t.text, midX, textY);
+
+                            ctx.fillStyle = t.highlight ? '#fde047' : '#ffffff';
+                            ctx.fillText(t.text, midX, textY);
+
+                            curX += tw + spaceW;
+                        });
+
+                        ctx.restore();
+                        return;
+                    } else if (style === 'reddit_card') {
+                        // Reddit Reaction Dark Mode Post Card
+                        const rCardH = 74;
+                        const rCardY = (pos === 'center') ? 260 : hookY;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(cardX, rCardY, cardW, rCardH, 8);
+                        else ctx.rect(cardX, rCardY, cardW, rCardH);
+                        ctx.fillStyle = 'rgba(26, 26, 27, 0.95)';
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(52, 53, 54, 0.9)';
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        // Reddit Orange Logo Circle
+                        ctx.beginPath();
+                        ctx.arc(cardX + 16, rCardY + 16, 7, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ff4500';
+                        ctx.fill();
+
+                        // Subreddit & author
+                        ctx.fillStyle = 'rgb(129, 131, 132)';
+                        ctx.font = 'bold 8px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.fillText('r/GlobalOffensive • 14h ago', cardX + 28, rCardY + 18);
+
+                        // Post Title
+                        ctx.fillStyle = '#d7dadc';
+                        ctx.font = 'bold 11px sans-serif';
+                        const cleanT = hookText.replace(/\*/g, '');
+                        ctx.fillText(cleanT.length > 36 ? cleanT.slice(0, 34) + '...' : cleanT, cardX + 12, rCardY + 38);
+
+                        // Flair Badge
+                        ctx.beginPath();
+                        const flairW = 46;
+                        if (ctx.roundRect) ctx.roundRect(cardX + cardW - flairW - 10, rCardY + 28, flairW, 14, 4);
+                        else ctx.rect(cardX + cardW - flairW - 10, rCardY + 28, flairW, 14);
+                        ctx.fillStyle = '#0079d3';
+                        ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 7.5px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Gameplay', cardX + cardW - flairW - 10 + flairW / 2, rCardY + 38);
+
+                        // Bottom Pills
+                        ctx.fillStyle = '#272729';
+                        if (ctx.roundRect) ctx.roundRect(cardX + 12, rCardY + 48, 52, 16, 6);
+                        else ctx.rect(cardX + 12, rCardY + 48, 52, 16);
+                        ctx.fill();
+                        ctx.fillStyle = 'rgb(129, 131, 132)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('▲ 14.2k ▼', cardX + 38, rCardY + 59);
+
+                        ctx.restore();
+                        return;
+                    }
 
                     // Style configs
                     let bgGradStart, bgGradEnd, borderColor, tagBg, tagText, tagColor, mainTextColor, mainStrokeColor;
@@ -5164,13 +5338,46 @@
             appState.crops.gw = p.gp.w; appState.crops.gh = p.gp.h;
             appState.crops.cx = p.fc.x; appState.crops.cy = p.fc.y;
             appState.crops.cw = p.fc.w; appState.crops.ch = p.fc.h;
+            appState.crops.stack_mode = p.stack_mode || 'standard';
 
             const ps = document.getElementById('presetSelect');
             if (ps && ps.value !== presetKey) ps.value = presetKey;
 
+            syncCamStackButton();
             syncBoxStylesFromState();
+            updatePhoneCanvas();
             saveSession();
             showToast('Applied layout preset: ' + presetKey);
+        }
+
+        function toggleCamStackMode() {
+            if (!appState.crops) return;
+            const current = appState.crops.stack_mode || 'standard';
+            appState.crops.stack_mode = (current === 'cam_top') ? 'standard' : 'cam_top';
+            syncCamStackButton();
+            updatePhoneCanvas();
+            saveSession();
+            if (appState.crops.stack_mode === 'cam_top') {
+                showToast('Reaction Mode: Streamer Cam on TOP, Game on BOTTOM 🔥', 'info');
+            } else {
+                showToast('Standard Mode: Game on TOP, Streamer Cam on BOTTOM', 'info');
+            }
+        }
+
+        function syncCamStackButton() {
+            const btn = document.getElementById('btn-toggle-cam-stack');
+            const lbl = document.getElementById('lbl-cam-stack-mode');
+            const isCamTop = (appState.crops && appState.crops.stack_mode === 'cam_top');
+            if (lbl) {
+                lbl.innerText = isCamTop ? '🔥 Cam on Top (Reaction Mode)' : '⇅ Cam on Bottom (Standard)';
+            }
+            if (btn) {
+                if (isCamTop) {
+                    btn.className = 'px-2.5 py-1 text-xs rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-sm transition-all flex items-center gap-1.5 font-bold';
+                } else {
+                    btn.className = 'px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-indigo-400 hover:text-white border border-brand-border transition-all flex items-center gap-1.5 font-medium';
+                }
+            }
         }
 
         // Snap Camera to Corner
@@ -5411,7 +5618,7 @@
             if (!appState.hook) appState.hook = {};
             appState.hook.style = styleId;
 
-            ['yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+            ['floating_yellow', 'reddit_card', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
                 const btn = document.getElementById(`hook-style-${s}`);
                 if (!btn) return;
                 if (s === styleId) {
@@ -5543,7 +5750,7 @@
 
             // Styles
             const activeStyle = hook.style || 'yellow_badge';
-            ['yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
+            ['floating_yellow', 'reddit_card', 'yellow_badge', 'red_alert', 'tiktok_white', 'cyber_cyan'].forEach(s => {
                 const btn = document.getElementById(`hook-style-${s}`);
                 if (!btn) return;
                 if (s === activeStyle) {

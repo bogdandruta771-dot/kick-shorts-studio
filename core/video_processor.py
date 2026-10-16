@@ -151,8 +151,10 @@ class VideoProcessor:
         self,
         input_video_path: Path,
         output_video_path: Path,
-        gameplay_crop: Dict[str, int],
-        facecam_crop: Dict[str, int],
+        gameplay_crop: Optional[Dict[str, Any]] = None,
+        facecam_crop: Optional[Dict[str, Any]] = None,
+        crops: Optional[Dict[str, Any]] = None,
+        stack_mode: Optional[str] = None,
         enable_subtitles: bool = True,
         subtitle_options: Optional[Dict[str, Any]] = None,
         outro_video_path: Optional[Path] = None,
@@ -163,13 +165,14 @@ class VideoProcessor:
         hook_text: Optional[str] = None,
         hook_options: Optional[Dict[str, Any]] = None,
         progress_cb: Optional[Callable[[float, str], None]] = None,
+        **kwargs,
     ) -> Path:
         """
         Executes the full pipeline:
         1. Validates input
         2. Applies trim cut if trim_start/trim_end specified
         3. Transcribes & generates karaoke ASS subtitles
-        4. Stacks gameplay (top) + cam (bottom) over blurred background mirror
+        4. Stacks gameplay and cam (OhnePixel top cam OR standard top gameplay) over blurred background mirror
         5. Burns subtitles (if speech exists and enabled)
         6. Normalizes and appends outro (if provided)
         """
@@ -179,6 +182,35 @@ class VideoProcessor:
         meta = validate_media_file(input_video_path)
         src_w = meta["width"]
         src_h = meta["height"]
+
+        if crops and not gameplay_crop:
+            gameplay_crop = {
+                "x": int(float(crops.get("gx", crops.get("gameplay", {}).get("x", 0)))),
+                "y": int(float(crops.get("gy", crops.get("gameplay", {}).get("y", 0)))),
+                "w": int(float(crops.get("gw", crops.get("gameplay", {}).get("width", crops.get("gameplay", {}).get("w", src_w))))),
+                "h": int(float(crops.get("gh", crops.get("gameplay", {}).get("height", crops.get("gameplay", {}).get("h", src_h))))),
+            }
+        if crops and not facecam_crop:
+            facecam_crop = {
+                "x": int(float(crops.get("cx", crops.get("camera", {}).get("x", 0)))),
+                "y": int(float(crops.get("cy", crops.get("camera", {}).get("y", 0)))),
+                "w": int(float(crops.get("cw", crops.get("camera", {}).get("width", crops.get("camera", {}).get("w", 540))))),
+                "h": int(float(crops.get("ch", crops.get("camera", {}).get("height", crops.get("camera", {}).get("h", 400))))),
+            }
+
+        gameplay_crop = gameplay_crop or {}
+        facecam_crop = facecam_crop or {}
+
+        # Resolve stack_mode (Top Cam vs Top Gameplay)
+        if stack_mode is None:
+            if crops and isinstance(crops, dict) and "stack_mode" in crops:
+                stack_mode = str(crops["stack_mode"])
+            elif isinstance(gameplay_crop, dict) and "stack_mode" in gameplay_crop:
+                stack_mode = str(gameplay_crop["stack_mode"])
+            elif isinstance(facecam_crop, dict) and "stack_mode" in facecam_crop:
+                stack_mode = str(facecam_crop["stack_mode"])
+            else:
+                stack_mode = "standard"
 
         # Clamp crop coordinates to source dimensions
         gx = max(0, min(gameplay_crop.get("x", 0), src_w - 2))
@@ -263,41 +295,48 @@ class VideoProcessor:
                         progress_cb(0.50, f"Subtitle notice: {exc}; continuing without subtitles...")
 
             # Stage B: Construct Layout Stacking Filter Complex
+            stack_mode_str = str(stack_mode).lower()
+            is_cam_top = stack_mode_str in ("cam_top", "inverted", "reaction_top", "ohnepixel")
+
             if progress_cb:
-                progress_cb(0.65, "Composing 9:16 layout (Top Gameplay + Bottom Cam)...")
+                if is_cam_top:
+                    progress_cb(0.65, "Composing 9:16 layout (OhnePixel Reaction: Top Cam + Bottom Gameplay)...")
+                else:
+                    progress_cb(0.65, "Composing 9:16 layout (Top Gameplay + Bottom Cam)...")
 
             # Output intermediate short (before outro, or directly to output if no outro)
             primary_short_path = (
                 temp_mgr.get_path("_main_short.mp4") if outro_video_path else output_video_path
             )
 
-            # Gameplay scales to 1080 width, maintaining its aspect ratio
-            # Cam scales to 1080 width, maintaining its aspect ratio
-            # Blurred background mirror fills 1080x1920
             filter_chains = []
 
             # Background stream - optimized low-res proxy ambient blur (downscale -> light blur -> upscale)
-            # Consumes >95% less CPU than full-res boxblur while rendering smoother bokeh background
             filter_chains.append(
                 f"[0:v]scale=180:320:force_original_aspect_ratio=increase,crop=180:320,"
                 f"boxblur=4:1,scale={TARGET_WIDTH}:{TARGET_HEIGHT}:flags=fast_bilinear,setsar=1,fps={DEFAULT_FPS}[bg]"
             )
 
-            # Cropped Gameplay (Top) - max height 1100, centered horizontally
-            filter_chains.append(
-                f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1100:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
-            )
-
-            # Cropped Facecam (Bottom) - max height 780, centered horizontally
-            filter_chains.append(
-                f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:780:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
-            )
-
-            # Overlay gameplay on top (x=(W-w)/2, y=0)
-            filter_chains.append("[bg][gp]overlay=(W-w)/2:0[layer1]")
-
-            # Overlay facecam on bottom (x=(W-w)/2, y=H-h)
-            filter_chains.append("[layer1][fc]overlay=(W-w)/2:H-h[v_composed]")
+            if is_cam_top:
+                # OhnePixel Reaction Style: Facecam on TOP (max height 900), Gameplay on BOTTOM (max height 1180)
+                filter_chains.append(
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:900:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
+                )
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1180:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                )
+                filter_chains.append("[bg][fc]overlay=(W-w)/2:0[layer1]")
+                filter_chains.append("[layer1][gp]overlay=(W-w)/2:H-h[v_composed]")
+            else:
+                # Standard Split: Gameplay on TOP (max height 1100), Facecam on BOTTOM (max height 780)
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1100:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                )
+                filter_chains.append(
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:780:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
+                )
+                filter_chains.append("[bg][gp]overlay=(W-w)/2:0[layer1]")
+                filter_chains.append("[layer1][fc]overlay=(W-w)/2:H-h[v_composed]")
 
             # Collect valid image overlays (to cover casino header, chat goal, promo code banner, etc.)
             valid_overlays = []

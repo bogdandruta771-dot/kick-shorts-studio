@@ -98,16 +98,42 @@ CROP_PRESETS: Dict[str, Dict[str, Any]] = {
         "facecam": {"x": 1360, "y": 680, "w": 540, "h": 380},
     },
 
-    # --- 📱 Ambient & Custom ---
+    # --- 📱 Ambient, PiP & Modern Viral Layouts ---
+    "pip_corner_cam": {
+        "label": "📌 Picture-in-Picture: Full 9:16 Action + Floating Corner Cam",
+        "gameplay": {"x": 420, "y": 0, "w": 1080, "h": 1080},
+        "facecam": {"x": 1380, "y": 680, "w": 520, "h": 400},
+        "stack_mode": "pip_corner",
+    },
+    "triple_stack": {
+        "label": "📊 Triple Stack: Top Cam + Middle Gameplay + Bottom Focus/Chat",
+        "gameplay": {"x": 0, "y": 0, "w": 1920, "h": 1080},
+        "facecam": {"x": 1380, "y": 680, "w": 520, "h": 400},
+        "stack_mode": "triple_stack",
+    },
+    "cinema_letterbox": {
+        "label": "🎬 Cinematic 16:9 Letterbox (Centered with Top & Bottom Ambient Blur)",
+        "gameplay": {"x": 0, "y": 0, "w": 1920, "h": 1080},
+        "facecam": {"x": 0, "y": 0, "w": 1920, "h": 1080},
+        "stack_mode": "cinema_centered",
+    },
+    "full_bleed_9_16": {
+        "label": "📱 Full 9:16 Vertical Immersion (Direct Center Action / No Cam)",
+        "gameplay": {"x": 420, "y": 0, "w": 608, "h": 1080},
+        "facecam": {"x": 0, "y": 0, "w": 0, "h": 0},
+        "stack_mode": "full_screen_9_16",
+    },
     "ambient_blur_16_9": {
         "label": "📱 Full 16:9 Ambient: Center Fit with Blurred Dynamic Fill",
         "gameplay": {"x": 0, "y": 0, "w": 1920, "h": 1080},
         "facecam": {"x": 0, "y": 0, "w": 1920, "h": 1080},
+        "stack_mode": "standard",
     },
     "custom": {
         "label": "✏️ Custom / Manual Coordinates",
         "gameplay": {"x": 260, "y": 80, "w": 1400, "h": 920},
         "facecam": {"x": 1380, "y": 680, "w": 520, "h": 380},
+        "stack_mode": "standard",
     },
 }
 

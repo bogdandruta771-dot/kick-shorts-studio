@@ -301,6 +301,14 @@ class VideoProcessor:
             if progress_cb:
                 if is_cam_top:
                     progress_cb(0.65, "Composing 9:16 layout (OhnePixel Reaction: Top Cam + Bottom Gameplay)...")
+                elif stack_mode_str in ("pip_top_right", "pip_corner", "pip"):
+                    progress_cb(0.65, "Composing 9:16 layout (Picture-in-Picture: Full Gameplay + Floating Cam)...")
+                elif stack_mode_str in ("triple_stack", "triple"):
+                    progress_cb(0.65, "Composing 9:16 layout (Triple Stack: Top Cam + Mid Game + Bottom Chat)...")
+                elif stack_mode_str in ("cinema_centered", "cinema_letterbox", "cinema"):
+                    progress_cb(0.65, "Composing 9:16 layout (Cinema 16:9 Letterbox)...")
+                elif stack_mode_str in ("full_screen_9_16", "immersion", "full_bleed"):
+                    progress_cb(0.65, "Composing 9:16 layout (Full 9:16 Vertical Immersion)...")
                 else:
                     progress_cb(0.65, "Composing 9:16 layout (Top Gameplay + Bottom Cam)...")
 
@@ -327,6 +335,40 @@ class VideoProcessor:
                 )
                 filter_chains.append("[bg][fc]overlay=(W-w)/2:0[layer1]")
                 filter_chains.append("[layer1][gp]overlay=(W-w)/2:H-h[v_composed]")
+            elif stack_mode_str in ("pip_top_right", "pip_corner", "pip"):
+                # Picture-in-Picture: 9:16 Gameplay centered + Floating Facecam in top-right
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                )
+                filter_chains.append(
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale=400:320:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc_raw]"
+                )
+                filter_chains.append(
+                    f"[fc_raw]drawbox=x=0:y=0:w=iw:h=ih:color=white@0.85:t=3[fc]"
+                )
+                filter_chains.append("[bg][gp]overlay=(W-w)/2:(H-h)/2[layer1]")
+                filter_chains.append("[layer1][fc]overlay=W-w-36:70[v_composed]")
+            elif stack_mode_str in ("triple_stack", "triple"):
+                # Triple Stack: Top Facecam (560px), Middle Gameplay (880px), Bottom Ambient/Chat
+                filter_chains.append(
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:560:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
+                )
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:880:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                )
+                filter_chains.append("[bg][fc]overlay=(W-w)/2:0[layer1]")
+                filter_chains.append("[layer1][gp]overlay=(W-w)/2:580[v_composed]")
+            elif stack_mode_str in ("cinema_centered", "cinema_letterbox", "cinema"):
+                # Cinema Letterbox: 16:9 Gameplay Centered with ambient blurred bars top & bottom
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1920:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                )
+                filter_chains.append("[bg][gp]overlay=(W-w)/2:(H-h)/2[v_composed]")
+            elif stack_mode_str in ("full_screen_9_16", "immersion", "full_bleed"):
+                # Full 9:16 Direct Vertical Immersion Crop (No cam split)
+                filter_chains.append(
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{TARGET_HEIGHT},setsar=1,fps={DEFAULT_FPS}[v_composed]"
+                )
             else:
                 # Standard Split: Gameplay on TOP (max height 1100), Facecam on BOTTOM (max height 780)
                 filter_chains.append(

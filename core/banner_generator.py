@@ -316,6 +316,172 @@ def generate_hook_banner(
         img.save(str(output_path), format="PNG")
         return output_path
 
+    elif style in ("twitter_x_card", "x_card", "tweet"):
+        # Style: Authentic Twitter / X Dark Mode Tweet Post Card
+        card_h = min(height, 220)
+        img = Image.new("RGBA", (width, card_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Card container
+        draw.rounded_rectangle(
+            [(4, 4), (width - 4, card_h - 4)],
+            radius=16,
+            fill=(15, 20, 25, 245),
+            outline=(47, 51, 54, 255),
+            width=2,
+        )
+
+        # Avatar circle (X Blue)
+        draw.ellipse([(24, 18), (56, 50)], fill=(29, 155, 240, 255))
+        font_av = _get_font(20, bold=True) or ImageFont.load_default()
+        draw.text((40, 34), "S", font=font_av, fill=(255, 255, 255, 255), anchor="mm")
+
+        # Name, verified badge, handle
+        font_name = _get_font(20, bold=True) or ImageFont.load_default()
+        draw.text((66, 20), "Streamer Highlights", font=font_name, fill=(231, 233, 234, 255))
+
+        # Verified Checkmark badge circle
+        draw.ellipse([(268, 22), (284, 38)], fill=(29, 155, 240, 255))
+        font_chk = _get_font(12, bold=True) or ImageFont.load_default()
+        draw.text((276, 30), "✓", font=font_chk, fill=(255, 255, 255, 255), anchor="mm")
+
+        font_handle = _get_font(16, bold=False) or ImageFont.load_default()
+        draw.text((294, 22), "@streamer • 2h", font=font_handle, fill=(113, 118, 123, 255))
+
+        # Top Right 𝕏 logo
+        font_x = _get_font(22, bold=True) or ImageFont.load_default()
+        draw.text((width - 36, 22), "𝕏", font=font_x, fill=(231, 233, 234, 255), anchor="mm")
+
+        # Tweet main text
+        post_title = clean_text.replace("*", "")
+        font_tweet = _get_font(28, bold=True) if len(post_title) < 40 else (_get_font(24, bold=True) or ImageFont.load_default())
+        draw.text(
+            (24, 68),
+            post_title,
+            font=font_tweet,
+            fill=(245, 245, 247, 255),
+        )
+
+        # Tweet engagement stats bar
+        font_stats = _get_font(16, bold=False) or ImageFont.load_default()
+        draw.text((28, card_h - 32), "💬 1.4K", font=font_stats, fill=(113, 118, 123, 255))
+        draw.text((160, card_h - 32), "🔁 18.2K", font=font_stats, fill=(113, 118, 123, 255))
+        draw.text((310, card_h - 32), "❤️ 84.9K", font=font_stats, fill=(249, 24, 128, 255))
+        draw.text((470, card_h - 32), "📊 1.2M", font=font_stats, fill=(113, 118, 123, 255))
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
+    elif style in ("tiktok_comment", "comment_bubble"):
+        # Style: Authentic TikTok / Reels Reply Comment Bubble
+        card_h = min(height, 180)
+        img = Image.new("RGBA", (width, card_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Bubble container
+        draw.rounded_rectangle(
+            [(6, 6), (width - 6, card_h - 16)],
+            radius=18,
+            fill=(24, 26, 32, 248),
+            outline=(44, 48, 58, 255),
+            width=2,
+        )
+
+        # Speech bubble pointer (notch at bottom-left)
+        draw.polygon([(40, card_h - 16), (65, card_h - 16), (40, card_h - 2)], fill=(24, 26, 32, 248))
+        draw.line([(40, card_h - 16), (40, card_h - 2), (65, card_h - 16)], fill=(44, 48, 58, 255), width=2)
+
+        # Avatar circle
+        draw.ellipse([(24, 20), (56, 52)], fill=(254, 44, 85, 255))
+        font_av = _get_font(18, bold=True) or ImageFont.load_default()
+        draw.text((40, 36), "👤", font=font_av, fill=(255, 255, 255, 255), anchor="mm")
+
+        # Replying to @user
+        font_sub = _get_font(16, bold=False) or ImageFont.load_default()
+        draw.text((68, 24), "Replying to @viewer_clip", font=font_sub, fill=(160, 162, 170, 255))
+
+        # Comment text
+        post_title = clean_text.replace("*", "")
+        font_cmt = _get_font(26, bold=True) if len(post_title) < 42 else (_get_font(22, bold=True) or ImageFont.load_default())
+        draw.text(
+            (68, 54),
+            post_title,
+            font=font_cmt,
+            fill=(255, 255, 255, 255),
+        )
+
+        # Heart on right
+        font_heart = _get_font(18, bold=True) or ImageFont.load_default()
+        draw.text((width - 55, 42), "❤️", font=font_heart, fill=(254, 44, 85, 255), anchor="mm")
+        font_hcnt = _get_font(14, bold=True) or ImageFont.load_default()
+        draw.text((width - 55, 66), "48.2k", font=font_hcnt, fill=(160, 162, 170, 255), anchor="mm")
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
+    elif style in ("mrbeast_impact", "impact_neon"):
+        # Style: High-octane MrBeast / Gaming Impact Typography
+        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Top pill: MUST WATCH / 1 IN A MILLION
+        font_pill = _get_font(18, bold=True) or ImageFont.load_default()
+        pill_txt = "🔥 NO WAY THIS HAPPENED 🔥"
+        bbox_p = draw.textbbox((0, 0), pill_txt, font=font_pill)
+        pw = (bbox_p[2] - bbox_p[0]) + 24
+        ph = (bbox_p[3] - bbox_p[1]) + 10
+        px = (width - pw) // 2
+        py = 8
+        draw.rounded_rectangle([(px, py), (px + pw, py + ph)], radius=10, fill=(10, 10, 15, 230), outline=(34, 197, 94, 255), width=2)
+        draw.text((px + pw // 2, py + ph // 2), pill_txt, font=font_pill, fill=(34, 197, 94, 255), anchor="mm")
+
+        # Main Impact Headline
+        post_title = clean_text.replace("*", "").upper()
+        font_size = 50 if len(post_title) < 22 else (40 if len(post_title) < 32 else 32)
+        font_imp = _get_font(font_size, bold=True) or ImageFont.load_default()
+
+        mid_y = py + ph + (height - (py + ph)) // 2
+
+        # Shadow & Stroke
+        draw.text((width // 2 + 5, mid_y + 5), post_title, font=font_imp, fill=(0, 0, 0, 240), anchor="mm", stroke_width=8, stroke_fill=(0, 0, 0, 240))
+        draw.text((width // 2, mid_y), post_title, font=font_imp, fill=(34, 197, 94, 255), anchor="mm", stroke_width=6, stroke_fill=(0, 0, 0, 255))
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
+    elif style in ("breaking_news", "news_ticker"):
+        # Style: Broadcast TV Breaking News Alert Banner
+        card_h = min(height, 160)
+        img = Image.new("RGBA", (width, card_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Bottom container bar
+        draw.rectangle([(0, 36), (width, card_h - 4)], fill=(15, 23, 42, 245), outline=(220, 38, 38, 255), width=2)
+
+        # Gold accent line at bottom
+        draw.rectangle([(0, card_h - 8), (width, card_h - 4)], fill=(250, 204, 21, 255))
+
+        # Red "🔴 LIVE BREAKING NEWS" tab
+        draw.rectangle([(0, 4), (320, 40)], fill=(220, 38, 38, 255))
+        font_live = _get_font(18, bold=True) or ImageFont.load_default()
+        draw.text((160, 22), "🔴 LIVE BREAKING NEWS", font=font_live, fill=(255, 255, 255, 255), anchor="mm")
+
+        # Headline
+        post_title = clean_text.replace("*", "").upper()
+        font_head = _get_font(34, bold=True) if len(post_title) < 28 else (_get_font(26, bold=True) or ImageFont.load_default())
+        draw.text((width // 2, 78), post_title, font=font_head, fill=(255, 255, 255, 255), anchor="mm")
+
+        # Ticker sub-text
+        font_tick = _get_font(14, bold=False) or ImageFont.load_default()
+        draw.text((width // 2, 118), "▶ REPORTED MOMENTS AGO ON LIVE STREAM • VIRAL CLIP OF THE DAY", font=font_tick, fill=(203, 213, 225, 255), anchor="mm")
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        img.save(str(output_path), format="PNG")
+        return output_path
+
     styles = {
         "yellow_badge": {
             "bg": "#0c0f17",

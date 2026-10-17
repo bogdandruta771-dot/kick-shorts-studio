@@ -486,5 +486,41 @@ def test_dynamic_framing_video_processor_stack(tmp_path):
     assert res.stat().st_size > 1000
 
 
+def test_hook_banner_emoji_rendering(tmp_path):
+    """Verifies that hook banners render vivid full-color emojis without tofu or black blobs."""
+    import numpy as np
+    from PIL import Image
+    from core.banner_generator import generate_hook_banner
+
+    tested_styles = ["floating_yellow", "reddit_card", "twitter_x_card", "tiktok_comment", "yellow_badge"]
+    hook_with_emojis = "INSANE OPENING 🤯 🔥 💸"
+
+    for style in tested_styles:
+        banner_file = tmp_path / f"test_banner_{style}.png"
+        res = generate_hook_banner(
+            text=hook_with_emojis,
+            style=style,
+            width=960,
+            height=160,
+            output_path=banner_file,
+        )
+        assert res.is_file()
+        assert res.stat().st_size > 1000
+
+        # Load image and verify color emoji pixels are present
+        with Image.open(banner_file) as img:
+            arr = np.array(img.convert("RGBA"))
+            r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
+            # Detect pixels with saturation/color (r != g or g != b) and non-transparent
+            color_mask = (a > 100) & (
+                (np.abs(r.astype(int) - g.astype(int)) > 25)
+                | (np.abs(g.astype(int) - b.astype(int)) > 25)
+            )
+            colored_pixels = np.sum(color_mask)
+            # Standard missing-glyph boxes have 0 colored pixels, genuine emojis produce > 1000
+            assert colored_pixels > 1000, f"Style {style} failed to render color emoji pixels (found {colored_pixels})"
+
+
+
 
 

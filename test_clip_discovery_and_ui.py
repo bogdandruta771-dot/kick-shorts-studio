@@ -393,5 +393,98 @@ def test_ohnepixel_video_processor_stack_mode(tmp_path):
     assert res_pip.stat().st_size > 1000
 
 
+def test_framing_customizer_ui_and_handlers():
+    """Verifies that the framing toolbar controls, sliders, and JS functions exist in HTML."""
+    res_home = client.get("/")
+    assert res_home.status_code == 200
+    html = res_home.text
+
+    # Toolbar & Sliders
+    assert 'slider-split-ratio' in html
+    assert 'lbl-split-ratio' in html
+    assert 'slider-gap-size' in html
+    assert 'lbl-gap-size' in html
+
+    # Fill modes
+    assert 'btn-camfill-fill' in html
+    assert 'btn-camfill-fit' in html
+    assert 'btn-gamefill-fit' in html
+    assert 'btn-gamefill-fill' in html
+
+    # Divider line
+    assert 'btn-divcol-magenta' in html
+    assert 'btn-divcol-green' in html
+    assert 'btn-divcol-cyan' in html
+    assert 'btn-divcol-gold' in html
+    assert 'btn-divcol-none' in html
+
+    # Quick presets
+    assert 'btn-framing-preset-seamless' in html
+    assert 'btn-framing-preset-balanced' in html
+    assert 'btn-framing-preset-big_cam' in html
+    assert 'btn-framing-preset-ambient_gap' in html
+
+    # Hook fine-tune height
+    assert 'slider-hook-y' in html
+    assert 'lbl-hook-y' in html
+    assert 'onHookYChange' in html
+
+    # JS Handlers
+    assert 'function onFramingSplitChange(' in html
+    assert 'function onFramingGapChange(' in html
+    assert 'function setCamFillMode(' in html
+    assert 'function setGameFillMode(' in html
+    assert 'function setDividerColor(' in html
+    assert 'function setFramingQuickPreset(' in html
+    assert 'function syncFramingControlsFromState(' in html
+
+    # Phone canvas seam dragging interaction
+    assert 'phoneSeamDrag' in html
+    assert 'row-resize' in html
+
+
+def test_dynamic_framing_video_processor_stack(tmp_path):
+    """Verifies that VideoProcessor renders with custom split_ratio, gap_size, and divider line."""
+    import subprocess
+    from core.video_processor import VideoProcessor
+
+    sample_mp4 = tmp_path / "sample_framing_src.mp4"
+    out_framing = tmp_path / "out_dynamic_framing.mp4"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-f", "lavfi",
+        "-i", "testsrc=size=1280x720:rate=24",
+        "-t", "1.0",
+        "-pix_fmt", "yuv420p",
+        str(sample_mp4)
+    ]
+    sub = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert sub.returncode == 0
+    assert sample_mp4.exists()
+
+    vp = VideoProcessor()
+    crops_custom = {
+        "gameplay": {"x": 0, "y": 0, "width": 1280, "height": 720},
+        "camera": {"x": 100, "y": 50, "width": 300, "height": 300},
+        "stack_mode": "cam_top",
+        "split_ratio": 0.45,
+        "gap_size": 0,
+        "cam_fill_mode": "fill",
+        "game_fill_mode": "fit",
+        "divider_color": "#ff00b4",
+        "divider_thickness": 2
+    }
+
+    res = vp.process_short(
+        input_video_path=sample_mp4,
+        output_video_path=out_framing,
+        crops=crops_custom,
+        generate_subtitles=False
+    )
+    assert res.is_file()
+    assert res.stat().st_size > 1000
+
+
 
 

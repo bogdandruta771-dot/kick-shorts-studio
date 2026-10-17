@@ -325,16 +325,44 @@ class VideoProcessor:
                 f"boxblur=4:1,scale={TARGET_WIDTH}:{TARGET_HEIGHT}:flags=fast_bilinear,setsar=1,fps={DEFAULT_FPS}[bg]"
             )
 
+            split_ratio = float(crops.get("split_ratio", 0.45) if crops.get("split_ratio") is not None else 0.45)
+            split_ratio = max(0.20, min(0.80, split_ratio))
+            gap_size = int(float(crops.get("gap_size", 0) if crops.get("gap_size") is not None else 0))
+            gap_size = max(0, min(300, gap_size))
+            cam_fill = str(crops.get("cam_fill_mode", "fill") or "fill").lower() == "fill"
+            game_fill = str(crops.get("game_fill_mode", "fit") or "fit").lower() == "fill"
+            divider_color = str(crops.get("divider_color", "#ff00b4") or "#ff00b4")
+            divider_thickness = int(float(crops.get("divider_thickness", 2) if crops.get("divider_thickness") is not None else 2))
+
+            top_target_h = int(TARGET_HEIGHT * split_ratio) - (gap_size // 2)
+            bottom_zone_y = top_target_h + gap_size
+            bottom_target_h = TARGET_HEIGHT - bottom_zone_y
+
             if is_cam_top:
-                # OhnePixel Reaction Style: Facecam on TOP (max height 900), Gameplay on BOTTOM (max height 1180)
+                # OhnePixel Reaction Style: Facecam on TOP, Gameplay on BOTTOM
+                if cam_fill:
+                    fc_filter = f"scale={TARGET_WIDTH}:{top_target_h}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{top_target_h}"
+                else:
+                    fc_filter = f"scale={TARGET_WIDTH}:{top_target_h}:force_original_aspect_ratio=decrease"
+
+                if game_fill:
+                    gp_filter = f"scale={TARGET_WIDTH}:{bottom_target_h}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{bottom_target_h}"
+                else:
+                    gp_filter = f"scale={TARGET_WIDTH}:{bottom_target_h}:force_original_aspect_ratio=decrease"
+
                 filter_chains.append(
-                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:900:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},{fc_filter},setsar=1,fps={DEFAULT_FPS}[fc]"
                 )
                 filter_chains.append(
-                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1180:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},{gp_filter},setsar=1,fps={DEFAULT_FPS}[gp]"
                 )
                 filter_chains.append("[bg][fc]overlay=(W-w)/2:0[layer1]")
-                filter_chains.append("[layer1][gp]overlay=(W-w)/2:H-h[v_composed]")
+                filter_chains.append(f"[layer1][gp]overlay=(W-w)/2:{bottom_zone_y}[layer2]")
+                if divider_thickness > 0 and divider_color not in ("none", "transparent"):
+                    filter_chains.append(f"[layer2]drawbox=x=0:y={top_target_h}:w=iw:h={divider_thickness}:color={divider_color}@0.95:t=fill[v_composed]")
+                else:
+                    filter_chains.append("[layer2]copy[v_composed]")
+
             elif stack_mode_str in ("pip_top_right", "pip_corner", "pip"):
                 # Picture-in-Picture: 9:16 Gameplay centered + Floating Facecam in top-right
                 filter_chains.append(
@@ -370,15 +398,29 @@ class VideoProcessor:
                     f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:{TARGET_HEIGHT}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{TARGET_HEIGHT},setsar=1,fps={DEFAULT_FPS}[v_composed]"
                 )
             else:
-                # Standard Split: Gameplay on TOP (max height 1100), Facecam on BOTTOM (max height 780)
+                # Standard Split: Gameplay on TOP, Facecam on BOTTOM
+                if game_fill:
+                    gp_filter = f"scale={TARGET_WIDTH}:{top_target_h}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{top_target_h}"
+                else:
+                    gp_filter = f"scale={TARGET_WIDTH}:{top_target_h}:force_original_aspect_ratio=decrease"
+
+                if cam_fill:
+                    fc_filter = f"scale={TARGET_WIDTH}:{bottom_target_h}:force_original_aspect_ratio=increase,crop={TARGET_WIDTH}:{bottom_target_h}"
+                else:
+                    fc_filter = f"scale={TARGET_WIDTH}:{bottom_target_h}:force_original_aspect_ratio=decrease"
+
                 filter_chains.append(
-                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},scale={TARGET_WIDTH}:1100:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[gp]"
+                    f"[0:v]crop={gw}:{gh}:{gx}:{gy},{gp_filter},setsar=1,fps={DEFAULT_FPS}[gp]"
                 )
                 filter_chains.append(
-                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},scale={TARGET_WIDTH}:780:force_original_aspect_ratio=decrease,setsar=1,fps={DEFAULT_FPS}[fc]"
+                    f"[0:v]crop={cw}:{ch}:{cx}:{cy},{fc_filter},setsar=1,fps={DEFAULT_FPS}[fc]"
                 )
                 filter_chains.append("[bg][gp]overlay=(W-w)/2:0[layer1]")
-                filter_chains.append("[layer1][fc]overlay=(W-w)/2:H-h[v_composed]")
+                filter_chains.append(f"[layer1][fc]overlay=(W-w)/2:{bottom_zone_y}[layer2]")
+                if divider_thickness > 0 and divider_color not in ("none", "transparent"):
+                    filter_chains.append(f"[layer2]drawbox=x=0:y={top_target_h}:w=iw:h={divider_thickness}:color={divider_color}@0.95:t=fill[v_composed]")
+                else:
+                    filter_chains.append("[layer2]copy[v_composed]")
 
             # Collect valid image overlays (to cover casino header, chat goal, promo code banner, etc.)
             valid_overlays = []

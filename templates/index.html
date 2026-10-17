@@ -864,6 +864,122 @@
                 </button>
             </div>
 
+            <!-- ========================================================================= -->
+            <!-- FRAMING & SEAM CUSTOMIZER TOOLBAR (SPLIT RATIO, SEAM GAP, FILL MODES)    -->
+            <!-- ========================================================================= -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-brand-border shadow-xl space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-border">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                            <i data-lucide="split" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <span>Framing, Split Ratio & Seam Controls</span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Reaction & Pro Shorts</span>
+                            </h2>
+                            <p class="text-[11px] text-zinc-400">Adjust camera height, 0-gap seamless touch, edge bleed fill, or divider lines. You can also drag the split line directly on the phone preview!</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Style Presets -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-[10px] font-semibold text-zinc-400 mr-1">Quick Styles:</span>
+                        <button type="button" onclick="setFramingQuickPreset('seamless')" id="btn-framing-preset-seamless" class="px-2.5 py-1 text-xs rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 font-medium transition-all flex items-center gap-1 shadow-sm">
+                            <span>⚡ Seamless (OhnePixel)</span>
+                        </button>
+                        <button type="button" onclick="setFramingQuickPreset('balanced')" id="btn-framing-preset-balanced" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border transition-all">
+                            <span>⚖️ Balanced 50/50</span>
+                        </button>
+                        <button type="button" onclick="setFramingQuickPreset('big_cam')" id="btn-framing-preset-big_cam" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border transition-all">
+                            <span>🎙️ Big Reaction Cam</span>
+                        </button>
+                        <button type="button" onclick="setFramingQuickPreset('ambient_gap')" id="btn-framing-preset-ambient_gap" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border transition-all">
+                            <span>✨ Ambient Gap</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sliders & Toggles Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                    
+                    <!-- Split Ratio Slider -->
+                    <div class="space-y-1.5 bg-brand-bg/60 p-3 rounded-xl border border-brand-border">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-zinc-300 font-semibold flex items-center gap-1">
+                                <i data-lucide="proportions" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span>Split Ratio (Height)</span>
+                            </span>
+                            <span id="lbl-split-ratio" class="font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded text-[11px]">45% Cam / 55% Game</span>
+                        </div>
+                        <input type="range" id="slider-split-ratio" min="20" max="80" value="45" oninput="onFramingSplitChange(this.value)" class="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <div class="flex justify-between text-[10px] text-zinc-500">
+                            <span>20% Cam</span>
+                            <span>50/50</span>
+                            <span>80% Cam</span>
+                        </div>
+                    </div>
+
+                    <!-- Seam / Gap Size Slider -->
+                    <div class="space-y-1.5 bg-brand-bg/60 p-3 rounded-xl border border-brand-border">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-zinc-300 font-semibold flex items-center gap-1">
+                                <i data-lucide="columns-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span>Seam / Gap Size</span>
+                            </span>
+                            <span id="lbl-gap-size" class="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[11px]">0px (Seamless)</span>
+                        </div>
+                        <input type="range" id="slider-gap-size" min="0" max="160" value="0" oninput="onFramingGapChange(this.value)" class="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <div class="flex justify-between text-[10px] text-zinc-500">
+                            <span>0px (Touch)</span>
+                            <span>80px</span>
+                            <span>160px</span>
+                        </div>
+                    </div>
+
+                    <!-- Camera & Gameplay Fill/Fit Mode -->
+                    <div class="space-y-1.5 bg-brand-bg/60 p-3 rounded-xl border border-brand-border">
+                        <span class="text-xs text-zinc-300 font-semibold block">Cropping & Fill Modes</span>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span class="text-[10px] text-zinc-400 block mb-0.5">Streamer Cam:</span>
+                                <div class="flex rounded-lg border border-brand-border overflow-hidden p-0.5 bg-brand-surface">
+                                    <button type="button" onclick="setCamFillMode('fill')" id="btn-camfill-fill" class="flex-1 py-1 text-[11px] font-bold rounded bg-brand-magenta text-white text-center transition-all">Bleed Fill</button>
+                                    <button type="button" onclick="setCamFillMode('fit')" id="btn-camfill-fit" class="flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all">Fit Aspect</button>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-zinc-400 block mb-0.5">Gameplay:</span>
+                                <div class="flex rounded-lg border border-brand-border overflow-hidden p-0.5 bg-brand-surface">
+                                    <button type="button" onclick="setGameFillMode('fit')" id="btn-gamefill-fit" class="flex-1 py-1 text-[11px] font-bold rounded bg-brand-green text-black text-center transition-all">Fit Safe HUD</button>
+                                    <button type="button" onclick="setGameFillMode('fill')" id="btn-gamefill-fill" class="flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all">Bleed Fill</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seam Divider Line Color & Thickness -->
+                    <div class="space-y-1.5 bg-brand-bg/60 p-3 rounded-xl border border-brand-border">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-zinc-300 font-semibold flex items-center gap-1">
+                                <i data-lucide="minus" class="w-3.5 h-3.5 text-pink-400"></i>
+                                <span>Divider Line</span>
+                            </span>
+                            <span id="lbl-divider-style" class="font-mono text-[10px] text-zinc-400">#ff00b4 (2px)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-1">
+                            <button type="button" onclick="setDividerColor('#ff00b4')" id="btn-divcol-magenta" class="w-6 h-6 rounded-full bg-[#ff00b4] border-2 border-white shadow-sm transition-transform hover:scale-110" title="Neon Magenta"></button>
+                            <button type="button" onclick="setDividerColor('#00ff55')" id="btn-divcol-green" class="w-6 h-6 rounded-full bg-[#00ff55] border-2 border-transparent shadow-sm transition-transform hover:scale-110" title="Neon Green"></button>
+                            <button type="button" onclick="setDividerColor('#06b6d4')" id="btn-divcol-cyan" class="w-6 h-6 rounded-full bg-[#06b6d4] border-2 border-transparent shadow-sm transition-transform hover:scale-110" title="Cyan Neon"></button>
+                            <button type="button" onclick="setDividerColor('#fbbf24')" id="btn-divcol-gold" class="w-6 h-6 rounded-full bg-[#fbbf24] border-2 border-transparent shadow-sm transition-transform hover:scale-110" title="Hormozi Gold"></button>
+                            <button type="button" onclick="setDividerColor('#ffffff')" id="btn-divcol-white" class="w-6 h-6 rounded-full bg-[#ffffff] border-2 border-transparent shadow-sm transition-transform hover:scale-110" title="Pure White"></button>
+                            <button type="button" onclick="setDividerColor('none')" id="btn-divcol-none" class="px-2 py-0.5 text-[10px] rounded border border-brand-border bg-brand-surface text-zinc-400 hover:text-white" title="No Divider Line">None</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- Split Studio: Left 16:9 Cropper (7 cols) + Right 9:16 Phone (5 cols) -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
@@ -1373,6 +1489,17 @@
                                             <button type="button" onclick="setHookPosition('top')" id="hook-pos-top" class="px-2 py-1.5 rounded-lg border border-amber-500 bg-amber-500/15 text-[10px] font-bold text-amber-300 transition-all text-center">Top Header</button>
                                             <button type="button" onclick="setHookPosition('center')" id="hook-pos-center" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">Center Gap</button>
                                             <button type="button" onclick="setHookPosition('bottom')" id="hook-pos-bottom" class="px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center">Over Cam</button>
+                                        </div>
+                                        <!-- Custom Vertical Placement Slider -->
+                                        <div class="pt-2">
+                                            <div class="flex justify-between items-center text-[11px] mb-1">
+                                                <span class="text-zinc-400 font-medium flex items-center gap-1">
+                                                    <i data-lucide="arrow-up-down" class="w-3 h-3 text-amber-400"></i>
+                                                    <span>Fine-Tune Height (Y):</span>
+                                                </span>
+                                                <span id="lbl-hook-y" class="font-mono text-amber-300 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded text-[10px]">130px</span>
+                                            </div>
+                                            <input type="range" id="slider-hook-y" min="40" max="1800" value="130" oninput="onHookYChange(this.value)" class="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
                                         </div>
                                     </div>
                                 </div>
@@ -2307,7 +2434,13 @@
                 gx: 260, gy: 80, gw: 1400, gh: 920,
                 cx: 1380, cy: 680, cw: 520, ch: 380,
                 origW: 1920, origH: 1080,
-                stack_mode: 'standard'
+                stack_mode: 'standard',
+                split_ratio: 0.45,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: '#ff00b4',
+                divider_thickness: 2
             },
             subtitles: {
                 enabled: true,
@@ -2337,12 +2470,24 @@
             reaction_cam_top: {
                 gp: { x: 0, y: 0, w: 1920, h: 1080 },
                 fc: { x: 1300, y: 350, w: 620, h: 730 },
-                stack_mode: 'cam_top'
+                stack_mode: 'cam_top',
+                split_ratio: 0.45,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: '#ff00b4',
+                divider_thickness: 2
             },
             reddit_reaction: {
                 gp: { x: 0, y: 0, w: 1920, h: 1080 },
                 fc: { x: 1300, y: 350, w: 620, h: 730 },
-                stack_mode: 'cam_top'
+                stack_mode: 'cam_top',
+                split_ratio: 0.45,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: '#ff00b4',
+                divider_thickness: 2
             },
             gaming_fps: {
                 gp: { x: 160, y: 0, w: 1600, h: 900 },
@@ -2605,16 +2750,20 @@
             initHeaderSystemPills();
             setupPhoneCanvasInteraction();
             setupStep3SubtitleCanvasInteraction();
+            syncFramingControlsFromState();
             syncSubtitleControlsFromState();
             syncHookControlsFromState();
             const restored = restoreSessionIfAvailable();
             if (restored) {
+                syncFramingControlsFromState();
                 syncHookControlsFromState();
             }
             if (!restored) {
                 const serverRestored = await checkServerActiveSession();
                 if (!serverRestored) {
                     initDefaultDemoSnapshot();
+                } else {
+                    syncFramingControlsFromState();
                 }
             }
             // Guarantee that any restored media or exported short starts muted/paused on page load
@@ -4678,6 +4827,18 @@
                 const isCinema = (stackMode === 'cinema_centered' || stackMode === 'cinema_letterbox' || stackMode === 'cinema');
                 const isFullBleed = (stackMode === 'full_screen_9_16' || stackMode === 'immersion' || stackMode === 'full_bleed');
 
+                const splitRatio = (appState.crops.split_ratio !== undefined) ? Number(appState.crops.split_ratio) : 0.45;
+                const gapPx = (appState.crops.gap_size !== undefined) ? Number(appState.crops.gap_size) : 0;
+                const canvasGap = Math.round(gapPx * (ch / 1920));
+                const camFill = (appState.crops.cam_fill_mode !== 'fit'); // default fill
+                const gameFill = (appState.crops.game_fill_mode === 'fill'); // default fit
+                const divColor = appState.crops.divider_color || '#ff00b4';
+                const divThick = (appState.crops.divider_thickness !== undefined) ? Number(appState.crops.divider_thickness) : 2;
+
+                const topZoneH = Math.max(80, Math.min(ch - 100, Math.round(ch * splitRatio) - Math.round(canvasGap / 2)));
+                const bottomZoneY = topZoneH + canvasGap;
+                const bottomZoneH = ch - bottomZoneY;
+
                 if (isCamTop) {
                     // OhnePixel Reaction Mode: Top Facecam + Bottom Gameplay
                     const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
@@ -4685,16 +4846,28 @@
                     const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
                     const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
 
-                    const camScale = Math.min(cw / src_cw, (ch * 0.46) / src_ch);
-                    const cW = Math.round(src_cw * camScale);
-                    const cH = Math.round(src_ch * camScale);
-                    const cX = Math.round((cw - cW) / 2);
-                    const cY = 0;
-
                     if (src_cw > 4 && src_ch > 4) {
-                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
-                        ctx.fillStyle = '#ff00b4';
-                        ctx.fillRect(0, cY + cH, cw, 2);
+                        if (camFill) {
+                            const scale = Math.max(cw / src_cw, topZoneH / src_ch);
+                            const cW = Math.round(src_cw * scale);
+                            const cH = Math.round(src_ch * scale);
+                            const cX = Math.round((cw - cW) / 2);
+                            const cY = Math.round((topZoneH - cH) / 2);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(0, 0, cw, topZoneH);
+                            ctx.clip();
+                            ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                            ctx.restore();
+                        } else {
+                            const scale = Math.min(cw / src_cw, topZoneH / src_ch);
+                            const cW = Math.round(src_cw * scale);
+                            const cH = Math.round(src_ch * scale);
+                            const cX = Math.round((cw - cW) / 2);
+                            const cY = Math.round((topZoneH - cH) / 2);
+                            ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                        }
                     }
 
                     const src_gx = Math.max(0, Math.min(nw - 4, gx * normX));
@@ -4702,16 +4875,33 @@
                     const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
                     const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
 
-                    const gpScale = Math.min(cw / src_gw, (ch * 0.58) / src_gh);
-                    const gpW = Math.round(src_gw * gpScale);
-                    const gpH = Math.round(src_gh * gpScale);
-                    const gpX = Math.round((cw - gpW) / 2);
-                    const gpY = Math.round(ch - gpH);
-
                     if (src_gw > 4 && src_gh > 4) {
-                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
-                        ctx.fillStyle = '#00ff55';
-                        ctx.fillRect(0, gpY, cw, 2);
+                        if (gameFill) {
+                            const scale = Math.max(cw / src_gw, bottomZoneH / src_gh);
+                            const gpW = Math.round(src_gw * scale);
+                            const gpH = Math.round(src_gh * scale);
+                            const gpX = Math.round((cw - gpW) / 2);
+                            const gpY = bottomZoneY + Math.round((bottomZoneH - gpH) / 2);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(0, bottomZoneY, cw, bottomZoneH);
+                            ctx.clip();
+                            ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                            ctx.restore();
+                        } else {
+                            const scale = Math.min(cw / src_gw, bottomZoneH / src_gh);
+                            const gpW = Math.round(src_gw * scale);
+                            const gpH = Math.round(src_gh * scale);
+                            const gpX = Math.round((cw - gpW) / 2);
+                            const gpY = bottomZoneY + Math.round((bottomZoneH - gpH) / 2);
+                            ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                        }
+                    }
+
+                    if (divThick > 0 && divColor !== 'none') {
+                        ctx.fillStyle = divColor;
+                        ctx.fillRect(0, topZoneH, cw, Math.max(1, Math.round(divThick * (ch / 1920))));
                     }
                 } else if (isPiP) {
                     // Picture-in-Picture: Centered 9:16 Action + Floating Corner Cam
@@ -4819,16 +5009,28 @@
                     const src_gw = Math.max(4, Math.min(nw - src_gx, gw * normX));
                     const src_gh = Math.max(4, Math.min(nh - src_gy, gh * normY));
 
-                    const gpScale = Math.min(cw / src_gw, (ch * 0.55) / src_gh);
-                    const gpW = Math.round(src_gw * gpScale);
-                    const gpH = Math.round(src_gh * gpScale);
-                    const gpX = Math.round((cw - gpW) / 2);
-                    const gpY = 0;
-
                     if (src_gw > 4 && src_gh > 4) {
-                        ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
-                        ctx.fillStyle = '#00ff55';
-                        ctx.fillRect(0, gpY + gpH, cw, 3);
+                        if (gameFill) {
+                            const scale = Math.max(cw / src_gw, topZoneH / src_gh);
+                            const gpW = Math.round(src_gw * scale);
+                            const gpH = Math.round(src_gh * scale);
+                            const gpX = Math.round((cw - gpW) / 2);
+                            const gpY = Math.round((topZoneH - gpH) / 2);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(0, 0, cw, topZoneH);
+                            ctx.clip();
+                            ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                            ctx.restore();
+                        } else {
+                            const scale = Math.min(cw / src_gw, topZoneH / src_gh);
+                            const gpW = Math.round(src_gw * scale);
+                            const gpH = Math.round(src_gh * scale);
+                            const gpX = Math.round((cw - gpW) / 2);
+                            const gpY = Math.round((topZoneH - gpH) / 2);
+                            ctx.drawImage(bgImg, src_gx, src_gy, src_gw, src_gh, gpX, gpY, gpW, gpH);
+                        }
                     }
 
                     const src_cx = Math.max(0, Math.min(nw - 4, cam_x * normX));
@@ -4836,16 +5038,33 @@
                     const src_cw = Math.max(4, Math.min(nw - src_cx, cam_w * normX));
                     const src_ch = Math.max(4, Math.min(nh - src_cy, cam_h * normY));
 
-                    const camScale = Math.min(cw / src_cw, (ch * 0.40) / src_ch);
-                    const cW = Math.round(src_cw * camScale);
-                    const cH = Math.round(src_ch * camScale);
-                    const cX = Math.round((cw - cW) / 2);
-                    const cY = Math.round(ch - cH);
-
                     if (src_cw > 4 && src_ch > 4) {
-                        ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
-                        ctx.fillStyle = '#ff00b4';
-                        ctx.fillRect(0, cY, cw, 3);
+                        if (camFill) {
+                            const scale = Math.max(cw / src_cw, bottomZoneH / src_ch);
+                            const cW = Math.round(src_cw * scale);
+                            const cH = Math.round(src_ch * scale);
+                            const cX = Math.round((cw - cW) / 2);
+                            const cY = bottomZoneY + Math.round((bottomZoneH - cH) / 2);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(0, bottomZoneY, cw, bottomZoneH);
+                            ctx.clip();
+                            ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                            ctx.restore();
+                        } else {
+                            const scale = Math.min(cw / src_cw, bottomZoneH / src_ch);
+                            const cW = Math.round(src_cw * scale);
+                            const cH = Math.round(src_ch * scale);
+                            const cX = Math.round((cw - cW) / 2);
+                            const cY = bottomZoneY + Math.round((bottomZoneH - cH) / 2);
+                            ctx.drawImage(bgImg, src_cx, src_cy, src_cw, src_ch, cX, cY, cW, cH);
+                        }
+                    }
+
+                    if (divThick > 0 && divColor !== 'none') {
+                        ctx.fillStyle = divColor;
+                        ctx.fillRect(0, topZoneH, cw, Math.max(1, Math.round(divThick * (ch / 1920))));
                     }
                 }
 
@@ -4924,7 +5143,8 @@
                     const primaryCol = appState.subtitles.primaryColor || '#FFFFFF';
                     const highlightCol = appState.subtitles.highlightColor || '#FFD700';
 
-                    ctx.font = `900 ${fontPx}px "${fontName}", Impact, Arial, sans-serif`;
+                    ctx.font = `900 ${fontPx}px "${fontName}", Impact, "Segoe UI Emoji", Arial, sans-serif`;
+                    ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
                     const words = [
@@ -4981,9 +5201,9 @@
                     // Compute Y coordinate on canvas (360 x 640)
                     let hookY = 44; // default 'top'
                     if (pos === 'center') {
-                        hookY = 295;
+                        hookY = topZoneH;
                     } else if (pos === 'bottom') {
-                        hookY = 470;
+                        hookY = ch - 110;
                     } else if (appState.hook.y !== undefined) {
                         hookY = Math.round(appState.hook.y * (ch / 1920));
                     }
@@ -5010,25 +5230,28 @@
                         }
 
                         let fontPx = 17;
-                        ctx.font = `900 ${fontPx}px "Arial Black", Impact, sans-serif`;
+                        ctx.font = `900 ${fontPx}px "Arial Black", Impact, "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
                         let spaceW = ctx.measureText(' ').width;
                         let tokenWidths = tokens.map(t => ctx.measureText(t.text).width);
                         let totalW = tokenWidths.reduce((a, b) => a + b, 0) + (spaceW * (tokens.length - 1));
 
                         while (totalW > (cw - 24) && fontPx > 11) {
                             fontPx -= 1;
-                            ctx.font = `900 ${fontPx}px "Arial Black", Impact, sans-serif`;
+                            ctx.font = `900 ${fontPx}px "Arial Black", Impact, "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
                             spaceW = ctx.measureText(' ').width;
                             tokenWidths = tokens.map(t => ctx.measureText(t.text).width);
                             totalW = tokenWidths.reduce((a, b) => a + b, 0) + (spaceW * (tokens.length - 1));
                         }
 
                         let curX = (cw - totalW) / 2;
-                        const textY = (pos === 'center') ? 292 : hookY;
+                        const textY = (pos === 'center') ? topZoneH : hookY;
 
                         tokens.forEach((t, i) => {
                             const tw = tokenWidths[i];
-                            const midX = curX + tw / 2;
 
                             ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
                             ctx.shadowBlur = 8;
@@ -5037,10 +5260,10 @@
                             ctx.strokeStyle = '#000000';
                             ctx.lineWidth = 4.5;
                             ctx.lineJoin = 'round';
-                            ctx.strokeText(t.text, midX, textY);
+                            ctx.strokeText(t.text, curX, textY);
 
                             ctx.fillStyle = t.highlight ? '#fde047' : '#ffffff';
-                            ctx.fillText(t.text, midX, textY);
+                            ctx.fillText(t.text, curX, textY);
 
                             curX += tw + spaceW;
                         });
@@ -5637,11 +5860,18 @@
             appState.crops.cx = p.fc.x; appState.crops.cy = p.fc.y;
             appState.crops.cw = p.fc.w; appState.crops.ch = p.fc.h;
             appState.crops.stack_mode = p.stack_mode || 'standard';
+            if (p.split_ratio !== undefined) appState.crops.split_ratio = p.split_ratio;
+            if (p.gap_size !== undefined) appState.crops.gap_size = p.gap_size;
+            if (p.cam_fill_mode !== undefined) appState.crops.cam_fill_mode = p.cam_fill_mode;
+            if (p.game_fill_mode !== undefined) appState.crops.game_fill_mode = p.game_fill_mode;
+            if (p.divider_color !== undefined) appState.crops.divider_color = p.divider_color;
+            if (p.divider_thickness !== undefined) appState.crops.divider_thickness = p.divider_thickness;
 
             const ps = document.getElementById('presetSelect');
             if (ps && ps.value !== presetKey) ps.value = presetKey;
 
             syncCamStackButton();
+            syncFramingControlsFromState();
             syncBoxStylesFromState();
             updatePhoneCanvas();
             saveSession();
@@ -5653,6 +5883,7 @@
             const current = appState.crops.stack_mode || 'standard';
             appState.crops.stack_mode = (current === 'cam_top') ? 'standard' : 'cam_top';
             syncCamStackButton();
+            syncFramingControlsFromState();
             updatePhoneCanvas();
             saveSession();
             if (appState.crops.stack_mode === 'cam_top') {
@@ -5676,6 +5907,205 @@
                     btn.className = 'px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-indigo-400 hover:text-white border border-brand-border transition-all flex items-center gap-1.5 font-medium';
                 }
             }
+        }
+
+        // =========================================================================
+        // FRAMING & SEAM CUSTOMIZER HANDLERS (SPLIT RATIO, SEAM GAP, FILL MODES)
+        // =========================================================================
+        function onFramingSplitChange(val) {
+            const ratio = Math.max(0.20, Math.min(0.80, parseFloat(val) / 100));
+            if (!appState.crops) appState.crops = {};
+            appState.crops.split_ratio = ratio;
+            const isCamTop = (appState.crops.stack_mode === 'cam_top');
+            const topPercent = Math.round(ratio * 100);
+            const bottomPercent = 100 - topPercent;
+            const lbl = document.getElementById('lbl-split-ratio');
+            if (lbl) {
+                lbl.innerText = isCamTop
+                    ? `${topPercent}% Cam / ${bottomPercent}% Game`
+                    : `${topPercent}% Game / ${bottomPercent}% Cam`;
+            }
+            const slider = document.getElementById('slider-split-ratio');
+            if (slider && parseInt(slider.value) !== topPercent) {
+                slider.value = topPercent;
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function onFramingGapChange(val) {
+            const gap = Math.max(0, Math.min(160, parseInt(val) || 0));
+            if (!appState.crops) appState.crops = {};
+            appState.crops.gap_size = gap;
+            const lbl = document.getElementById('lbl-gap-size');
+            if (lbl) {
+                lbl.innerText = gap === 0 ? '0px (Seamless)' : `${gap}px`;
+            }
+            const slider = document.getElementById('slider-gap-size');
+            if (slider && parseInt(slider.value) !== gap) {
+                slider.value = gap;
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setCamFillMode(mode) {
+            if (!appState.crops) appState.crops = {};
+            appState.crops.cam_fill_mode = mode;
+            const btnFill = document.getElementById('btn-camfill-fill');
+            const btnFit = document.getElementById('btn-camfill-fit');
+            if (mode === 'fill') {
+                if (btnFill) btnFill.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-magenta text-white text-center transition-all';
+                if (btnFit) btnFit.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+            } else {
+                if (btnFill) btnFill.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+                if (btnFit) btnFit.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-magenta text-white text-center transition-all';
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setGameFillMode(mode) {
+            if (!appState.crops) appState.crops = {};
+            appState.crops.game_fill_mode = mode;
+            const btnFit = document.getElementById('btn-gamefill-fit');
+            const btnFill = document.getElementById('btn-gamefill-fill');
+            if (mode === 'fit') {
+                if (btnFit) btnFit.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-green text-black text-center transition-all';
+                if (btnFill) btnFill.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+            } else {
+                if (btnFit) btnFit.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+                if (btnFill) btnFill.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-green text-black text-center transition-all';
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setDividerColor(col) {
+            if (!appState.crops) appState.crops = {};
+            appState.crops.divider_color = col;
+            appState.crops.divider_thickness = (col === 'none' || col === 'transparent') ? 0 : 2;
+            const map = {
+                '#ff00b4': 'btn-divcol-magenta',
+                '#00ff55': 'btn-divcol-green',
+                '#06b6d4': 'btn-divcol-cyan',
+                '#fbbf24': 'btn-divcol-gold',
+                '#ffffff': 'btn-divcol-white'
+            };
+            Object.entries(map).forEach(([hex, id]) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (hex === col) {
+                        el.classList.add('border-white', 'scale-110');
+                        el.classList.remove('border-transparent');
+                    } else {
+                        el.classList.remove('border-white', 'scale-110');
+                        el.classList.add('border-transparent');
+                    }
+                }
+            });
+            const btnNone = document.getElementById('btn-divcol-none');
+            if (btnNone) {
+                if (col === 'none') {
+                    btnNone.className = 'px-2 py-0.5 text-[10px] rounded border border-indigo-500 bg-indigo-500/20 text-white font-bold';
+                } else {
+                    btnNone.className = 'px-2 py-0.5 text-[10px] rounded border border-brand-border bg-brand-surface text-zinc-400 hover:text-white';
+                }
+            }
+            const lbl = document.getElementById('lbl-divider-style');
+            if (lbl) {
+                lbl.innerText = (col === 'none') ? 'Off (0px)' : `${col} (2px)`;
+            }
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function setFramingQuickPreset(name) {
+            if (!appState.crops) appState.crops = {};
+            if (name === 'seamless') {
+                appState.crops.stack_mode = 'cam_top';
+                appState.crops.split_ratio = 0.45;
+                appState.crops.gap_size = 0;
+                appState.crops.cam_fill_mode = 'fill';
+                appState.crops.game_fill_mode = 'fit';
+                appState.crops.divider_color = '#ff00b4';
+                appState.crops.divider_thickness = 2;
+            } else if (name === 'balanced') {
+                appState.crops.split_ratio = 0.50;
+                appState.crops.gap_size = 0;
+                appState.crops.cam_fill_mode = 'fill';
+                appState.crops.game_fill_mode = 'fill';
+                appState.crops.divider_color = '#ffffff';
+                appState.crops.divider_thickness = 2;
+            } else if (name === 'big_cam') {
+                appState.crops.stack_mode = 'cam_top';
+                appState.crops.split_ratio = 0.60;
+                appState.crops.gap_size = 0;
+                appState.crops.cam_fill_mode = 'fill';
+                appState.crops.game_fill_mode = 'fit';
+                appState.crops.divider_color = '#00ff55';
+                appState.crops.divider_thickness = 2;
+            } else if (name === 'ambient_gap') {
+                appState.crops.split_ratio = 0.45;
+                appState.crops.gap_size = 40;
+                appState.crops.cam_fill_mode = 'fit';
+                appState.crops.game_fill_mode = 'fit';
+                appState.crops.divider_color = 'none';
+                appState.crops.divider_thickness = 0;
+            }
+            syncFramingControlsFromState();
+            syncCamStackButton();
+            updatePhoneCanvas();
+            saveSession();
+            showToast(`Applied preset: ${name}`);
+        }
+
+        function syncFramingControlsFromState() {
+            if (!appState.crops) return;
+            const ratio = appState.crops.split_ratio !== undefined ? appState.crops.split_ratio : 0.45;
+            const gap = appState.crops.gap_size !== undefined ? appState.crops.gap_size : 0;
+            const camFill = appState.crops.cam_fill_mode || 'fill';
+            const gameFill = appState.crops.game_fill_mode || 'fit';
+            const divColor = appState.crops.divider_color || '#ff00b4';
+
+            const topPercent = Math.round(ratio * 100);
+            const bottomPercent = 100 - topPercent;
+            const isCamTop = (appState.crops.stack_mode === 'cam_top');
+            const lblSplit = document.getElementById('lbl-split-ratio');
+            if (lblSplit) {
+                lblSplit.innerText = isCamTop
+                    ? `${topPercent}% Cam / ${bottomPercent}% Game`
+                    : `${topPercent}% Game / ${bottomPercent}% Cam`;
+            }
+            const sliderSplit = document.getElementById('slider-split-ratio');
+            if (sliderSplit) sliderSplit.value = topPercent;
+
+            const lblGap = document.getElementById('lbl-gap-size');
+            if (lblGap) lblGap.innerText = gap === 0 ? '0px (Seamless)' : `${gap}px`;
+            const sliderGap = document.getElementById('slider-gap-size');
+            if (sliderGap) sliderGap.value = gap;
+
+            const btnCamFill = document.getElementById('btn-camfill-fill');
+            const btnCamFit = document.getElementById('btn-camfill-fit');
+            if (camFill === 'fill') {
+                if (btnCamFill) btnCamFill.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-magenta text-white text-center transition-all';
+                if (btnCamFit) btnCamFit.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+            } else {
+                if (btnCamFill) btnCamFill.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+                if (btnCamFit) btnCamFit.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-magenta text-white text-center transition-all';
+            }
+
+            const btnGameFit = document.getElementById('btn-gamefill-fit');
+            const btnGameFill = document.getElementById('btn-gamefill-fill');
+            if (gameFill === 'fit') {
+                if (btnGameFit) btnGameFit.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-green text-black text-center transition-all';
+                if (btnGameFill) btnGameFill.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+            } else {
+                if (btnGameFit) btnGameFit.className = 'flex-1 py-1 text-[11px] font-medium text-zinc-400 hover:text-white text-center transition-all';
+                if (btnGameFill) btnGameFill.className = 'flex-1 py-1 text-[11px] font-bold rounded bg-brand-green text-black text-center transition-all';
+            }
+
+            setDividerColor(divColor);
         }
 
         // Snap Camera to Corner
@@ -5842,36 +6272,66 @@
             const canvas = document.getElementById('canvas-9-16-step3');
             if (!canvas) return;
 
-            let isDragging = false;
-            const handlePos = (e) => {
+            let dragTarget = null; // 'sub' or 'hook'
+
+            const getClientY = (e) => ((e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY);
+
+            const handleDrag = (e) => {
                 const rect = canvas.getBoundingClientRect();
-                const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                const clientY = getClientY(e);
                 if (typeof clientY !== 'number') return;
                 const relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
                 const ratio = relY / rect.height;
                 const videoY = Math.round(ratio * 1920);
-                updateSubtitleYPosition(videoY);
+
+                if (dragTarget === 'hook') {
+                    onHookYChange(videoY);
+                } else {
+                    updateSubtitleYPosition(videoY);
+                }
+            };
+
+            const startDrag = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientY = getClientY(e);
+                if (typeof clientY !== 'number') return;
+                const relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+                const ratio = relY / rect.height;
+                const videoY = Math.round(ratio * 1920);
+
+                // Determine whether click was closer to Hook Header or Subtitle
+                const curHookY = (appState.hook && appState.hook.y !== undefined) ? appState.hook.y : (appState.hook && appState.hook.position === 'center' ? 920 : 130);
+                const curSubY = (appState.subtitles && appState.subtitles.yPosition !== undefined) ? appState.subtitles.yPosition : 1000;
+
+                const distHook = Math.abs(videoY - curHookY);
+                const distSub = Math.abs(videoY - curSubY);
+
+                if (appState.hook && appState.hook.enabled && distHook < distSub && distHook < 260) {
+                    dragTarget = 'hook';
+                    onHookYChange(videoY);
+                } else {
+                    dragTarget = 'sub';
+                    updateSubtitleYPosition(videoY);
+                }
             };
 
             canvas.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                handlePos(e);
+                startDrag(e);
             });
             window.addEventListener('mousemove', (e) => {
-                if (isDragging) handlePos(e);
+                if (dragTarget) handleDrag(e);
             });
             window.addEventListener('mouseup', () => {
-                isDragging = false;
+                dragTarget = null;
             });
             canvas.addEventListener('touchstart', (e) => {
-                isDragging = true;
-                handlePos(e);
+                startDrag(e);
             }, { passive: true });
             canvas.addEventListener('touchmove', (e) => {
-                if (isDragging) handlePos(e);
+                if (dragTarget) handleDrag(e);
             }, { passive: true });
             canvas.addEventListener('touchend', () => {
-                isDragging = false;
+                dragTarget = null;
             });
         }
 
@@ -5953,6 +6413,11 @@
             else if (pos === 'center') appState.hook.y = 920;
             else if (pos === 'bottom') appState.hook.y = 1420;
 
+            const slider = document.getElementById('slider-hook-y');
+            const lbl = document.getElementById('lbl-hook-y');
+            if (slider && appState.hook.y !== undefined) slider.value = appState.hook.y;
+            if (lbl && appState.hook.y !== undefined) lbl.innerText = `${appState.hook.y}px`;
+
             ['top', 'center', 'bottom'].forEach(p => {
                 const btn = document.getElementById(`hook-pos-${p}`);
                 if (!btn) return;
@@ -5961,6 +6426,24 @@
                 } else {
                     btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
                 }
+            });
+            updatePhoneCanvas();
+            saveSession();
+        }
+
+        function onHookYChange(val) {
+            const yVal = Math.max(40, Math.min(1850, parseInt(val) || 130));
+            if (!appState.hook) appState.hook = {};
+            appState.hook.y = yVal;
+            appState.hook.position = 'custom';
+            const slider = document.getElementById('slider-hook-y');
+            const lbl = document.getElementById('lbl-hook-y');
+            if (slider && parseInt(slider.value) !== yVal) slider.value = yVal;
+            if (lbl) lbl.innerText = `${yVal}px`;
+
+            ['top', 'center', 'bottom'].forEach(p => {
+                const btn = document.getElementById(`hook-pos-${p}`);
+                if (btn) btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
             });
             updatePhoneCanvas();
             saveSession();
@@ -6070,7 +6553,7 @@
                 }
             });
 
-            // Position
+            // Position & Y Slider
             const curPos = hook.position || 'top';
             ['top', 'center', 'bottom'].forEach(p => {
                 const btn = document.getElementById(`hook-pos-${p}`);
@@ -6081,6 +6564,11 @@
                     btn.className = 'px-2 py-1.5 rounded-lg border border-brand-border bg-brand-bg text-[10px] font-semibold text-zinc-400 hover:text-white transition-all text-center';
                 }
             });
+            const yVal = hook.y !== undefined ? hook.y : (curPos === 'center' ? 920 : (curPos === 'bottom' ? 1420 : 130));
+            const slider = document.getElementById('slider-hook-y');
+            const lbl = document.getElementById('lbl-hook-y');
+            if (slider) slider.value = yVal;
+            if (lbl) lbl.innerText = `${yVal}px`;
         }
 
         // Outro Video Selection
@@ -6746,17 +7234,82 @@
         }
 
         let phoneOverlayDrag = null;
+        let phoneSeamDrag = null;
 
         function setupPhoneCanvasInteraction() {
             const canvas = document.getElementById('canvas-9-16');
             if (!canvas) return;
 
+            // Hover indicator: when hovering near split divider seam, show resize cursor
+            canvas.addEventListener('mousemove', (e) => {
+                if (phoneOverlayDrag || phoneSeamDrag) return;
+                const rect = canvas.getBoundingClientRect();
+                const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const ratio = (appState.crops && appState.crops.split_ratio !== undefined) ? appState.crops.split_ratio : 0.45;
+                const seamY = Math.round(canvas.height * ratio);
+
+                if (Math.abs(mouseY - seamY) <= 12) {
+                    canvas.style.cursor = 'row-resize';
+                    return;
+                }
+
+                // Check overlay hover
+                const scaleX = canvas.width / 1080;
+                const scaleY = canvas.height / 1920;
+                let overOvl = false;
+                if (appState.overlays && appState.overlays.length > 0) {
+                    for (let i = appState.overlays.length - 1; i >= 0; i--) {
+                        const ovl = appState.overlays[i];
+                        const ox = ovl.x * scaleX;
+                        const oy = ovl.y * scaleY;
+                        const ow = ovl.w * scaleX;
+                        const oh = ovl.h * scaleY;
+                        if (mouseX >= ox && mouseX <= ox + ow && mouseY >= oy && mouseY <= oy + oh) {
+                            overOvl = true;
+                            break;
+                        }
+                    }
+                }
+                canvas.style.cursor = overOvl ? 'move' : 'default';
+            });
+
             canvas.addEventListener('mousedown', (e) => {
-                if (!appState.overlays || appState.overlays.length === 0) return;
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
                 const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                const ratio = (appState.crops && appState.crops.split_ratio !== undefined) ? appState.crops.split_ratio : 0.45;
+                const seamY = Math.round(canvas.height * ratio);
 
+                // Priority 1: Drag Seam Split Line directly on the Phone Preview!
+                if (Math.abs(mouseY - seamY) <= 14) {
+                    e.preventDefault();
+                    phoneSeamDrag = {
+                        startY: e.clientY,
+                        startRatio: ratio
+                    };
+                    canvas.style.cursor = 'row-resize';
+
+                    const onSeamMove = (me) => {
+                        if (!phoneSeamDrag) return;
+                        const curRect = canvas.getBoundingClientRect();
+                        const curCanvasY = (me.clientY - curRect.top) * (canvas.height / curRect.height);
+                        const newRatio = Math.max(0.20, Math.min(0.80, curCanvasY / canvas.height));
+                        onFramingSplitChange(Math.round(newRatio * 100));
+                    };
+                    const onSeamUp = () => {
+                        phoneSeamDrag = null;
+                        canvas.style.cursor = 'default';
+                        window.removeEventListener('mousemove', onSeamMove);
+                        window.removeEventListener('mouseup', onSeamUp);
+                    };
+                    window.addEventListener('mousemove', onSeamMove);
+                    window.addEventListener('mouseup', onSeamUp);
+                    return;
+                }
+
+                // Priority 2: Drag Overlays
+                if (!appState.overlays || appState.overlays.length === 0) return;
                 const scaleX = canvas.width / 1080;
                 const scaleY = canvas.height / 1920;
 

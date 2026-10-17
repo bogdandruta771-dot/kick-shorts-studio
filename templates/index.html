@@ -1814,6 +1814,10 @@
                             </div>
                             <div class="flex gap-2">
                                 <input type="password" id="input-ai-api-key" placeholder="Paste your API key here..." class="flex-1 bg-brand-surface px-3 py-2 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
+                                <button type="button" onclick="testAiKey(this)" class="px-3 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white text-xs font-semibold border border-indigo-500/30 flex items-center gap-1 transition-colors" title="Test if this API key connects successfully">
+                                    <i data-lucide="zap" class="w-3 h-3 text-amber-400"></i>
+                                    <span>Test</span>
+                                </button>
                                 <button type="button" onclick="saveAiKey()" class="px-3 py-2 rounded-lg bg-brand-surface hover:bg-brand-border text-white text-xs font-semibold border border-brand-border">Save Key</button>
                             </div>
                         </div>
@@ -1839,6 +1843,16 @@
                             <button type="button" onclick="testOllamaConnection()" class="px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 text-[10px] border border-emerald-500/30">
                                 Re-check
                             </button>
+                        </div>
+
+                        <!-- Diagnostic API Error Alert (revealed when API fails) -->
+                        <div id="ai-api-error-alert" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1 text-xs">
+                            <div class="flex items-center gap-1.5 text-amber-300 font-bold">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+                                <span>AI API Notice (Fell back to Offline Heuristics)</span>
+                            </div>
+                            <p id="ai-api-error-text" class="text-zinc-300 text-[11px] font-mono leading-relaxed break-words"></p>
+                            <p class="text-zinc-400 text-[10px] pt-0.5">Tip: Check your API key at the provider's console or click 'Test' above to verify your credentials.</p>
                         </div>
                     </div>
 
@@ -4510,7 +4524,10 @@
                 duration: data.duration || 0,
                 fps: data.fps || 30,
                 hasAudio: data.has_audio !== false,
-                filename: data.filename || 'kick_clip.mp4'
+                filename: data.filename || 'kick_clip.mp4',
+                title: data.title || '',
+                streamer: data.streamer || '',
+                category: data.category || ''
             };
             appState.trim = {
                 start: 0.0,
@@ -7641,8 +7658,58 @@
                 localStorage.setItem(`kick_ai_model_${provId}`, modelInput.value.trim());
             }
 
-            showToast(`Settings saved for ${provId.toUpperCase()}!`);
+            showToast(`Settings saved for ${provId.toUpperCase()}!`, 'success');
             toggleAiSettingsDrawer();
+        }
+
+        async function testAiKey(btnEl) {
+            const provId = document.getElementById('select-ai-provider')?.value || 'auto';
+            const enteredKey = document.getElementById('input-ai-api-key')?.value?.trim();
+            const apiKey = enteredKey || localStorage.getItem(`kick_ai_key_${provId}`) || localStorage.getItem('kick_ai_api_key') || '';
+            const baseUrl = document.getElementById('input-ai-base-url')?.value?.trim() || '';
+            const model = document.getElementById('input-ai-model')?.value?.trim() || '';
+
+            let origHtml = '';
+            if (btnEl) {
+                origHtml = btnEl.innerHTML;
+                btnEl.disabled = true;
+                btnEl.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Testing...</span>';
+                lucide.createIcons();
+            }
+
+            try {
+                const res = await fetch('/api/ai/test-connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: provId,
+                        api_key: apiKey || null,
+                        base_url: baseUrl || null,
+                        model: model || null
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✅ Successfully connected to ${data.provider}!`, 'success');
+                    const errBox = document.getElementById('ai-api-error-alert');
+                    if (errBox) errBox.classList.add('hidden');
+                } else {
+                    showToast(`❌ Connection notice: ${data.error}`, 'error');
+                    const errBox = document.getElementById('ai-api-error-alert');
+                    if (errBox) {
+                        errBox.classList.remove('hidden');
+                        document.getElementById('ai-api-error-text').innerText = data.error || 'Failed to connect';
+                    }
+                }
+            } catch (e) {
+                showToast(`❌ Test error: ${e.message}`, 'error');
+            } finally {
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = origHtml;
+                    lucide.createIcons();
+                }
+            }
         }
 
         function extractPromoCodeFromOverlays() {
@@ -7667,10 +7734,17 @@
 
             const promoCode = extractPromoCodeFromOverlays();
             const provId = document.getElementById('select-ai-provider')?.value || 'auto';
-            const apiKey = localStorage.getItem(`kick_ai_key_${provId}`) || localStorage.getItem('kick_ai_api_key') || null;
-            const baseUrl = document.getElementById('input-ai-base-url')?.value || null;
-            const model = document.getElementById('input-ai-model')?.value || null;
-            const clipName = appState.meta.filename || 'Stream Highlight Cut';
+            const enteredKey = document.getElementById('input-ai-api-key')?.value?.trim();
+            const apiKey = enteredKey || localStorage.getItem(`kick_ai_key_${provId}`) || localStorage.getItem('kick_ai_api_key') || null;
+            if (enteredKey) {
+                localStorage.setItem(`kick_ai_key_${provId}`, enteredKey);
+                localStorage.setItem('kick_ai_api_key', enteredKey);
+            }
+
+            const baseUrl = document.getElementById('input-ai-base-url')?.value?.trim() || null;
+            const model = document.getElementById('input-ai-model')?.value?.trim() || null;
+            const clipName = appState.meta?.title || appState.meta?.filename || 'Stream Highlight Cut';
+            const streamerName = appState.meta?.streamer || (clipExplorerState && clipExplorerState.activePreviewClip && clipExplorerState.activePreviewClip.streamer) || '';
 
             try {
                 const res = await fetch('/api/ai/generate-metadata', {
@@ -7678,6 +7752,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clip_title: clipName,
+                        streamer: streamerName || null,
                         category: appState.aiCategory || 'general',
                         game_name: null,
                         win_amount: null,
@@ -7695,10 +7770,22 @@
 
                 appState.aiData = data;
                 renderAiResults(data);
-                showToast(`🔥 5 Viral Titles & 3 Descriptions Generated via ${data.provider || 'AI'}!`);
+
+                if (data.api_error) {
+                    showToast(`⚠️ API Notice: ${data.api_error} (Loaded offline fallback copy)`, 'warning');
+                    const errBox = document.getElementById('ai-api-error-alert');
+                    if (errBox) {
+                        errBox.classList.remove('hidden');
+                        document.getElementById('ai-api-error-text').innerText = data.api_error;
+                    }
+                } else {
+                    const errBox = document.getElementById('ai-api-error-alert');
+                    if (errBox) errBox.classList.add('hidden');
+                    showToast(`🔥 5 Viral Titles & 3 Descriptions Generated via ${data.provider || 'AI'}!`, 'success');
+                }
             } catch (err) {
                 console.error('AI generation error:', err);
-                showToast('Copywriter notice: ' + err.message);
+                showToast('Copywriter notice: ' + err.message, 'error');
             } finally {
                 if (btn) {
                     btn.removeAttribute('disabled');

@@ -1,9 +1,13 @@
 """AI Title, Description & Hashtags generator supporting Gemini, Groq, OpenAI, Claude, DeepSeek, Ollama, OpenRouter, and offline heuristics."""
+import os
 import re
 import json
 import time
 from typing import Dict, Any, Optional, List
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Extended stream games & categories registry
@@ -35,8 +39,8 @@ SUPPORTED_AI_PROVIDERS = [
         "badge": "100% Free",
         "free": True,
         "requires_key": True,
-        "default_model": "gemini-1.5-flash-latest",
-        "models": ["gemini-1.5-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro"],
+        "default_model": "gemini-1.5-flash",
+        "models": ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
         "docs_url": "https://aistudio.google.com/app/apikey",
         "description": "Fast multimodal Google AI model with generous free daily tier.",
     },
@@ -306,24 +310,67 @@ def _normalize_metadata(result: Dict[str, Any], fallback: Dict[str, Any], provid
 
 
 def _parse_ai_json(raw_text: str) -> Optional[Dict[str, Any]]:
-    """Safely extracts JSON object from raw LLM output."""
+    """Safely extracts JSON object from raw LLM output, handling markdown, unescaped newlines, and trailing commas."""
     if not raw_text or not raw_text.strip():
         return None
-    # 1. Regex find outer braces
-    match = re.search(r"\{[\s\S]*\}", raw_text)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except Exception:
-            pass
 
-    # 2. Try markdown strip
-    clean = re.sub(r"^```(?:json)?", "", raw_text.strip(), flags=re.MULTILINE)
-    clean = re.sub(r"```$", "", clean.strip(), flags=re.MULTILINE).strip()
+    clean = raw_text.strip()
+    # Strip markdown code blocks
+    clean = re.sub(r"^```(?:json)?\s*", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"\s*```$", "", clean)
+    clean = clean.strip()
+
+    # 1. Direct parse with strict=False
     try:
-        return json.loads(clean)
+        data = json.loads(clean, strict=False)
+        if isinstance(data, dict):
+            return data
     except Exception:
-        return None
+        pass
+
+    # 2. Extract outer curly braces
+    m = re.search(r"\{[\s\S]*\}", clean)
+    if m:
+        candidate = m.group(0)
+        try:
+            data = json.loads(candidate, strict=False)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            # Strip trailing commas before closing braces/brackets
+            candidate_no_commas = re.sub(r",\s*([\]\}])", r"\1", candidate)
+            try:
+                data = json.loads(candidate_no_commas, strict=False)
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+
+    # 3. Regex field extraction fallback (never drop AI output due to JSON syntax edge cases)
+    titles = []
+    descriptions = []
+    hashtags = []
+
+    t_match = re.search(r'\"titles\"\s*:\s*\[([\s\S]*?)\]', raw_text)
+    if t_match:
+        titles = re.findall(r'\"((?:[^\"\\]|\\.)*)\"', t_match.group(1))
+
+    d_match = re.search(r'\"descriptions\"\s*:\s*\[([\s\S]*?)\]', raw_text)
+    if d_match:
+        descriptions = re.findall(r'\"((?:[^\"\\]|\\.)*)\"', d_match.group(1))
+
+    h_match = re.search(r'\"hashtags\"\s*:\s*\[([\s\S]*?)\]', raw_text)
+    if h_match:
+        hashtags = re.findall(r'\"((?:[^\"\\]|\\.)*)\"', h_match.group(1))
+
+    if titles or descriptions:
+        return {
+            "titles": [t.encode().decode("unicode_escape", errors="ignore") if "\\" in t else t for t in titles],
+            "descriptions": [d.encode().decode("unicode_escape", errors="ignore") if "\\" in d else d for d in descriptions],
+            "hashtags": hashtags,
+        }
+
+    return None
 
 
 def build_shorts_prompt(
@@ -381,51 +428,101 @@ def generate_with_gemini_api(
     category: str = "general",
     model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Calls Google Gemini API with multi-model failover."""
-    clean_key = api_key.strip()
+    """Calls Google Gemini API with multi-model failover and native JSON response."""
+    clean_key = (api_key or "").strip().strip("'\"")
+    if not clean_key:
+        raise ValueError("Google Gemini API key is missing or empty.")
+
     fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
     prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
 
-    headers = {"Content-Type": "application/json"}
-    body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800},
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": clean_key,
     }
 
-    candidate_models = [
-        ("v1beta", model or "gemini-1.5-flash-latest"),
-        ("v1beta", "gemini-2.0-flash"),
-        ("v1beta", "gemini-1.5-flash"),
-        ("v1", "gemini-1.5-flash"),
-        ("v1beta", "gemini-2.5-flash"),
-        ("v1beta", "gemini-1.5-pro"),
-    ]
+    # 1. Candidate models in order of capability & speed
+    candidate_models = []
+    if model and model.strip():
+        candidate_models.append(model.strip())
+
+    for m in [
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-pro",
+        "gemini-1.0-pro",
+    ]:
+        if m not in candidate_models:
+            candidate_models.append(m)
 
     last_err = None
-    for api_ver, model_name in candidate_models:
-        url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent?key={clean_key}"
-        try:
-            resp = requests.post(url, headers=headers, json=body, timeout=18)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if not candidates:
-                    continue
-                raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                parsed = _parse_ai_json(raw_text)
-                if parsed:
-                    return _normalize_metadata(parsed, fallback_data, f"Gemini ({model_name})")
-            elif resp.status_code == 404:
-                last_err = f"Model {model_name} (404)"
-                continue
-            else:
-                last_err = f"Gemini error ({resp.status_code}): {resp.text}"
-                break
-        except Exception as e:
-            last_err = str(e)
-            continue
+    for model_name in candidate_models:
+        for api_ver in ["v1beta", "v1"]:
+            url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent?key={clean_key}"
+            body = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 1000,
+                    "responseMimeType": "application/json",
+                },
+            }
+            try:
+                resp = requests.post(url, headers=headers, json=body, timeout=20)
+                # If model doesn't support responseMimeType, retry without it
+                if resp.status_code == 400 and "response_mime_type" in resp.text.lower():
+                    body["generationConfig"].pop("responseMimeType", None)
+                    resp = requests.post(url, headers=headers, json=body, timeout=20)
 
-    raise ValueError(f"Gemini API notice: {last_err}")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if not candidates:
+                        continue
+                    raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    parsed = _parse_ai_json(raw_text)
+                    if parsed:
+                        res = _normalize_metadata(parsed, fallback_data, f"Gemini ({model_name})")
+                        res["api_connected"] = True
+                        return res
+                    else:
+                        last_err = f"Failed to parse JSON response from Gemini ({model_name})"
+                elif resp.status_code == 404:
+                    last_err = f"Model {model_name} not available on {api_ver} (404)"
+                    continue
+                elif resp.status_code == 400:
+                    err_msg = resp.text
+                    try:
+                        err_json = resp.json().get("error", {})
+                        err_msg = err_json.get("message", resp.text)
+                    except Exception:
+                        pass
+                    last_err = f"Gemini error: {err_msg}"
+                    if "API key not valid" in err_msg or "API_KEY_INVALID" in err_msg:
+                        raise ValueError(f"Gemini API key is invalid: {err_msg}")
+                    break
+                elif resp.status_code == 403:
+                    err_msg = resp.text
+                    try:
+                        err_json = resp.json().get("error", {})
+                        err_msg = err_json.get("message", resp.text)
+                    except Exception:
+                        pass
+                    raise ValueError(f"Gemini Permission Denied (403): {err_msg}")
+                elif resp.status_code == 429:
+                    raise ValueError("Gemini API rate limit or quota exceeded (429). Please check your quota at https://aistudio.google.com")
+                else:
+                    last_err = f"Gemini error ({resp.status_code}): {resp.text[:200]}"
+                    break
+            except ValueError:
+                raise
+            except Exception as e:
+                last_err = str(e)
+                continue
+
+    raise ValueError(f"Gemini API notice: {last_err or 'No response from available models'}")
 
 
 def generate_with_claude_api(
@@ -439,7 +536,10 @@ def generate_with_claude_api(
     model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Calls Anthropic Claude API (e.g. claude-3-5-haiku-20241022 or claude-3-5-sonnet)."""
-    clean_key = api_key.strip()
+    clean_key = (api_key or "").strip().strip("'\"")
+    if not clean_key:
+        raise ValueError("Anthropic Claude API key is missing or empty.")
+
     fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
     prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
 
@@ -470,7 +570,9 @@ def generate_with_claude_api(
     if not parsed:
         raise ValueError("Failed to parse valid JSON from Claude response.")
 
-    return _normalize_metadata(parsed, fallback_data, f"Claude ({target_model})")
+    res = _normalize_metadata(parsed, fallback_data, f"Claude ({target_model})")
+    res["api_connected"] = True
+    return res
 
 
 def generate_with_openai_compatible(
@@ -486,6 +588,7 @@ def generate_with_openai_compatible(
     provider_label: str = "OpenAI",
 ) -> Dict[str, Any]:
     """Universal caller for OpenAI, Groq, DeepSeek, Ollama, OpenRouter, LM Studio, etc."""
+    clean_key = (api_key or "").strip().strip("'\"")
     fallback_data = generate_offline_shorts_copy(clip_title, win_amount, streamer, transcript, promo_code, category=category)
     prompt = build_shorts_prompt(clip_title, win_amount, streamer, transcript, promo_code, category)
 
@@ -497,8 +600,8 @@ def generate_with_openai_compatible(
             clean_url = f"{clean_url}/v1/chat/completions"
 
     headers = {"Content-Type": "application/json"}
-    if api_key and api_key.strip():
-        headers["Authorization"] = f"Bearer {api_key.strip()}"
+    if clean_key:
+        headers["Authorization"] = f"Bearer {clean_key}"
 
     body = {
         "model": model,
@@ -514,8 +617,19 @@ def generate_with_openai_compatible(
         body["response_format"] = {"type": "json_object"}
 
     resp = requests.post(clean_url, headers=headers, json=body, timeout=25)
+    # If 400 due to unsupported response_format, retry without it
+    if resp.status_code == 400 and "response_format" in resp.text.lower():
+        body.pop("response_format", None)
+        resp = requests.post(clean_url, headers=headers, json=body, timeout=25)
+
     if resp.status_code != 200:
-        raise ValueError(f"{provider_label} error ({resp.status_code}): {resp.text}")
+        err_detail = resp.text
+        try:
+            err_json = resp.json().get("error", {})
+            err_detail = err_json.get("message", resp.text)
+        except Exception:
+            pass
+        raise ValueError(f"{provider_label} error ({resp.status_code}): {err_detail}")
 
     data = resp.json()
     choices = data.get("choices", [])
@@ -527,7 +641,9 @@ def generate_with_openai_compatible(
     if not parsed:
         raise ValueError(f"Could not parse valid JSON from {provider_label} output.")
 
-    return _normalize_metadata(parsed, fallback_data, f"{provider_label} ({model})")
+    res = _normalize_metadata(parsed, fallback_data, f"{provider_label} ({model})")
+    res["api_connected"] = True
+    return res
 
 
 def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
@@ -562,11 +678,38 @@ def generate_shorts_metadata(
     """
     Unified AI Metadata Dispatcher:
     Supports Gemini, Groq, OpenAI, Claude, DeepSeek, Ollama (Local), OpenRouter, Custom Endpoints.
-    Guaranteed zero-crash fallback to Smart Offline Heuristics engine.
+    Guaranteed zero-crash fallback to Smart Offline Heuristics engine with clear diagnostic notices.
     """
-    clean_key = (api_key or "").strip()
+    clean_key = (api_key or "").strip().strip("'\"")
     clean_provider = (provider or "auto").lower().strip()
     target_category = category or "general"
+
+    # 0. Fall back to environment keys if api_key was not passed explicitly
+    if not clean_key:
+        if clean_provider == "gemini":
+            clean_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+        elif clean_provider == "groq":
+            clean_key = os.environ.get("GROQ_API_KEY") or ""
+        elif clean_provider == "openai":
+            clean_key = os.environ.get("OPENAI_API_KEY") or ""
+        elif clean_provider == "claude":
+            clean_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY") or ""
+        elif clean_provider == "deepseek":
+            clean_key = os.environ.get("DEEPSEEK_API_KEY") or ""
+        elif clean_provider == "openrouter":
+            clean_key = os.environ.get("OPENROUTER_API_KEY") or ""
+        elif clean_provider == "auto":
+            clean_key = (
+                os.environ.get("GEMINI_API_KEY")
+                or os.environ.get("GOOGLE_API_KEY")
+                or os.environ.get("GROQ_API_KEY")
+                or os.environ.get("OPENAI_API_KEY")
+                or os.environ.get("ANTHROPIC_API_KEY")
+                or os.environ.get("CLAUDE_API_KEY")
+                or os.environ.get("DEEPSEEK_API_KEY")
+                or os.environ.get("OPENROUTER_API_KEY")
+                or ""
+            )
 
     # 1. Resolve Provider when set to 'auto'
     if clean_provider == "auto":
@@ -593,7 +736,7 @@ def generate_shorts_metadata(
     try:
         if clean_provider == "gemini":
             if not clean_key:
-                raise ValueError("Gemini API key is required.")
+                raise ValueError("Google Gemini API key is missing. Paste your key in Settings or set GEMINI_API_KEY in .env.")
             return generate_with_gemini_api(
                 api_key=clean_key,
                 clip_title=clip_title,
@@ -607,7 +750,7 @@ def generate_shorts_metadata(
 
         elif clean_provider == "groq":
             if not clean_key:
-                raise ValueError("Groq API key is required.")
+                raise ValueError("Groq API key is missing. Paste your key in Settings or set GROQ_API_KEY in .env.")
             return generate_with_openai_compatible(
                 api_key=clean_key,
                 base_url="https://api.groq.com/openai/v1",
@@ -623,7 +766,7 @@ def generate_shorts_metadata(
 
         elif clean_provider == "claude":
             if not clean_key:
-                raise ValueError("Anthropic Claude API key is required.")
+                raise ValueError("Anthropic Claude API key is missing. Paste your key in Settings or set ANTHROPIC_API_KEY in .env.")
             return generate_with_claude_api(
                 api_key=clean_key,
                 clip_title=clip_title,
@@ -637,7 +780,7 @@ def generate_shorts_metadata(
 
         elif clean_provider == "openai":
             if not clean_key:
-                raise ValueError("OpenAI API key is required.")
+                raise ValueError("OpenAI API key is missing. Paste your key in Settings or set OPENAI_API_KEY in .env.")
             return generate_with_openai_compatible(
                 api_key=clean_key,
                 base_url="https://api.openai.com/v1",
@@ -653,7 +796,7 @@ def generate_shorts_metadata(
 
         elif clean_provider == "deepseek":
             if not clean_key:
-                raise ValueError("DeepSeek API key is required.")
+                raise ValueError("DeepSeek API key is missing. Paste your key in Settings or set DEEPSEEK_API_KEY in .env.")
             return generate_with_openai_compatible(
                 api_key=clean_key,
                 base_url=base_url or "https://api.deepseek.com/v1",
@@ -669,7 +812,7 @@ def generate_shorts_metadata(
 
         elif clean_provider == "openrouter":
             if not clean_key:
-                raise ValueError("OpenRouter API key is required.")
+                raise ValueError("OpenRouter API key is missing. Paste your key in Settings or set OPENROUTER_API_KEY in .env.")
             return generate_with_openai_compatible(
                 api_key=clean_key,
                 base_url=base_url or "https://openrouter.ai/api/v1",
@@ -715,10 +858,23 @@ def generate_shorts_metadata(
             )
 
     except Exception as exc:
-        print(f"Notice: {clean_provider} generation error ({exc}). Falling back to Offline Smart Copywriter.")
+        err_msg = str(exc)
+        print(f"Notice: {clean_provider} generation error ({err_msg}). Falling back to Offline Smart Copywriter.")
+        fallback = generate_offline_shorts_copy(
+            clip_title=clip_title,
+            win_amount=win_amount,
+            streamer=streamer,
+            transcript=transcript,
+            promo_code=promo_code,
+            category=target_category,
+        )
+        fallback["api_error"] = err_msg
+        fallback["api_connected"] = False
+        fallback["provider"] = f"Offline Heuristics (API Notice: {err_msg})"
+        return fallback
 
-    # Guaranteed fallback
-    return generate_offline_shorts_copy(
+    # Guaranteed offline fallback if provider was 'offline'
+    res = generate_offline_shorts_copy(
         clip_title=clip_title,
         win_amount=win_amount,
         streamer=streamer,
@@ -726,6 +882,39 @@ def generate_shorts_metadata(
         promo_code=promo_code,
         category=target_category,
     )
+    res["api_connected"] = False
+    return res
+
+
+def test_ai_provider_connection(
+    provider: str = "auto",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    model: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Tests connection to the specified AI provider with a tiny prompt and returns diagnostic status."""
+    try:
+        res = generate_shorts_metadata(
+            clip_title="Test Clip",
+            category="gaming",
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+        )
+        if res.get("api_error"):
+            return {
+                "success": False,
+                "error": res["api_error"],
+                "provider": res.get("provider"),
+            }
+        return {
+            "success": True,
+            "provider": res.get("provider", provider),
+            "sample_title": (res.get("titles") or ["Test Title"])[0],
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 _SAFE_TITLE_COUNTER = 0

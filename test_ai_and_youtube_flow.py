@@ -65,7 +65,7 @@ def test_dispatcher_with_no_key_fallback():
     assert "LUCKY777" in meta["descriptions"][0]
 
 def test_dispatcher_graceful_fallback_on_invalid_key():
-    """Verify that an invalid or expired API key falls back to offline engine instead of crashing."""
+    """Verify that an invalid or expired API key falls back to offline engine instead of crashing, while reporting api_error."""
     meta = generate_shorts_metadata(
         clip_title="Gates of Olympus Max Win",
         api_key="invalid_fake_key_12345"
@@ -73,6 +73,52 @@ def test_dispatcher_graceful_fallback_on_invalid_key():
     assert "titles" in meta
     assert len(meta["titles"]) == 5
     assert len(meta["descriptions"]) == 3
+    assert "api_error" in meta
+    assert meta["api_connected"] is False
+
+
+def test_robust_parse_ai_json_edge_cases():
+    """Verify JSON parser handles unescaped newlines, trailing commas, and markdown code blocks."""
+    from core.ai_copywriter import _parse_ai_json
+
+    # Test 1: Markdown block with trailing commas and literal newline in description
+    messy_llm_output = """```json
+    {
+      "titles": [
+        "🔥 CRAZY WIN #shorts",
+        "CANNOT BELIEVE THIS LUCK! #shorts",
+      ],
+      "descriptions": [
+        "Look at this clip!
+Streamer: xQc
+Claim rewards below!",
+      ],
+      "hashtags": ["#shorts", "#win", ]
+    }
+    ```"""
+    parsed = _parse_ai_json(messy_llm_output)
+    assert parsed is not None
+    assert len(parsed["titles"]) == 2
+    assert len(parsed["descriptions"]) == 1
+    assert len(parsed["hashtags"]) == 2
+
+
+def test_fastapi_ai_test_connection_endpoint():
+    """Test the /api/ai/test-connection endpoint."""
+    client = TestClient(app)
+    # Test with offline provider
+    resp = client.post("/api/ai/test-connection", json={"provider": "offline"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert "provider" in data
+
+    # Test with invalid key returns clean diagnostic error rather than 500 crash
+    resp_inv = client.post("/api/ai/test-connection", json={"provider": "gemini", "api_key": "AIzaFakeKeyInvalid"})
+    assert resp_inv.status_code == 200
+    data_inv = resp_inv.json()
+    assert data_inv["success"] is False
+    assert "error" in data_inv
 
 def test_youtube_status_initially_not_authenticated():
     """Verify YouTube status reporting without existing user credentials."""

@@ -17,9 +17,12 @@ from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, JSO
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from core.banner_generator import generate_promo_banner, process_uploaded_overlay, generate_hook_banner
-from core.ai_copywriter import generate_shorts_metadata, get_available_ai_providers, generate_viral_hooks
+from core.ai_copywriter import generate_shorts_metadata, get_available_ai_providers, generate_viral_hooks, test_ai_provider_connection
 from core.audio_detector import analyze_audio_climax
 from core.youtube_uploader import (
     get_youtube_auth_status,
@@ -220,6 +223,13 @@ class GenerateMetadataRequest(BaseModel):
     provider: Optional[str] = "auto"
     model: Optional[str] = None
     base_url: Optional[str] = None
+
+
+class TestAiConnectionRequest(BaseModel):
+    provider: Optional[str] = "auto"
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    model: Optional[str] = None
 
 
 class YouTubeUploadRequest(BaseModel):
@@ -1210,6 +1220,17 @@ async def serve_output_video(filename: str):
 async def get_ai_providers_endpoint():
     """Returns registry of supported AI providers for studio UI."""
     return {"providers": get_available_ai_providers()}
+
+
+@app.post("/api/ai/test-connection")
+async def test_ai_connection_endpoint(req: TestAiConnectionRequest):
+    """Tests the AI provider connection and returns clear success or diagnostic error."""
+    return test_ai_provider_connection(
+        provider=req.provider or "auto",
+        api_key=req.api_key,
+        base_url=req.base_url,
+        model=req.model,
+    )
 
 
 @app.post("/api/ai/generate-metadata")

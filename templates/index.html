@@ -1753,7 +1753,8 @@
                                 <select id="select-ai-provider" onchange="handleAiProviderChange()" class="bg-brand-bg px-2.5 py-1.5 rounded-lg border border-brand-border text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">
                                     <option value="auto">⚡ Auto-Detect (Smart Routing)</option>
                                     <option value="gemini">🌟 Google Gemini (Free Tier)</option>
-                                    <option value="groq">⚡ Groq (Ultra-Fast Free)</option>
+                                    <option value="groq">⚡ Groq (Llama 3.1 / 3.3 - Free)</option>
+                                    <option value="grok">🚀 xAI Grok (Grok-2 / Beta)</option>
                                     <option value="ollama">🦙 Ollama (Local / Free / No Key)</option>
                                     <option value="openai">🤖 OpenAI (GPT-4o Mini / 4o)</option>
                                     <option value="claude">🎭 Anthropic Claude (Haiku / 3.5)</option>
@@ -7416,15 +7417,30 @@
             },
             'groq': {
                 name: 'Groq',
-                badge: 'Ultra-Fast 500+ tok/s',
-                desc: 'Near-instantaneous inference on Llama 3.3 70B via Groq high-speed LPU cloud.',
+                badge: 'Ultra-Fast Free (Llama 3.1 / 3.3)',
+                desc: 'Ultra-fast inference (500+ tok/s) with auto-failover between Llama 3.1 8B Instant and Llama 3.3 70B.',
                 showKey: true,
                 keyLabel: 'Groq API Key',
                 keyLink: 'https://console.groq.com/keys',
                 keyLinkText: 'Get Free Groq Key',
                 keyPlaceholder: 'gsk_...',
                 showEndpoint: false,
+                defaultModel: 'llama-3.1-8b-instant',
                 isFree: true
+            },
+            'grok': {
+                name: 'xAI Grok',
+                badge: 'Grok-2 / Beta',
+                desc: 'xAI Grok API for witty, high-converting YouTube Shorts hooks and creative descriptions.',
+                showKey: true,
+                keyLabel: 'xAI API Key',
+                keyLink: 'https://console.x.ai/',
+                keyLinkText: 'Get xAI Key',
+                keyPlaceholder: 'xai-...',
+                showEndpoint: true,
+                defaultBaseUrl: 'https://api.x.ai/v1',
+                defaultModel: 'grok-beta',
+                isFree: false
             },
             'ollama': {
                 name: 'Ollama (Local LLM)',

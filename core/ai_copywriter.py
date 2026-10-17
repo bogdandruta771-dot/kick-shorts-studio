@@ -50,10 +50,22 @@ SUPPORTED_AI_PROVIDERS = [
         "badge": "Ultra-Fast Free",
         "free": True,
         "requires_key": True,
-        "default_model": "llama-3.3-70b-versatile",
-        "models": ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "llama-3.1-8b-instant"],
+        "default_model": "llama-3.1-8b-instant",
+        "models": ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"],
         "docs_url": "https://console.groq.com/keys",
-        "description": "Near-instantaneous inference (500+ tokens/sec) on Llama 3.3 70B.",
+        "description": "Near-instantaneous inference (500+ tokens/sec) on Llama 3.1 8B and 3.3 70B with auto-failover.",
+    },
+    {
+        "id": "grok",
+        "name": "xAI Grok (Grok-2 / Beta)",
+        "badge": "xAI Grok",
+        "free": False,
+        "requires_key": True,
+        "default_base_url": "https://api.x.ai/v1",
+        "default_model": "grok-beta",
+        "models": ["grok-beta", "grok-2-latest", "grok-2"],
+        "docs_url": "https://console.x.ai/",
+        "description": "xAI Grok-2 / Beta for witty, high-CTR viral hooks and creative copy.",
     },
     {
         "id": "ollama",
@@ -646,6 +658,129 @@ def generate_with_openai_compatible(
     return res
 
 
+def generate_with_groq_api(
+    api_key: str,
+    clip_title: str,
+    win_amount: Optional[str] = None,
+    streamer: Optional[str] = None,
+    transcript: Optional[str] = None,
+    promo_code: Optional[str] = None,
+    category: str = "general",
+    model: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Calls Groq API with robust multi-model fallback.
+    If the requested model returns 404 or access denied, it automatically
+    fails over to universally supported free models (e.g. llama-3.1-8b-instant).
+    """
+    clean_key = (api_key or "").strip().strip("'\"")
+    if not clean_key:
+        raise ValueError("Groq API key is missing. Paste your key in Settings or set GROQ_API_KEY in .env.")
+
+    candidate_models: List[str] = []
+    if model and model.strip():
+        candidate_models.append(model.strip())
+
+    preferred_candidates = [
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "llama3-8b-8192",
+        "llama3-70b-8192",
+        "gemma2-9b-it",
+        "mixtral-8x7b-32768",
+    ]
+    for c in preferred_candidates:
+        if c not in candidate_models:
+            candidate_models.append(c)
+
+    last_err = None
+    for cand_model in candidate_models:
+        try:
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url="https://api.groq.com/openai/v1",
+                model=cand_model,
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=category,
+                provider_label="Groq",
+            )
+        except ValueError as exc:
+            err_msg = str(exc)
+            last_err = err_msg
+            # Bad auth -> re-raise immediately
+            if "401" in err_msg or "invalid api key" in err_msg.lower():
+                raise
+            # Model not found or no access -> failover to next model
+            if any(k in err_msg.lower() for k in ["404", "does not exist", "do not have access", "model_not_found"]):
+                continue
+            # Rate limit on 70b -> try 8b
+            if "429" in err_msg and cand_model != "llama-3.1-8b-instant":
+                continue
+            raise
+
+    raise ValueError(last_err or "Groq API error: None of the candidate models responded successfully.")
+
+
+def generate_with_grok_api(
+    api_key: str,
+    clip_title: str,
+    win_amount: Optional[str] = None,
+    streamer: Optional[str] = None,
+    transcript: Optional[str] = None,
+    promo_code: Optional[str] = None,
+    category: str = "general",
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Calls xAI Grok API (https://api.x.ai/v1) with multi-model failover.
+    Supports grok-beta, grok-2-latest, grok-2.
+    """
+    clean_key = (api_key or "").strip().strip("'\"")
+    if not clean_key:
+        raise ValueError("xAI Grok API key is missing. Paste your key in Settings or set XAI_API_KEY in .env.")
+
+    endpoint = (base_url or "https://api.x.ai/v1").strip().rstrip("/")
+    candidate_models: List[str] = []
+    if model and model.strip():
+        candidate_models.append(model.strip())
+
+    for c in ["grok-beta", "grok-2-latest", "grok-2", "grok-vision-beta"]:
+        if c not in candidate_models:
+            candidate_models.append(c)
+
+    last_err = None
+    for cand_model in candidate_models:
+        try:
+            return generate_with_openai_compatible(
+                api_key=clean_key,
+                base_url=endpoint,
+                model=cand_model,
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=category,
+                provider_label="xAI Grok",
+            )
+        except ValueError as exc:
+            err_msg = str(exc)
+            last_err = err_msg
+            if "401" in err_msg or "invalid api key" in err_msg.lower():
+                raise
+            if any(k in err_msg.lower() for k in ["404", "does not exist", "not found"]):
+                continue
+            raise
+
+    raise ValueError(last_err or "xAI Grok API error: No available models responded.")
+
+
 def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
     """Checks if local Ollama server is running and accessible."""
     try:
@@ -690,6 +825,8 @@ def generate_shorts_metadata(
             clean_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
         elif clean_provider == "groq":
             clean_key = os.environ.get("GROQ_API_KEY") or ""
+        elif clean_provider in ("grok", "xai"):
+            clean_key = os.environ.get("XAI_API_KEY") or os.environ.get("GROK_API_KEY") or ""
         elif clean_provider == "openai":
             clean_key = os.environ.get("OPENAI_API_KEY") or ""
         elif clean_provider == "claude":
@@ -700,9 +837,11 @@ def generate_shorts_metadata(
             clean_key = os.environ.get("OPENROUTER_API_KEY") or ""
         elif clean_provider == "auto":
             clean_key = (
-                os.environ.get("GEMINI_API_KEY")
+                os.environ.get("GROQ_API_KEY")
+                or os.environ.get("GEMINI_API_KEY")
                 or os.environ.get("GOOGLE_API_KEY")
-                or os.environ.get("GROQ_API_KEY")
+                or os.environ.get("XAI_API_KEY")
+                or os.environ.get("GROK_API_KEY")
                 or os.environ.get("OPENAI_API_KEY")
                 or os.environ.get("ANTHROPIC_API_KEY")
                 or os.environ.get("CLAUDE_API_KEY")
@@ -711,10 +850,24 @@ def generate_shorts_metadata(
                 or ""
             )
 
-    # 1. Resolve Provider when set to 'auto'
+    # 1. Smart cross-routing and auto-detection (protects against Groq vs xAI Grok confusion)
+    if clean_key:
+        if clean_key.startswith("xai-") and clean_provider in ("auto", "groq", "grok", "xai"):
+            clean_provider = "grok"
+        elif clean_key.startswith("gsk_") and clean_provider in ("auto", "groq", "grok", "xai"):
+            clean_provider = "groq"
+        elif clean_key.startswith("sk-ant-") and clean_provider in ("auto", "claude"):
+            clean_provider = "claude"
+        elif clean_key.startswith("sk-or-") and clean_provider in ("auto", "openrouter"):
+            clean_provider = "openrouter"
+        elif clean_key.startswith("AIza") and clean_provider in ("auto", "gemini"):
+            clean_provider = "gemini"
+
     if clean_provider == "auto":
         if clean_key.startswith("gsk_"):
             clean_provider = "groq"
+        elif clean_key.startswith("xai-"):
+            clean_provider = "grok"
         elif clean_key.startswith("sk-ant-"):
             clean_provider = "claude"
         elif clean_key.startswith("sk-or-"):
@@ -751,17 +904,30 @@ def generate_shorts_metadata(
         elif clean_provider == "groq":
             if not clean_key:
                 raise ValueError("Groq API key is missing. Paste your key in Settings or set GROQ_API_KEY in .env.")
-            return generate_with_openai_compatible(
+            return generate_with_groq_api(
                 api_key=clean_key,
-                base_url="https://api.groq.com/openai/v1",
-                model=model or "llama-3.3-70b-versatile",
                 clip_title=clip_title,
                 win_amount=win_amount,
                 streamer=streamer,
                 transcript=transcript,
                 promo_code=promo_code,
                 category=target_category,
-                provider_label="Groq",
+                model=model,
+            )
+
+        elif clean_provider in ("grok", "xai"):
+            if not clean_key:
+                raise ValueError("xAI Grok API key is missing. Paste your key in Settings or set XAI_API_KEY in .env.")
+            return generate_with_grok_api(
+                api_key=clean_key,
+                clip_title=clip_title,
+                win_amount=win_amount,
+                streamer=streamer,
+                transcript=transcript,
+                promo_code=promo_code,
+                category=target_category,
+                model=model,
+                base_url=base_url,
             )
 
         elif clean_provider == "claude":

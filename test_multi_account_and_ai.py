@@ -133,6 +133,89 @@ class TestMultiProviderAI(unittest.TestCase):
         self.assertEqual(len(res["titles"]), 5)
         self.assertIn("Claude", res["provider"])
 
+    @patch("requests.post")
+    def test_groq_failover_when_70b_returns_404(self, mock_post):
+        """Simulates Groq 404 on llama-3.3-70b-versatile and verifies seamless fallback to llama-3.1-8b-instant."""
+        def side_effect(url, **kwargs):
+            body = kwargs.get("json", {})
+            model = body.get("model", "")
+            resp = MagicMock()
+            if model == "llama-3.3-70b-versatile":
+                resp.status_code = 404
+                resp.text = json.dumps({"error": {"message": "The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.", "type": "invalid_request_error"}})
+                resp.json.return_value = {"error": {"message": "The model `llama-3.3-70b-versatile` does not exist or you do not have access to it."}}
+                return resp
+            elif model == "llama-3.1-8b-instant":
+                resp.status_code = 200
+                resp.json.return_value = {
+                    "choices": [{
+                        "message": {
+                            "content": json.dumps({
+                                "titles": [
+                                    "HE HIT A 5000X MULTIPLIER! 🎰 #shorts",
+                                    "Watch His Reaction At The End! 😱 #shorts",
+                                    "Biggest Win Of The Stream! 🔥 #shorts",
+                                    "Nobody Expected This Spin... 🤯 #shorts",
+                                    "He Thought He Was Down To $0 💀 #shorts"
+                                ],
+                                "descriptions": ["Huge hit on stream!", "Drop a comment!", "Subscribe for more!"],
+                                "hashtags": ["#shorts", "#bigwin", "#casino"]
+                            })
+                        }
+                    }]
+                }
+                return resp
+            resp.status_code = 500
+            resp.text = "Unexpected model"
+            return resp
+
+        mock_post.side_effect = side_effect
+
+        res = ai.generate_shorts_metadata(
+            clip_title="Crazy Slot Win",
+            api_key="gsk_real_groq_key_12345",
+            provider="groq",
+            model="llama-3.3-70b-versatile",
+        )
+        self.assertEqual(len(res["titles"]), 5)
+        self.assertIn("llama-3.1-8b-instant", res["provider"])
+        self.assertTrue(res.get("api_connected"))
+
+    @patch("requests.post")
+    def test_smart_cross_routing_groq_and_grok(self, mock_post):
+        """Verifies intelligent auto-routing between Groq (gsk_) and xAI Grok (xai-)."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "choices": [{
+                "message": {
+                    "content": json.dumps({
+                        "titles": ["TITLE 1 #shorts", "TITLE 2 #shorts", "TITLE 3 #shorts", "TITLE 4 #shorts", "TITLE 5 #shorts"],
+                        "descriptions": ["D1", "D2", "D3"],
+                        "hashtags": ["#shorts"]
+                    })
+                }
+            }]
+        }
+        mock_post.return_value = mock_resp
+
+        # 1. User selected 'groq' but gave an xAI Grok key
+        res1 = ai.generate_shorts_metadata(
+            clip_title="Clutch play",
+            api_key="xai-test-key-999",
+            provider="groq",
+        )
+        self.assertIn("xAI Grok", res1["provider"])
+
+        # 2. User selected 'grok' but gave a Groq key
+        res2 = ai.generate_shorts_metadata(
+            clip_title="Clutch play",
+            api_key="gsk_test_key_888",
+            provider="grok",
+        )
+        self.assertIn("Groq", res2["provider"])
+
+
 
 class TestYouTubeMultiAccount(unittest.TestCase):
     """Verifies multi-account channel management and broadcast uploads."""

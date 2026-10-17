@@ -215,6 +215,57 @@ class TestMultiProviderAI(unittest.TestCase):
         )
         self.assertIn("Groq", res2["provider"])
 
+    def test_clean_api_key_sanitization(self):
+        """Verifies clean_api_key handles smart quotes, whitespace, Bearer prefix, and zero-width chars."""
+        # Smart quotes
+        self.assertEqual(ai.clean_api_key("“gsk_12345”"), "gsk_12345")
+        # Single smart quotes
+        self.assertEqual(ai.clean_api_key("‘xai-12345’"), "xai-12345")
+        # Bearer prefix
+        self.assertEqual(ai.clean_api_key("Bearer gsk_12345"), "gsk_12345")
+        self.assertEqual(ai.clean_api_key("bearer xai-12345"), "xai-12345")
+        # Zero-width spaces & BOM
+        self.assertEqual(ai.clean_api_key("\ufeff\u200bgsk_12345\u200b"), "gsk_12345")
+
+    @patch("requests.post")
+    def test_401_cross_provider_failover_groq_to_grok(self, mock_post):
+        """Verifies that if Groq returns 401, system seamlessly tries xAI Grok before giving up."""
+        def side_effect(url, **kwargs):
+            resp = MagicMock()
+            if "groq.com" in url:
+                resp.status_code = 401
+                resp.text = json.dumps({"error": {"message": "Invalid API Key"}})
+                resp.json.return_value = {"error": {"message": "Invalid API Key"}}
+                return resp
+            elif "x.ai" in url:
+                resp.status_code = 200
+                resp.json.return_value = {
+                    "choices": [{
+                        "message": {
+                            "content": json.dumps({
+                                "titles": ["T1 #shorts", "T2 #shorts", "T3 #shorts", "T4 #shorts", "T5 #shorts"],
+                                "descriptions": ["D1", "D2", "D3"],
+                                "hashtags": ["#shorts"]
+                            })
+                        }
+                    }]
+                }
+                return resp
+            resp.status_code = 500
+            return resp
+
+        mock_post.side_effect = side_effect
+
+        res = ai.generate_shorts_metadata(
+            clip_title="Clutch play",
+            api_key="key_that_fails_on_groq_but_works_on_xai",
+            provider="groq",
+        )
+        self.assertEqual(len(res["titles"]), 5)
+        self.assertIn("xAI Grok", res["provider"])
+        self.assertTrue(res.get("api_connected"))
+
+
 
 
 class TestYouTubeMultiAccount(unittest.TestCase):

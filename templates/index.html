@@ -1814,13 +1814,14 @@
                                 </a>
                             </div>
                             <div class="flex gap-2">
-                                <input type="password" id="input-ai-api-key" placeholder="Paste your API key here..." class="flex-1 bg-brand-surface px-3 py-2 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
+                                <input type="password" id="input-ai-api-key" oninput="inspectAiKeyInput()" placeholder="Paste your API key here..." class="flex-1 bg-brand-surface px-3 py-2 rounded-lg border border-brand-border text-white text-xs font-mono focus:outline-none focus:border-indigo-500">
                                 <button type="button" onclick="testAiKey(this)" class="px-3 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white text-xs font-semibold border border-indigo-500/30 flex items-center gap-1 transition-colors" title="Test if this API key connects successfully">
                                     <i data-lucide="zap" class="w-3 h-3 text-amber-400"></i>
                                     <span>Test</span>
                                 </button>
                                 <button type="button" onclick="saveAiKey()" class="px-3 py-2 rounded-lg bg-brand-surface hover:bg-brand-border text-white text-xs font-semibold border border-brand-border">Save Key</button>
                             </div>
+                            <div id="ai-key-hint" class="hidden text-[11px] pt-1 font-mono leading-tight"></div>
                         </div>
 
                         <!-- Endpoint Base URL & Model input (for Ollama, Custom, DeepSeek, OpenRouter) -->
@@ -1847,12 +1848,12 @@
                         </div>
 
                         <!-- Diagnostic API Error Alert (revealed when API fails) -->
-                        <div id="ai-api-error-alert" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1 text-xs">
+                        <div id="ai-api-error-alert" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5 text-xs">
                             <div class="flex items-center gap-1.5 text-amber-300 font-bold">
                                 <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
                                 <span>AI API Notice (Fell back to Offline Heuristics)</span>
                             </div>
-                            <p id="ai-api-error-text" class="text-zinc-300 text-[11px] font-mono leading-relaxed break-words"></p>
+                            <p id="ai-api-error-text" class="text-zinc-300 text-[11px] font-mono leading-relaxed whitespace-pre-line break-words"></p>
                             <p class="text-zinc-400 text-[10px] pt-0.5">Tip: Check your API key at the provider's console or click 'Test' above to verify your credentials.</p>
                         </div>
                     </div>
@@ -7611,7 +7612,58 @@
                 if (ollamaBox) ollamaBox.classList.add('hidden');
             }
 
+            inspectAiKeyInput();
             lucide.createIcons();
+        }
+
+        function inspectAiKeyInput() {
+            const keyInput = document.getElementById('input-ai-api-key');
+            const hintEl = document.getElementById('ai-key-hint');
+            if (!keyInput || !hintEl) return;
+
+            let key = keyInput.value.trim();
+            // Automatically strip enclosing quotes if accidentally pasted
+            if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+                key = key.slice(1, -1).trim();
+                keyInput.value = key;
+            }
+            if (key.toLowerCase().startsWith('bearer ')) {
+                key = key.slice(7).trim();
+                keyInput.value = key;
+            }
+
+            if (!key) {
+                hintEl.classList.add('hidden');
+                hintEl.innerHTML = '';
+                return;
+            }
+
+            hintEl.classList.remove('hidden');
+            const provId = document.getElementById('select-ai-provider')?.value || 'auto';
+
+            if (key.startsWith('gsk_')) {
+                if (provId === 'grok') {
+                    hintEl.innerHTML = '<span class="text-amber-400">⚡ Groq Key detected (gsk_...) - Will auto-route to Groq Cloud (Free LPU)</span>';
+                } else {
+                    hintEl.innerHTML = `<span class="text-emerald-400">✓ Groq Key recognized (${key.length} chars)</span>`;
+                }
+            } else if (key.startsWith('xai-')) {
+                if (provId === 'groq') {
+                    hintEl.innerHTML = '<span class="text-amber-400">🚀 xAI Grok Key detected (xai-...) - Will auto-route to xAI Grok</span>';
+                } else {
+                    hintEl.innerHTML = `<span class="text-emerald-400">✓ xAI Grok Key recognized (${key.length} chars)</span>`;
+                }
+            } else if (key.startsWith('AIza')) {
+                hintEl.innerHTML = '<span class="text-emerald-400">✓ Google Gemini Key recognized</span>';
+            } else if (key.startsWith('sk-ant-')) {
+                hintEl.innerHTML = '<span class="text-emerald-400">✓ Anthropic Claude Key recognized</span>';
+            } else if (key.startsWith('sk-or-')) {
+                hintEl.innerHTML = '<span class="text-emerald-400">✓ OpenRouter Key recognized</span>';
+            } else if (key.startsWith('sk-')) {
+                hintEl.innerHTML = '<span class="text-emerald-400">✓ OpenAI / DeepSeek Key recognized</span>';
+            } else {
+                hintEl.innerHTML = `<span class="text-zinc-400">Key length: ${key.length} characters</span>`;
+            }
         }
 
         async function testOllamaConnection() {

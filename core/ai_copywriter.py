@@ -658,6 +658,23 @@ def generate_with_openai_compatible(
     return res
 
 
+def clean_api_key(api_key: Optional[str]) -> str:
+    """Thoroughly cleans and sanitizes API keys from quotes, zero-width chars, and prefixes."""
+    if not api_key:
+        return ""
+    key = str(api_key).strip()
+    # Remove surrounding quotes (ASCII and Unicode smart quotes)
+    key = key.strip("'\"“”‘’`«» \t\r\n")
+    # Remove zero-width spaces, byte order marks, non-breaking spaces
+    key = re.sub(r"[\u200b\u200c\u200d\ufeff\u00a0]", "", key).strip()
+    # Remove accidental Bearer or Token prefix if copied from curl/headers
+    if key.lower().startswith("bearer "):
+        key = key[7:].strip()
+    if key.lower().startswith("token "):
+        key = key[6:].strip()
+    return key.strip(";, \t\r\n")
+
+
 def generate_with_groq_api(
     api_key: str,
     clip_title: str,
@@ -667,13 +684,15 @@ def generate_with_groq_api(
     promo_code: Optional[str] = None,
     category: str = "general",
     model: Optional[str] = None,
+    _called_from_failover: bool = False,
 ) -> Dict[str, Any]:
     """
     Calls Groq API with robust multi-model fallback.
     If the requested model returns 404 or access denied, it automatically
     fails over to universally supported free models (e.g. llama-3.1-8b-instant).
+    If Groq returns 401 Unauthorized, it automatically tests if the key is an xAI Grok key.
     """
-    clean_key = (api_key or "").strip().strip("'\"")
+    clean_key = clean_api_key(api_key)
     if not clean_key:
         raise ValueError("Groq API key is missing. Paste your key in Settings or set GROQ_API_KEY in .env.")
 
@@ -712,9 +731,30 @@ def generate_with_groq_api(
         except ValueError as exc:
             err_msg = str(exc)
             last_err = err_msg
-            # Bad auth -> re-raise immediately
+            # Bad auth -> try xAI Grok cross-failover before giving up
             if "401" in err_msg or "invalid api key" in err_msg.lower():
-                raise
+                if not _called_from_failover:
+                    try:
+                        return generate_with_grok_api(
+                            api_key=clean_key,
+                            clip_title=clip_title,
+                            win_amount=win_amount,
+                            streamer=streamer,
+                            transcript=transcript,
+                            promo_code=promo_code,
+                            category=category,
+                            _called_from_failover=True,
+                        )
+                    except Exception:
+                        pass
+                key_prefix = clean_key[:8] if len(clean_key) >= 8 else clean_key
+                raise ValueError(
+                    f"Groq API Error (401: Invalid API Key).\n"
+                    f"• Key length: {len(clean_key)} chars (prefix: '{key_prefix}...')\n"
+                    f"• The key was rejected by Groq Cloud (console.groq.com).\n"
+                    f"• If you have an xAI Grok key: verify it at https://console.x.ai (starts with 'xai-').\n"
+                    f"• If you need a 100% free key: get one in 10s at https://console.groq.com/keys (starts with 'gsk_')."
+                )
             # Model not found or no access -> failover to next model
             if any(k in err_msg.lower() for k in ["404", "does not exist", "do not have access", "model_not_found"]):
                 continue
@@ -736,12 +776,14 @@ def generate_with_grok_api(
     category: str = "general",
     model: Optional[str] = None,
     base_url: Optional[str] = None,
+    _called_from_failover: bool = False,
 ) -> Dict[str, Any]:
     """
     Calls xAI Grok API (https://api.x.ai/v1) with multi-model failover.
     Supports grok-beta, grok-2-latest, grok-2.
+    If 401 Unauthorized, automatically tests if the key is a Groq key.
     """
-    clean_key = (api_key or "").strip().strip("'\"")
+    clean_key = clean_api_key(api_key)
     if not clean_key:
         raise ValueError("xAI Grok API key is missing. Paste your key in Settings or set XAI_API_KEY in .env.")
 
@@ -773,7 +815,28 @@ def generate_with_grok_api(
             err_msg = str(exc)
             last_err = err_msg
             if "401" in err_msg or "invalid api key" in err_msg.lower():
-                raise
+                if not _called_from_failover:
+                    try:
+                        return generate_with_groq_api(
+                            api_key=clean_key,
+                            clip_title=clip_title,
+                            win_amount=win_amount,
+                            streamer=streamer,
+                            transcript=transcript,
+                            promo_code=promo_code,
+                            category=category,
+                            _called_from_failover=True,
+                        )
+                    except Exception:
+                        pass
+                key_prefix = clean_key[:8] if len(clean_key) >= 8 else clean_key
+                raise ValueError(
+                    f"xAI Grok API Error (401: Invalid API Key).\n"
+                    f"• Key length: {len(clean_key)} chars (prefix: '{key_prefix}...')\n"
+                    f"• The key was rejected by xAI (console.x.ai).\n"
+                    f"• If you have a Groq Cloud key: select 'Groq' in the dropdown.\n"
+                    f"• If using xAI: verify your key at https://console.x.ai (starts with 'xai-')."
+                )
             if any(k in err_msg.lower() for k in ["404", "does not exist", "not found"]):
                 continue
             raise
@@ -815,7 +878,7 @@ def generate_shorts_metadata(
     Supports Gemini, Groq, OpenAI, Claude, DeepSeek, Ollama (Local), OpenRouter, Custom Endpoints.
     Guaranteed zero-crash fallback to Smart Offline Heuristics engine with clear diagnostic notices.
     """
-    clean_key = (api_key or "").strip().strip("'\"")
+    clean_key = clean_api_key(api_key)
     clean_provider = (provider or "auto").lower().strip()
     target_category = category or "general"
 

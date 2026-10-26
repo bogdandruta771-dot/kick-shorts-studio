@@ -52,6 +52,15 @@ output/*
 !output/.gitkeep
 temp/*
 !temp/.gitkeep
+scratch/
+core/outputs/
+assets/cache/
+data/
+*.db
+*.log
+*.mp4
+*.mp3
+*.wav
 
 # --- Test Caches & Coverage ---
 .pytest_cache/

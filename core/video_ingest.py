@@ -2,6 +2,7 @@
 import json
 import re
 import sys
+import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -113,6 +114,92 @@ def detect_stream_platform(url: str) -> str:
     return "generic"
 
 
+# Shared category & game normalization maps
+KICK_CAT_ALIASES: Dict[str, str] = {
+    "casino": "slots",
+    "gambling": "slots",
+    "slots": "slots",
+    "just_chatting": "just-chatting",
+    "just chatting": "just-chatting",
+    "irl": "irl",
+    "gta": "grand-theft-auto-v",
+    "gta v": "grand-theft-auto-v",
+    "gta 5": "grand-theft-auto-v",
+    "grand theft auto v": "grand-theft-auto-v",
+    "valorant": "valorant",
+    "fortnite": "fortnite",
+    "cs": "counter-strike-2",
+    "cs2": "counter-strike-2",
+    "cs 2": "counter-strike-2",
+    "csgo": "counter-strike-2",
+    "counter-strike": "counter-strike-2",
+    "counter strike": "counter-strike-2",
+    "counter-strike-2": "counter-strike-2",
+    "counter-strike 2": "counter-strike-2",
+    "case_opening": "counter-strike-2",
+    "case-opening": "counter-strike-2",
+    "case opening": "counter-strike-2",
+    "cases": "counter-strike-2",
+    "unboxing": "counter-strike-2",
+    "minecraft": "minecraft",
+    "apex": "apex-legends",
+    "apex legends": "apex-legends",
+    "league": "league-of-legends",
+    "league of legends": "league-of-legends",
+    "dota": "dota-2",
+    "dota 2": "dota-2",
+    "fifa": "ea-sports-fc-24",
+    "fc 24": "ea-sports-fc-24",
+    "fc 25": "ea-sports-fc-25",
+    "roblox": "roblox",
+    "rust": "rust",
+    "warzone": "call-of-duty-warzone",
+    "call of duty": "call-of-duty-warzone",
+}
+
+TWITCH_GAME_ALIASES: Dict[str, str] = {
+    "casino": "Slots",
+    "gambling": "Slots",
+    "slots": "Slots",
+    "just_chatting": "Just Chatting",
+    "just chatting": "Just Chatting",
+    "irl": "Just Chatting",
+    "gta": "Grand Theft Auto V",
+    "gta v": "Grand Theft Auto V",
+    "gta 5": "Grand Theft Auto V",
+    "grand theft auto v": "Grand Theft Auto V",
+    "valorant": "Valorant",
+    "fortnite": "Fortnite",
+    "cs": "Counter-Strike",
+    "cs2": "Counter-Strike",
+    "cs 2": "Counter-Strike",
+    "csgo": "Counter-Strike",
+    "counter-strike": "Counter-Strike",
+    "counter strike": "Counter-Strike",
+    "counter-strike-2": "Counter-Strike",
+    "counter-strike 2": "Counter-Strike",
+    "case_opening": "Counter-Strike",
+    "case-opening": "Counter-Strike",
+    "case opening": "Counter-Strike",
+    "cases": "Counter-Strike",
+    "unboxing": "Counter-Strike",
+    "minecraft": "Minecraft",
+    "apex": "Apex Legends",
+    "apex legends": "Apex Legends",
+    "league": "League of Legends",
+    "league of legends": "League of Legends",
+    "dota": "Dota 2",
+    "dota 2": "Dota 2",
+    "fifa": "EA Sports FC 24",
+    "fc 24": "EA Sports FC 24",
+    "fc 25": "EA Sports FC 25",
+    "roblox": "Roblox",
+    "rust": "Rust",
+    "warzone": "Call of Duty: Warzone",
+    "call of duty": "Call of Duty: Warzone",
+}
+
+
 def fetch_kick_clips(
     channel_slug: Optional[str] = None,
     category_slug: Optional[str] = None,
@@ -128,41 +215,6 @@ def fetch_kick_clips(
     clean_time = time_map.get(str(time_filter).lower(), "day")
     clean_sort = "date" if str(sort).lower() == "date" else "view"
 
-    # Category normalization for Kick API slugs
-    cat_aliases = {
-        "casino": "slots",
-        "gambling": "slots",
-        "slots": "slots",
-        "just_chatting": "just-chatting",
-        "just chatting": "just-chatting",
-        "irl": "irl",
-        "gta": "grand-theft-auto-v",
-        "grand theft auto v": "grand-theft-auto-v",
-        "valorant": "valorant",
-        "fortnite": "fortnite",
-        "cs2": "counter-strike-2",
-        "csgo": "counter-strike-2",
-        "counter-strike": "counter-strike-2",
-        "counter-strike-2": "counter-strike-2",
-        "counter-strike 2": "counter-strike-2",
-        "case_opening": "counter-strike-2",
-        "case-opening": "counter-strike-2",
-        "case opening": "counter-strike-2",
-        "cases": "counter-strike-2",
-        "unboxing": "counter-strike-2",
-        "minecraft": "minecraft",
-        "apex": "apex-legends",
-        "apex legends": "apex-legends",
-        "league": "league-of-legends",
-        "league of legends": "league-of-legends",
-        "dota": "dota-2",
-        "dota 2": "dota-2",
-        "fifa": "ea-sports-fc-24",
-        "fc 24": "ea-sports-fc-24",
-        "fc 25": "ea-sports-fc-25",
-        "roblox": "roblox",
-    }
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json",
@@ -175,7 +227,7 @@ def fetch_kick_clips(
         url = f"https://kick.com/api/v2/channels/{slug}/clips?sort={clean_sort}&time={clean_time}"
     elif category_slug and category_slug.strip() and category_slug.lower() not in ("all", "general"):
         raw_cat = category_slug.strip().lower()
-        cat = cat_aliases.get(raw_cat, raw_cat.replace(" ", "-"))
+        cat = KICK_CAT_ALIASES.get(raw_cat, raw_cat.replace(" ", "-"))
         url = f"https://kick.com/api/v2/categories/{cat}/clips?sort={clean_sort}&time={clean_time}"
     else:
         url = f"https://kick.com/api/v2/clips?sort={clean_sort}&time={clean_time}"
@@ -339,41 +391,8 @@ def fetch_twitch_clips(
 
     else:
         # Query category/game clips
-        game_aliases = {
-            "casino": "Slots",
-            "gambling": "Slots",
-            "slots": "Slots",
-            "just_chatting": "Just Chatting",
-            "just chatting": "Just Chatting",
-            "irl": "Just Chatting",
-            "gta": "Grand Theft Auto V",
-            "grand theft auto v": "Grand Theft Auto V",
-            "valorant": "Valorant",
-            "fortnite": "Fortnite",
-            "cs2": "Counter-Strike",
-            "csgo": "Counter-Strike",
-            "counter-strike": "Counter-Strike",
-            "counter-strike-2": "Counter-Strike",
-            "counter-strike 2": "Counter-Strike",
-            "case_opening": "Counter-Strike",
-            "case-opening": "Counter-Strike",
-            "case opening": "Counter-Strike",
-            "cases": "Counter-Strike",
-            "unboxing": "Counter-Strike",
-            "minecraft": "Minecraft",
-            "apex": "Apex Legends",
-            "apex legends": "Apex Legends",
-            "league": "League of Legends",
-            "league of legends": "League of Legends",
-            "dota": "Dota 2",
-            "dota 2": "Dota 2",
-            "fifa": "EA Sports FC 24",
-            "fc 24": "EA Sports FC 24",
-            "fc 25": "EA Sports FC 25",
-            "roblox": "Roblox",
-        }
         raw_cat = (category_name or "Just Chatting").strip().lower()
-        game_target = game_aliases.get(raw_cat, category_name or "Just Chatting")
+        game_target = TWITCH_GAME_ALIASES.get(raw_cat, category_name or "Just Chatting")
 
         query = """
         query GetGameClips($name: String!, $first: Int!) {
@@ -451,9 +470,133 @@ def fetch_twitch_channel_clips(
     return fetch_twitch_clips(channel_slug=channel_slug, time_filter=period, limit=limit)
 
 
+def parse_youtube_timestamp(url: str) -> Optional[float]:
+    """Extracts starting timestamp in seconds from YouTube URL (?t=120 or ?t=1m30s or ?start=45)."""
+    m = re.search(r"[?&](?:t|start)=([0-9hms]+)", url, re.IGNORECASE)
+    if not m:
+        return None
+    val = m.group(1).lower()
+    if val.isdigit():
+        return float(val)
+    seconds = 0.0
+    h_m = re.search(r"(\d+)h", val)
+    if h_m:
+        seconds += float(h_m.group(1)) * 3600
+    m_m = re.search(r"(\d+)m", val)
+    if m_m:
+        seconds += float(m_m.group(1)) * 60
+    s_m = re.search(r"(\d+)s", val)
+    if s_m:
+        seconds += float(s_m.group(1))
+    return seconds if seconds > 0 else None
+
+
+def fetch_youtube_clips(
+    query: str = "",
+    channel_slug: Optional[str] = None,
+    category: Optional[str] = None,
+    sort: str = "view",
+    time_filter: str = "all",
+    limit: int = 20,
+) -> List[Dict[str, Any]]:
+    """
+    Fetches trending or topic-specific clips, shorts, and highlights from YouTube using yt-dlp flat extraction.
+    No Google API key required.
+    """
+    import yt_dlp
+
+    clean_q = (query or "").strip()
+    search_terms = []
+
+    if channel_slug and channel_slug.strip():
+        ch = channel_slug.strip().lstrip("@")
+        search_terms.append(f"{ch} clips")
+    elif clean_q:
+        q_l = clean_q.lower()
+        if "clip" not in q_l and "short" not in q_l:
+            search_terms.append(f"{clean_q} clips")
+        else:
+            search_terms.append(clean_q)
+    elif category and category.lower() != "all":
+        search_terms.append(f"{category} clips moments")
+    else:
+        search_terms.append("viral gaming clips trending moments")
+
+    clips: List[Dict[str, Any]] = []
+    target_limit = max(1, limit)
+
+    ydl_opts = {
+        "quiet": True,
+        "extract_flat": True,
+        "skip_download": True,
+        "ignoreerrors": True,
+        "no_warnings": True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            for term in search_terms:
+                yt_query = f"ytsearch{target_limit}:{term}"
+                data = ydl.extract_info(yt_query, download=False)
+                entries = data.get("entries") or []
+                for entry in entries:
+                    if not entry:
+                        continue
+                    v_id = entry.get("id") or ""
+                    if not v_id:
+                        continue
+                    title = entry.get("title") or "YouTube Clip"
+                    uploader = entry.get("uploader") or entry.get("channel") or "YouTube Creator"
+                    views = int(entry.get("view_count") or 0)
+                    duration = float(entry.get("duration") or 30.0)
+
+                    # High quality thumbnail
+                    thumbs = entry.get("thumbnails") or []
+                    thumb_url = f"https://i.ytimg.com/vi/{v_id}/hqdefault.jpg"
+                    if thumbs and isinstance(thumbs, list):
+                        last_t = thumbs[-1]
+                        if isinstance(last_t, dict) and last_t.get("url"):
+                            thumb_url = last_t["url"]
+
+                    yt_url = entry.get("url") or f"https://www.youtube.com/watch?v={v_id}"
+                    if not yt_url.startswith("http"):
+                        yt_url = f"https://www.youtube.com/watch?v={v_id}"
+
+                    clips.append({
+                        "id": v_id,
+                        "slug": v_id,
+                        "title": title,
+                        "url": yt_url,
+                        "stream_url": yt_url,
+                        "thumbnail_url": thumb_url,
+                        "platform": "youtube",
+                        "streamer": uploader,
+                        "streamer_slug": re.sub(r"[^a-zA-Z0-9_-]", "", uploader.lower()) or "creator",
+                        "streamer_avatar": "",
+                        "creator": uploader,
+                        "views": views,
+                        "duration": duration,
+                        "category": category if category and category != "all" else "YouTube Gaming",
+                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(entry.get("timestamp") or time.time())),
+                    })
+                    if len(clips) >= target_limit:
+                        break
+                if len(clips) >= target_limit:
+                    break
+        return clips
+    except Exception:
+        return clips
+
+
 TOPIC_INTENTS: Dict[str, Dict[str, Any]] = {
-    "case_opening": {
+    "cs2": {
         "patterns": [
+            r"\bcs2\b",
+            r"\bcs\s*2\b",
+            r"\bcsgo\b",
+            r"\bcs:go\b",
+            r"\bcounter[- ]?strike\b",
+            r"\bcounter[- ]?strike[- ]?2\b",
             r"\bcase[s]?\b",
             r"\bunbox(ing)?\b",
             r"\bknife\b",
@@ -468,14 +611,45 @@ TOPIC_INTENTS: Dict[str, Dict[str, Any]] = {
             r"\bdoppler\b",
             r"\bkarambit\b",
             r"\bbutterfly\b",
+            r"\bclutch\b",
+            r"\bace\b",
+            r"\bawp\b",
+            r"\bdeagle\b",
+            r"\bmirage\b",
+            r"\bdust2\b",
+            r"\binferno\b",
+            r"\bnuke\b",
         ],
         "kick_category": "counter-strike-2",
         "twitch_category": "Counter-Strike",
-        "boost_streamers": ["ohnepixel", "anomaly"],
+        "youtube_query": "cs2 clips moments highlights",
+        "boost_streamers": ["ohnepixel", "anomaly", "s1mple", "m0nesy", "tarik", "flom", "gaules"],
+        "bonus_keywords": [
+            "cs2", "csgo", "counter-strike", "counter strike", "knife", "gold", "glove", "gloves",
+            "dragon lore", "howl", "doppler", "sapphire", "ruby", "fade", "skin", "skins",
+            "pull", "opened", "karambit", "butterfly", "crate", "case opening", "case", "unbox", "unboxing",
+            "clutch", "ace", "awp", "deagle", "mirage", "dust2", "inferno", "nuke", "major"
+        ],
+    },
+    "case_opening": {
+        "patterns": [
+            r"\bcase\s*opening[s]?\b",
+            r"\bcases\b",
+            r"\bunbox(ing)?\b",
+            r"\bknife\b",
+            r"\bglove[s]?\b",
+            r"\bgold\b",
+            r"\bkarambit\b",
+            r"\bbutterfly\b",
+            r"\bdoppler\b",
+        ],
+        "kick_category": "counter-strike-2",
+        "twitch_category": "Counter-Strike",
+        "youtube_query": "cs2 case opening knife gold clips",
+        "boost_streamers": ["ohnepixel", "anomaly", "sparkles"],
         "bonus_keywords": [
             "case", "opening", "unbox", "unboxing", "knife", "gold", "glove", "gloves",
-            "dragon lore", "howl", "doppler", "sapphire", "ruby", "fade", "skin", "skins",
-            "pull", "opened", "karambit", "butterfly", "crate", "case opening",
+            "karambit", "butterfly", "doppler", "skin", "skins", "pull", "opened"
         ],
     },
     "slots": {
@@ -489,14 +663,60 @@ TOPIC_INTENTS: Dict[str, Dict[str, Any]] = {
             r"\bsweet\s*bonanza\b",
             r"\bgates\s*of\s*olympus\b",
             r"\bjackpot\b",
+            r"\bplinko\b",
+            r"\broulette\b",
+            r"\bblackjack\b",
         ],
         "kick_category": "slots",
         "twitch_category": "Slots",
-        "boost_streamers": ["roshtein", "trainwreckstv", "xposed"],
+        "youtube_query": "slots max win big win bonus clips",
+        "boost_streamers": ["roshtein", "trainwreckstv", "xposed", "classybeef", "deuceace"],
         "bonus_keywords": [
             "max win", "big win", "slot", "slots", "bonus", "hunt", "jackpot", "multi",
-            "x1000", "x5000", "gates", "sweet bonanza", "pragmatic", "stake",
+            "x1000", "x5000", "gates", "sweet bonanza", "pragmatic", "stake", "plinko"
         ],
+    },
+    "valorant": {
+        "patterns": [
+            r"\bval(orant)?\b",
+            r"\bvct\b",
+            r"\bradiant\b",
+            r"\bvandal\b",
+            r"\bphantom\b",
+            r"\bjett\b",
+            r"\breyna\b",
+        ],
+        "kick_category": "valorant",
+        "twitch_category": "Valorant",
+        "youtube_query": "valorant ace clutch clips",
+        "boost_streamers": ["tarik", "kyedae", "tenz", "shroud", "subroza"],
+        "bonus_keywords": ["valorant", "vct", "clutch", "ace", "radiant", "vandal", "phantom"],
+    },
+    "gta": {
+        "patterns": [
+            r"\bgta\b",
+            r"\bgta\s*(v|5|rp)\b",
+            r"\bfivem\b",
+            r"\bnopixel\b",
+            r"\bgrand\s*theft\s*auto\b",
+        ],
+        "kick_category": "grand-theft-auto-v",
+        "twitch_category": "Grand Theft Auto V",
+        "youtube_query": "gta rp funny clips moments",
+        "boost_streamers": ["buddha", "xqc", "fuslie", "sykkuno"],
+        "bonus_keywords": ["gta", "nopixel", "rp", "chase", "heist", "police"],
+    },
+    "fortnite": {
+        "patterns": [
+            r"\bfortnite\b",
+            r"\bfn\b",
+            r"\bvictory\s*royale\b",
+        ],
+        "kick_category": "fortnite",
+        "twitch_category": "Fortnite",
+        "youtube_query": "fortnite victory royale clutch clips",
+        "boost_streamers": ["clix", "mongraal", "bugha", "tfue"],
+        "bonus_keywords": ["fortnite", "victory royale", "clutch", "box", "build"],
     },
     "pack_opening": {
         "patterns": [
@@ -512,10 +732,25 @@ TOPIC_INTENTS: Dict[str, Dict[str, Any]] = {
         ],
         "kick_category": "ea-sports-fc-24",
         "twitch_category": "EA Sports FC 24",
-        "boost_streamers": ["castro_1021", "dannyaarons"],
+        "youtube_query": "fifa fc 25 pack opening walkout clips",
+        "boost_streamers": ["castro_1021", "dannyaarons", "bateson87"],
         "bonus_keywords": [
             "pack", "packs", "icon", "toty", "tots", "walkout", "pele", "r9", "mbappe", "messi", "charizard",
         ],
+    },
+    "just_chatting": {
+        "patterns": [
+            r"\bjust\s*chatting\b",
+            r"\birl\b",
+            r"\bdrama\b",
+            r"\bpodcast\b",
+            r"\breaction[s]?\b",
+        ],
+        "kick_category": "just-chatting",
+        "twitch_category": "Just Chatting",
+        "youtube_query": "streamer funny moments reaction clips",
+        "boost_streamers": ["kaicenat", "adinross", "hasanabi", "speed", "ishowspeed"],
+        "bonus_keywords": ["irl", "drama", "react", "reaction", "funny", "podcast"],
     },
 }
 
@@ -530,7 +765,7 @@ def search_unified_clips(
 ) -> List[Dict[str, Any]]:
     """
     High-level clip discovery engine across Kick and Twitch.
-    Supports topic intent detection (e.g. 'case opening', 'slots', 'pack opening'),
+    Supports topic intent detection (e.g. 'cs2', 'case opening', 'slots', 'pack opening'),
     streamer channel searching, game category mapping, and free-form title keyword matching.
     Uses concurrent multi-threaded fetching for maximum speed and zero-lag performance.
     """
@@ -545,10 +780,12 @@ def search_unified_clips(
     elif "kick.com" in clean_query:
         clean_plat = "kick"
         clean_query = re.sub(r"^https?://(?:www\.)?kick\.com/", "", clean_query).split("/")[0]
+    elif "youtube.com" in clean_query or "youtu.be" in clean_query:
+        clean_plat = "youtube"
 
     q_lower = clean_query.lower()
 
-    # 1. Detect Topic Intent (e.g. "case opening", "knife", "slots")
+    # 1. Detect Topic Intent (e.g. "cs2", "case opening", "slots", "valorant")
     matched_intent = None
     bonus_keywords: List[str] = []
 
@@ -563,13 +800,33 @@ def search_unified_clips(
             if matched_intent:
                 break
 
-    # If no intent from query, check if category itself matches an intent
+    # Also check if query or category matches direct category aliases
+    if not matched_intent and (q_lower in KICK_CAT_ALIASES or q_lower in TWITCH_GAME_ALIASES):
+        k_cat = KICK_CAT_ALIASES.get(q_lower, q_lower.replace(" ", "-"))
+        t_cat = TWITCH_GAME_ALIASES.get(q_lower, q_lower.title())
+        matched_intent = {
+            "kick_category": k_cat,
+            "twitch_category": t_cat,
+            "boost_streamers": [],
+            "bonus_keywords": [q_lower],
+        }
+        bonus_keywords = [q_lower]
+
+    # If no intent from query, check if category itself matches an intent or alias
     if not matched_intent and clean_cat != "all":
         for topic_name, intent_data in TOPIC_INTENTS.items():
             if clean_cat in (topic_name, topic_name.replace("_", "-"), topic_name.replace("_", " ")):
                 matched_intent = intent_data
                 bonus_keywords = intent_data["bonus_keywords"]
                 break
+        if not matched_intent and (clean_cat in KICK_CAT_ALIASES or clean_cat in TWITCH_GAME_ALIASES):
+            matched_intent = {
+                "kick_category": KICK_CAT_ALIASES.get(clean_cat, clean_cat.replace("_", "-")),
+                "twitch_category": TWITCH_GAME_ALIASES.get(clean_cat, clean_cat.replace("_", " ").title()),
+                "boost_streamers": [],
+                "bonus_keywords": [clean_cat],
+            }
+            bonus_keywords = [clean_cat]
 
     all_results: List[Dict[str, Any]] = []
 
@@ -586,56 +843,81 @@ def search_unified_clips(
         except Exception:
             return []
 
-    # Case A: Intent Detected (e.g. Case Opening, Slots, Pack Opening)
+    def _fetch_youtube_safe(**kwargs):
+        try:
+            return fetch_youtube_clips(**kwargs)
+        except Exception:
+            return []
+
+    # Case A: Intent or Game Category Detected (e.g. CS2, Case Opening, Slots, Valorant)
     if matched_intent:
         kick_cat = matched_intent["kick_category"]
         tw_cat = matched_intent["twitch_category"]
         boost_streamers = matched_intent.get("boost_streamers", [])
 
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        with ThreadPoolExecutor(max_workers=8) as pool:
             futures = []
             if clean_plat in ("all", "kick"):
                 futures.append(pool.submit(_fetch_kick_safe, category_slug=kick_cat, sort=sort, time_filter=time_filter, limit=max(30, limit // 2)))
+                for s in boost_streamers[:3]:
+                    futures.append(pool.submit(_fetch_kick_safe, channel_slug=s, sort=sort, time_filter=time_filter, limit=15))
             if clean_plat in ("all", "twitch"):
-                futures.append(pool.submit(_fetch_twitch_safe, category_name=tw_cat, time_filter=time_filter, limit=max(50, limit)))
-                for s in boost_streamers:
-                    futures.append(pool.submit(_fetch_twitch_safe, channel_slug=s, time_filter=time_filter, limit=25))
+                futures.append(pool.submit(_fetch_twitch_safe, category_name=tw_cat, time_filter=time_filter, limit=max(40, limit)))
+                for s in boost_streamers[:3]:
+                    futures.append(pool.submit(_fetch_twitch_safe, channel_slug=s, time_filter=time_filter, limit=20))
+            if clean_plat in ("all", "youtube"):
+                yt_q = matched_intent.get("youtube_query") or f"{clean_query} clips"
+                futures.append(pool.submit(_fetch_youtube_safe, query=yt_q, limit=max(25, limit // 2)))
 
             for f in as_completed(futures):
                 all_results.extend(f.result())
 
     # Case B: Streamer Channel Query (single word or @handle, no spaces, not a known intent)
-    elif q_lower and " " not in q_lower and clean_cat == "all" and not clean_query.startswith("http"):
+    elif q_lower and (clean_query.startswith("@") or " " not in q_lower) and clean_cat == "all" and not clean_query.startswith("http"):
         handle = clean_query.lstrip("@#")
-        with ThreadPoolExecutor(max_workers=2) as pool:
+        with ThreadPoolExecutor(max_workers=6) as pool:
             futures = []
             if clean_plat in ("all", "kick"):
                 futures.append(pool.submit(_fetch_kick_safe, channel_slug=handle, sort=sort, time_filter=time_filter, limit=limit))
             if clean_plat in ("all", "twitch"):
                 futures.append(pool.submit(_fetch_twitch_safe, channel_slug=handle, time_filter=time_filter, limit=limit))
+            if clean_plat in ("all", "youtube"):
+                futures.append(pool.submit(_fetch_youtube_safe, channel_slug=handle, limit=limit))
 
             for f in as_completed(futures):
                 all_results.extend(f.result())
 
         # If streamer channel returned 0 results, fall back to searching clips with this query as title keyword
         if not all_results:
-            with ThreadPoolExecutor(max_workers=2) as pool:
+            with ThreadPoolExecutor(max_workers=6) as pool:
                 futures = []
-                if clean_plat in ("all", "kick"):
-                    futures.append(pool.submit(_fetch_kick_safe, category_slug=clean_cat if clean_cat != "all" else None, sort=sort, time_filter=time_filter, limit=limit))
-                if clean_plat in ("all", "twitch"):
-                    futures.append(pool.submit(_fetch_twitch_safe, category_name=clean_cat if clean_cat != "all" else None, time_filter=time_filter, limit=limit))
+                for cat_slug, game_name in [("counter-strike-2", "Counter-Strike"), ("valorant", "Valorant"), ("slots", "Slots")]:
+                    if clean_plat in ("all", "kick"):
+                        futures.append(pool.submit(_fetch_kick_safe, category_slug=cat_slug, sort=sort, time_filter=time_filter, limit=25))
+                    if clean_plat in ("all", "twitch"):
+                        futures.append(pool.submit(_fetch_twitch_safe, category_name=game_name, time_filter=time_filter, limit=25))
+                if clean_plat in ("all", "youtube"):
+                    futures.append(pool.submit(_fetch_youtube_safe, query=f"{clean_query} clips", limit=30))
                 for f in as_completed(futures):
                     all_results.extend(f.result())
 
     # Case C: Freeform Keyword Search or Category Browse
     else:
-        with ThreadPoolExecutor(max_workers=2) as pool:
+        k_slug = None
+        tw_name = None
+        if clean_cat != "all":
+            k_slug = KICK_CAT_ALIASES.get(clean_cat, clean_cat.replace("_", "-"))
+            tw_name = TWITCH_GAME_ALIASES.get(clean_cat, clean_cat.replace("_", " ").title())
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
             futures = []
             if clean_plat in ("all", "kick"):
-                futures.append(pool.submit(_fetch_kick_safe, category_slug=clean_cat if clean_cat != "all" else None, sort=sort, time_filter=time_filter, limit=limit))
+                futures.append(pool.submit(_fetch_kick_safe, category_slug=k_slug, sort=sort, time_filter=time_filter, limit=limit))
             if clean_plat in ("all", "twitch"):
-                futures.append(pool.submit(_fetch_twitch_safe, category_name=clean_cat if clean_cat != "all" else None, time_filter=time_filter, limit=limit))
+                futures.append(pool.submit(_fetch_twitch_safe, category_name=tw_name, time_filter=time_filter, limit=limit))
+            if clean_plat in ("all", "youtube"):
+                yt_query = clean_query or (clean_cat if clean_cat != "all" else "viral clips")
+                futures.append(pool.submit(_fetch_youtube_safe, query=yt_query, category=clean_cat if clean_cat != "all" else None, limit=limit))
             for f in as_completed(futures):
                 all_results.extend(f.result())
 
@@ -649,43 +931,74 @@ def search_unified_clips(
             deduped.append(c)
 
     # Relevance Scoring & Ranking
-    query_words = [w for w in q_lower.split() if len(w) >= 3] if q_lower else []
+    query_words = [w for w in q_lower.split() if len(w) >= 2] if q_lower else []
 
     def _score(clip: Dict[str, Any]) -> int:
         title = (clip.get("title") or "").lower()
         streamer = (clip.get("streamer") or "").lower()
+        cat = (clip.get("category") or "").lower()
         views = int(clip.get("views") or 0)
         s = 0
 
         if q_lower:
-            # Exact query in title
+            # Exact query matches
             if q_lower in title:
                 s += 600
-            # Streamer match
             if q_lower in streamer:
-                s += 400
-            # Individual query words in title
+                s += 450
+            if q_lower in cat:
+                s += 500
+
+            # Word-level matches
             for w in query_words:
                 if w in title:
+                    s += 150
+                if w in streamer:
                     s += 120
-            # Intent bonus keywords in title
+                if w in cat:
+                    s += 100
+
+            # Bonus keywords from matched intent
             for kw in bonus_keywords:
                 if kw in title:
                     s += 80
+                if kw in cat:
+                    s += 50
+
+        # Intent category alignment
+        if matched_intent:
+            m_kick = (matched_intent.get("kick_category") or "").lower()
+            m_tw = (matched_intent.get("twitch_category") or "").lower()
+            if m_kick in cat or m_tw in cat or cat in (m_kick, m_tw):
+                s += 300
+            elif clip.get("platform") == "youtube":
+                s += 200
 
         # Viral views tie-breaker (capped at +50 so relevance dominates)
         s += min(views // 3000, 50)
         return s
 
+    if q_lower:
+        # When a query is active, only retain relevant clips!
+        if matched_intent:
+            m_kick = (matched_intent.get("kick_category") or "").lower()
+            m_tw = (matched_intent.get("twitch_category") or "").lower()
+            filtered = [
+                c for c in deduped
+                if _score(c) >= 100 or m_kick in (c.get("category") or "").lower() or m_tw in (c.get("category") or "").lower()
+                or (c.get("platform") == "youtube" and _score(c) >= 50)
+            ]
+            if filtered:
+                deduped = filtered
+        else:
+            filtered = [c for c in deduped if _score(c) >= 60]
+            if filtered:
+                deduped = filtered
+
     if sort == "date":
         deduped.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
     else:
-        # Check if we have active query matches
-        has_query_matches = any(_score(c) > 60 for c in deduped) if q_lower else False
-        if has_query_matches:
-            deduped.sort(key=_score, reverse=True)
-        else:
-            deduped.sort(key=lambda x: int(x.get("views", 0)), reverse=True)
+        deduped.sort(key=_score, reverse=True)
 
     return deduped[:limit]
 
@@ -694,9 +1007,13 @@ def download_stream_clip(
     url: str,
     output_target: Path,
     timeout: int = DOWNLOAD_TIMEOUT,
+    start_time: Optional[float] = None,
+    end_time: Optional[float] = None,
+    duration: Optional[float] = None,
 ) -> Path:
     """
     Downloads a clip or VOD from Twitch, Kick, YouTube, or direct stream link using yt-dlp.
+    Supports smart YouTube timestamp detection (?t=45s), custom section cutting, and format fallbacks.
     Returns the validated output Path.
     """
     clean_url = url.strip()
@@ -710,14 +1027,35 @@ def download_stream_clip(
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--ffmpeg-location", ffmpeg_dir,
-        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best",
+        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best",
         "--merge-output-format", "mp4",
         "--no-playlist",
         "--no-check-certificates",
         "--retries", "3",
-        "-o", str(output_target),
-        clean_url,
     ]
+
+    # Handle YouTube timestamps and section clipping
+    if platform == "youtube":
+        if start_time is None:
+            start_time = parse_youtube_timestamp(clean_url)
+
+        is_short_or_clip = ("/shorts/" in clean_url.lower()) or ("/clip/" in clean_url.lower())
+
+        if start_time is not None:
+            if end_time is None:
+                end_time = start_time + (float(duration) if duration else 60.0)
+            cmd.extend(["--download-sections", f"*{start_time:.1f}-{end_time:.1f}"])
+        elif not is_short_or_clip:
+            if duration or end_time:
+                s_t = float(start_time or 0.0)
+                e_t = float(end_time) if end_time else (s_t + float(duration or 60.0))
+                cmd.extend(["--download-sections", f"*{s_t:.1f}-{e_t:.1f}"])
+    elif start_time is not None or end_time is not None:
+        s_t = float(start_time or 0.0)
+        e_t = float(end_time) if end_time else (s_t + float(duration or 60.0))
+        cmd.extend(["--download-sections", f"*{s_t:.1f}-{e_t:.1f}"])
+
+    cmd.extend(["-o", str(output_target), clean_url])
 
     def _execute_download() -> Path:
         res = run_command_safe(cmd, timeout=timeout)

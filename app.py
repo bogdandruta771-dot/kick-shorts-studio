@@ -40,6 +40,32 @@ from core.youtube_uploader import (
     CLIENT_SECRETS_FILE,
 )
 
+from core.clip_history import (
+    record_clipped_short,
+    check_if_clipped,
+    tag_clip_search_results,
+    list_clip_history,
+    delete_history_item,
+    clear_all_history,
+)
+
+from core.facecam_detector import (
+    detect_facecam_from_image,
+    detect_facecam_from_video,
+    calculate_optimal_layout,
+)
+
+from core.motion_explainer.ai_scriptwriter import VIRAL_PRESETS, get_available_presets, generate_motion_script_ai
+from core.motion_explainer.voice_engine import get_available_voices, synthesize_speech, probe_audio_duration
+from core.motion_explainer.asset_generator import ASSETS_CACHE_DIR
+from core.motion_explainer.motion_renderer import (
+    render_motion_frame,
+    render_motion_explainer_short,
+    detect_best_ffmpeg_encoder,
+)
+from core.motion_explainer.sfx_library import ensure_sfx_library
+from core.motion_explainer.tradeit_assets import get_tradeit_default_items
+
 from core.config import (
     OUTPUT_DIR,
     TEMP_DIR,
@@ -64,6 +90,8 @@ from core.video_ingest import (
     fetch_twitch_channel_clips,
     fetch_kick_clips,
     fetch_twitch_clips,
+    fetch_youtube_clips,
+    parse_youtube_timestamp,
     search_unified_clips,
     extract_preview_frame,
 )
@@ -93,6 +121,9 @@ def pil_to_base64(img: Image.Image) -> str:
 # Request Models
 class IngestUrlRequest(BaseModel):
     url: str
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    duration: Optional[float] = None
 
 
 class WatchdogStartRequest(BaseModel):
@@ -145,6 +176,9 @@ class ImportClipRequest(BaseModel):
     platform: Optional[str] = None
     category: Optional[str] = None
     streamer: Optional[str] = None
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    duration: Optional[float] = None
 
 
 class OneClickShortRequest(BaseModel):
@@ -157,11 +191,19 @@ class OneClickShortRequest(BaseModel):
     enable_hook: Optional[bool] = True
     hook_text: Optional[str] = None
     hook_options: Optional[Dict[str, Any]] = None
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    duration: Optional[float] = None
 
 
 class FrameExtractRequest(BaseModel):
     video_path: Optional[str] = None
     timestamp: float = 0.0
+
+
+class AutoDetectFacecamRequest(BaseModel):
+    video_path: Optional[str] = None
+    timestamp: Optional[float] = None
 
 
 class ExportPayload(BaseModel):
@@ -252,8 +294,21 @@ class ExchangeCodeRequest(BaseModel):
     redirect_uri: Optional[str] = None
 
 
-# Mount temp media for HTML5 video player scrubbing
+# Mount media & assets for studio playback and motion rendering
 app.mount("/temp_media", StaticFiles(directory=str(TEMP_DIR)), name="temp_media")
+
+ASSETS_DIR = Path(__file__).parent.resolve() / "assets"
+ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR = ASSETS_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+ASSETS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+STATIC_DIR = Path(__file__).parent.resolve() / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
+app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
 
 
 @app.on_event("startup")
@@ -279,6 +334,14 @@ async def serve_home():
     if not template_path.is_file():
         raise HTTPException(status_code=500, detail="Template index.html not found.")
     return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    icon_path = Path(__file__).parent / "assets" / "icon.ico"
+    if icon_path.exists():
+        return FileResponse(str(icon_path), media_type="image/x-icon")
+    return Response(status_code=404)
 
 
 # --- DETECTOR API ENDPOINTS ---
@@ -387,6 +450,7 @@ async def select_detector_win(req: SelectWinRequest):
         b64 = pil_to_base64(img)
 
         suggested_preset = "gaming_fps" if platform == "twitch" else "standard_dual"
+        dup_info = check_if_clipped(url)
 
         return {
             "path": str(active_path),
@@ -401,6 +465,10 @@ async def select_detector_win(req: SelectWinRequest):
             "fps": meta["fps"],
             "has_audio": meta["has_audio"],
             "preview_base64": b64,
+            "is_already_clipped": dup_info.get("is_clipped", False),
+            "clip_count": dup_info.get("clip_count", 0),
+            "latest_output": dup_info.get("latest_output", ""),
+            "last_clipped_at": dup_info.get("last_clipped_at", ""),
         }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -421,6 +489,11 @@ async def search_clips_endpoint(req: SearchClipsRequest):
             sort=req.sort or "view",
             limit=fetch_limit,
         )
+        # Tag each clip with persistent history and anti-repeat badges
+        try:
+            results = tag_clip_search_results(results)
+        except Exception as _tag_err:
+            print(f"NOTICE: History tagging notice: {_tag_err}")
         total_count = len(results)
         page = max(1, req.page or 1)
         page_size = max(1, req.page_size or 12)
@@ -498,7 +571,14 @@ async def import_clip_endpoint(req: ImportClipRequest):
     dest_path = TEMP_DIR / f"{platform}_clip_{ts}_{uuid.uuid4().hex[:4]}.mp4"
 
     try:
-        active_path = await asyncio.to_thread(download_stream_clip, url, dest_path)
+        active_path = await asyncio.to_thread(
+            download_stream_clip,
+            url,
+            dest_path,
+            start_time=req.start_time,
+            end_time=req.end_time,
+            duration=req.duration,
+        )
         meta = await asyncio.to_thread(validate_media_file, active_path)
 
         preview_img_path = TEMP_DIR / f"snap_{active_path.stem}.jpg"
@@ -512,7 +592,7 @@ async def import_clip_endpoint(req: ImportClipRequest):
             suggested_preset = "center_slot"
         elif "chatting" in cat or "irl" in cat or "react" in cat:
             suggested_preset = "reaction_standard"
-        elif "fps" in cat or "valorant" in cat or "shooter" in cat or platform == "twitch":
+        elif "fps" in cat or "valorant" in cat or "shooter" in cat or platform in ("twitch", "youtube"):
             suggested_preset = "gaming_fps"
         else:
             suggested_preset = "ambient_blur_16_9"
@@ -570,28 +650,50 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
             export_jobs[job_id]["message"] = f"Downloading {platform.capitalize()} clip..."
             export_jobs[job_id]["percent"] = 0.15
 
-            downloaded = download_stream_clip(url, dest_path)
+            downloaded = download_stream_clip(
+                url,
+                dest_path,
+                start_time=req.start_time,
+                end_time=req.end_time,
+                duration=req.duration,
+            )
             meta = validate_media_file(downloaded)
 
-            # Choose optimal preset
+            # Choose optimal preset via AI Facecam / Layout Intelligence
             cat = (req.category or "").lower()
             preset_key = req.preset or "auto"
+            ai_layout = None
             if preset_key == "auto":
                 if "slot" in cat or "casino" in cat:
                     preset_key = "center_slot"
-                elif "chatting" in cat or "irl" in cat:
-                    preset_key = "reaction_standard"
-                elif platform == "twitch" or "gaming" in cat or "valorant" in cat:
-                    preset_key = "gaming_fps"
                 else:
-                    preset_key = "ambient_blur_16_9"
+                    try:
+                        ai_layout = detect_facecam_from_video(
+                            downloaded,
+                            target_timestamp=req.start_time,
+                            duration=meta.get("duration", 0.0),
+                        )
+                        if ai_layout and ai_layout.get("detected"):
+                            preset_key = ai_layout.get("preset_name", "reaction_top_left")
+                        else:
+                            # If no face is detected (e.g. gameplay montage, knife unbox, anime),
+                            # ambient blur is 1000x superior to slicing a random corner
+                            preset_key = "ambient_blur_16_9"
+                    except Exception as _ai_det_err:
+                        print(f"WARN: Auto facecam detection notice: {_ai_det_err}")
+                        preset_key = "ambient_blur_16_9"
 
-            preset_cfg = CROP_PRESETS.get(preset_key, CROP_PRESETS["ambient_blur_16_9"])
-            gp = preset_cfg["gameplay"]
-            fc = preset_cfg["facecam"]
-            stack_mode = preset_cfg.get("stack_mode", "standard")
-            if req.preset in ("reaction_cam_top", "reddit_reaction"):
-                stack_mode = "cam_top"
+            if ai_layout and ai_layout.get("detected"):
+                gp = ai_layout["gameplay"]
+                fc = ai_layout["facecam"]
+                stack_mode = ai_layout["stack_mode"]
+            else:
+                preset_cfg = CROP_PRESETS.get(preset_key, CROP_PRESETS["ambient_blur_16_9"])
+                gp = preset_cfg["gameplay"]
+                fc = preset_cfg["facecam"]
+                stack_mode = preset_cfg.get("stack_mode", "standard")
+                if req.preset in ("reaction_cam_top", "reaction_top_left", "reddit_reaction"):
+                    stack_mode = "cam_top"
 
             export_jobs[job_id]["message"] = "Processing video, generating subtitles & anti-shadowban FX..."
             export_jobs[job_id]["percent"] = 0.35
@@ -654,6 +756,19 @@ async def one_click_short_endpoint(req: OneClickShortRequest):
                 "output_url": f"/outputs/{final_file.name}",
                 "metadata": meta_res,
             })
+            # Record into Clip History & Anti-Repeat DB
+            try:
+                record_clipped_short(
+                    source_url=url,
+                    output_filename=final_file.name,
+                    title=req.title or f"{platform.capitalize()} Clip",
+                    channel=req.streamer or "",
+                    duration=meta.get("duration", 0.0),
+                    preset=preset_key,
+                    ai_title=meta_res.get("title", ""),
+                )
+            except Exception as _hist_err:
+                print(f"NOTICE: History logging notice: {_hist_err}")
             cleanup_stale_temp_dirs(max_age_hours=2.0)
         except Exception as exc:
             export_jobs[job_id].update({
@@ -772,16 +887,34 @@ async def ingest_stream_url(req: IngestUrlRequest):
     dest_path = TEMP_DIR / f"{platform}_dl_{ts}.mp4"
 
     try:
-        active_path = download_stream_clip(url, dest_path)
+        active_path = download_stream_clip(
+            url,
+            dest_path,
+            start_time=req.start_time,
+            end_time=req.end_time,
+            duration=req.duration,
+        )
         meta = validate_media_file(active_path)
 
+        preview_ts = 2.0
+        if req.start_time is not None:
+            preview_ts = max(0.5, float(req.start_time) + 0.5)
+
         preview_img_path = TEMP_DIR / f"snap_{ts}.jpg"
-        extract_preview_frame(active_path, preview_img_path, timestamp=2.0)
+        extract_preview_frame(active_path, preview_img_path, timestamp=preview_ts)
         img = Image.open(preview_img_path)
         b64 = pil_to_base64(img)
 
-        # Suggest crop preset based on platform
-        suggested_preset = "gaming_fps" if platform == "twitch" else "standard_dual"
+        # AI-powered facecam and optimal layout detection
+        face_layout = detect_facecam_from_image(preview_img_path)
+        if face_layout.get("detected"):
+            suggested_preset = face_layout.get("preset_name", "reaction_top_left")
+        else:
+            # Fall back to 16:9 ambient blur if no face is detected (e.g. unboxing/montage)
+            suggested_preset = "ambient_blur_16_9"
+
+        # Anti-repeat duplicate check
+        dup_info = check_if_clipped(url)
 
         return {
             "path": str(active_path),
@@ -789,12 +922,17 @@ async def ingest_stream_url(req: IngestUrlRequest):
             "video_url": f"/temp_media/{active_path.name}",
             "platform": platform,
             "suggested_preset": suggested_preset,
+            "face_layout": face_layout,
             "width": meta["width"],
             "height": meta["height"],
             "duration": meta["duration"],
             "fps": meta["fps"],
             "has_audio": meta["has_audio"],
             "preview_base64": b64,
+            "is_already_clipped": dup_info.get("is_clipped", False),
+            "clip_count": dup_info.get("clip_count", 0),
+            "latest_output": dup_info.get("latest_output", ""),
+            "last_clipped_at": dup_info.get("last_clipped_at", ""),
         }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -821,10 +959,16 @@ async def ingest_local_file(file: UploadFile = File(...)):
         img = Image.open(preview_img_path)
         b64 = pil_to_base64(img)
 
+        # AI-powered facecam and optimal layout detection
+        face_layout = detect_facecam_from_image(preview_img_path)
+        suggested_preset = face_layout.get("preset_name", "ambient_blur_16_9") if face_layout.get("detected") else "ambient_blur_16_9"
+
         return {
             "path": str(dest_path),
             "filename": file.filename,
             "video_url": f"/temp_media/{dest_path.name}",
+            "suggested_preset": suggested_preset,
+            "face_layout": face_layout,
             "width": meta["width"],
             "height": meta["height"],
             "duration": meta["duration"],
@@ -889,12 +1033,41 @@ async def extract_frame_at(req: FrameExtractRequest):
         extract_preview_frame(target_path, snap_path, timestamp=max(0.0, float(req.timestamp)))
         img = Image.open(snap_path)
         b64 = pil_to_base64(img)
+        face_layout = detect_facecam_from_image(snap_path)
         return {
             "timestamp": req.timestamp,
             "preview_base64": b64,
+            "face_layout": face_layout,
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Frame extraction failed: {str(exc)}")
+
+
+@app.post("/api/auto-detect-facecam")
+async def auto_detect_facecam_endpoint(req: AutoDetectFacecamRequest):
+    """
+    AI-powered streamer webcam detection using YuNet deep neural network.
+    Analyzes the video frame at the current timestamp, detects webcam corner/boundaries,
+    and returns perfectly calculated non-overlapping crop coordinates and layout mode.
+    """
+    target_path = _resolve_safe_video_path(req.video_path) if req.video_path else None
+    if not target_path or not target_path.is_file():
+        candidates = sorted(
+            [f for f in TEMP_DIR.glob("*.*") if f.suffix.lower() in (".mp4", ".mov", ".mkv") and not f.name.startswith("outro_")],
+            key=lambda x: x.stat().st_mtime,
+            reverse=True,
+        )
+        if candidates:
+            target_path = candidates[0].resolve()
+
+    if not target_path or not target_path.is_file():
+        raise HTTPException(status_code=400, detail="Video file not found for auto-detection.")
+
+    try:
+        layout = detect_facecam_from_video(target_path, target_timestamp=req.timestamp)
+        return layout
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Auto facecam detection failed: {str(exc)}")
 
 
 @app.post("/api/upload-overlay")
@@ -1105,6 +1278,18 @@ def _run_export_thread(job_id: str, payload: ExportPayload):
             "output_filename": final_file.name,
             "output_url": f"/outputs/{final_file.name}",
         })
+        # Record into Clip History & Anti-Repeat DB
+        try:
+            record_clipped_short(
+                source_url=payload.video_path,
+                output_filename=final_file.name,
+                title=getattr(payload, "title", "") or final_file.stem,
+                preset=getattr(payload, "preset_name", "") or "",
+                subtitle_style=str(sub_opts.get("font_name", "")),
+                ai_title=getattr(payload, "ai_title", "") or "",
+            )
+        except Exception as _hist_err:
+            print(f"NOTICE: History logging notice: {_hist_err}")
         cleanup_stale_temp_dirs(max_age_hours=2.0)
     except Exception as exc:
         export_jobs[job_id].update({
@@ -1674,6 +1859,427 @@ async def get_youtube_upload_status(job_id: str):
     if job_id not in youtube_upload_jobs:
         raise HTTPException(status_code=404, detail="Upload job not found.")
     return youtube_upload_jobs[job_id]
+
+
+@app.get("/api/status")
+@app.get("/api/motion/status")
+async def get_system_status():
+    """Returns server and hardware encoder status."""
+    encoder, enc_args = detect_best_ffmpeg_encoder()
+    voices = get_available_voices()
+    outputs_count = len(list(OUTPUT_DIR.glob("*.mp4")))
+    return {
+        "status": "online",
+        "port": 7860,
+        "encoder": encoder,
+        "encoder_args": enc_args,
+        "available_voices": len(voices),
+        "total_renders": outputs_count,
+    }
+
+
+# ==============================================================================
+# 📚 CLIP HISTORY & ANTI-REPEAT DATABASE ENDPOINTS
+# ==============================================================================
+class CheckHistoryRequest(BaseModel):
+    url: str
+
+
+@app.post("/api/history/check")
+async def check_history_endpoint(req: CheckHistoryRequest):
+    """Checks if a URL or clip ID has already been processed to prevent accidental duplicate clips."""
+    return check_if_clipped(req.url)
+
+
+@app.get("/api/history")
+@app.get("/api/history/list")
+async def get_history_endpoint(
+    search: Optional[str] = "",
+    platform: Optional[str] = "all",
+    page: Optional[int] = 1,
+    page_size: Optional[int] = 30,
+):
+    """Returns paginated history of all previously processed clips with metadata and outputs."""
+    return list_clip_history(search=search or "", platform=platform or "all", page=page or 1, page_size=page_size or 30)
+
+
+@app.delete("/api/history/{item_id}")
+async def delete_history_endpoint(item_id: str):
+    """Deletes an item from clip history."""
+    ok = delete_history_item(item_id)
+    return {"success": ok}
+
+
+@app.post("/api/history/clear")
+async def clear_history_endpoint():
+    """Clears all records in clip history."""
+    count = clear_all_history()
+    return {"success": True, "deleted_count": count}
+
+
+# ==============================================================================
+# ⚡ MOTION EXPLAINER STUDIO - 2.5D VIRAL SHORTS ENGINE
+# ==============================================================================
+class ScriptGenRequest(BaseModel):
+    topic: str
+    product_name: Optional[str] = "SmartApp"
+    category: Optional[str] = "Security / SaaS"
+    preset_id: Optional[str] = None
+
+
+class VoicePreviewRequest(BaseModel):
+    text: str
+    voice: Optional[str] = "en-US-ChristopherNeural"
+    rate: Optional[str] = "+0%"
+
+
+class ScenePreviewRequest(BaseModel):
+    scene: Dict[str, Any]
+    progress: Optional[float] = 0.5
+    global_time: Optional[float] = 1.0
+    width: Optional[int] = 540
+    height: Optional[int] = 960
+
+
+class RenderShortRequest(BaseModel):
+    script_data: Dict[str, Any]
+    voice_id: Optional[str] = "en-US-ChristopherNeural"
+    custom_audio_path: Optional[str] = None
+    fps: Optional[int] = 30
+    include_sfx: Optional[bool] = True
+    include_music: Optional[bool] = True
+    voice_volume: Optional[float] = 1.0
+    music_volume: Optional[float] = 0.18
+    sfx_volume: Optional[float] = 0.8
+
+
+MOTION_RENDER_JOBS: Dict[str, Dict[str, Any]] = {}
+CURRENT_DIR = Path(__file__).parent.resolve()
+
+
+def _resolve_motion_scene_paths(scene: Dict[str, Any]) -> Dict[str, Any]:
+    """Resolves web URLs to absolute filesystem paths for local assets."""
+    s = dict(scene)
+    for key in ["custom_image_path", "custom_screenshot_path", "custom_logo_path", "custom_skin_image_path"]:
+        val = s.get(key)
+        if val and isinstance(val, str) and val.startswith("/assets/"):
+            local = CURRENT_DIR / val.lstrip("/")
+            if local.exists():
+                s[key] = str(local)
+
+    if "items" in s and isinstance(s["items"], list):
+        resolved_items = []
+        for it in s["items"]:
+            it_c = dict(it)
+            for ikey in ["image_path", "custom_image_path"]:
+                ival = it_c.get(ikey)
+                if ival and isinstance(ival, str) and ival.startswith("/assets/"):
+                    ilocal = CURRENT_DIR / ival.lstrip("/")
+                    if ilocal.exists():
+                        it_c[ikey] = str(ilocal)
+            resolved_items.append(it_c)
+        s["items"] = resolved_items
+    return s
+
+
+@app.post("/api/motion/upload")
+@app.post("/api/upload")
+async def upload_motion_asset(file: UploadFile = File(...)):
+    """Uploads custom scene image, screenshot, logo, or audio/voiceover track."""
+    ext = Path(file.filename).suffix.lower()
+    allowed_exts = [".png", ".jpg", ".jpeg", ".webp", ".mp3", ".wav", ".m4a", ".aac"]
+    if ext not in allowed_exts:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type {ext}. Supported: {allowed_exts}")
+
+    clean_stem = re.sub(r"[^\w\-]", "_", Path(file.filename).stem)[:30]
+    unique_name = f"upload_{int(time.time())}_{clean_stem}{ext}"
+    dest_path = UPLOADS_DIR / unique_name
+
+    content = await file.read()
+    with open(dest_path, "wb") as f:
+        f.write(content)
+
+    duration = None
+    if ext in [".mp3", ".wav", ".m4a", ".aac"]:
+        duration = probe_audio_duration(str(dest_path))
+
+    return {
+        "success": True,
+        "filename": unique_name,
+        "url": f"/assets/uploads/{unique_name}",
+        "local_path": str(dest_path),
+        "duration": duration,
+        "is_audio": ext in [".mp3", ".wav", ".m4a", ".aac"],
+    }
+
+
+@app.get("/api/motion/presets")
+@app.get("/api/presets")
+async def get_motion_presets():
+    """Returns list of pre-configured viral motion short templates."""
+    return {"presets": get_available_presets()}
+
+
+@app.get("/api/motion/default-items/{scene_num}")
+@app.get("/api/default-items/{scene_num}")
+async def get_motion_default_items(scene_num: int, code: str = "MESTO300"):
+    """Returns default on-screen items/layers for a specific scene."""
+    items = get_tradeit_default_items(scene_num, code=code)
+    return {"scene_num": scene_num, "items": items}
+
+
+@app.get("/api/motion/asset-presets")
+@app.get("/api/asset-presets")
+async def get_motion_asset_presets():
+    """Returns available asset presets for easy 1-click addition into scenes."""
+    presets = [
+        {"id": "tradeit_homepage_card.jpg", "name": "TradeIt Homepage Card", "type": "card", "category": "tradeit"},
+        {"id": "tradeit_dropdown_menu.jpg", "name": "TradeIt Dropdown Menu", "type": "card", "category": "tradeit"},
+        {"id": "tradeit_modal_raw.jpg", "name": "TradeIt Redeem Modal (Live Typing)", "type": "card", "category": "tradeit"},
+        {"id": "tradeit_header_toast.jpg", "name": "Balance Header Toast Bar", "type": "card", "category": "tradeit"},
+        {"id": "tradeit_item_grid.jpg", "name": "CS2 Skins Selection Grid", "type": "card", "category": "tradeit"},
+        {"id": "tradeit_floating_skins.jpg", "name": "3 Floating Dream Weapons", "type": "card", "category": "tradeit"},
+        {"id": "steam_proceed_stop.jpg", "name": "Steam Proceed & STOP Button", "type": "card", "category": "steam"},
+        {"id": "missing_item_bar.jpg", "name": "Trade Missing Item Strip", "type": "card", "category": "steam"},
+        {"id": "steam_inventory_5x5.jpg", "name": "Steam 5x5 Inventory Grid", "type": "card", "category": "steam"},
+        {"id": "cs2_trade_badge.jpg", "name": "CS2 Handshake Badge", "type": "badge", "category": "badge"},
+        {"id": "prohibition_badge.jpg", "name": "Prohibition Sign Badge", "type": "badge", "category": "badge"},
+    ]
+    return {"asset_presets": presets}
+
+
+@app.get("/api/motion/voices")
+@app.get("/api/voices")
+async def get_motion_voices():
+    """Returns list of studio-grade neural voices."""
+    return {"voices": get_available_voices()}
+
+
+@app.post("/api/motion/generate-script")
+@app.post("/api/generate-script")
+async def generate_motion_script_endpoint(req: ScriptGenRequest):
+    """Generates 5-scene viral motion explainer script."""
+    if req.preset_id:
+        for p in VIRAL_PRESETS:
+            if p["id"] == req.preset_id:
+                return {"script": p}
+
+    script = generate_motion_script_ai(
+        topic_or_url=req.topic,
+        product_name=req.product_name or "SmartApp",
+        category=req.category or "SaaS / Security",
+    )
+    return {"script": script}
+
+
+@app.post("/api/motion/preview-voice")
+@app.post("/api/preview-voice")
+async def preview_motion_voice(req: VoicePreviewRequest):
+    """Synthesizes preview audio clip for narrator voice testing."""
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="Voice text cannot be empty.")
+    try:
+        res = synthesize_speech(req.text, voice=req.voice or "en-US-ChristopherNeural")
+        rel_path = Path(res["audio_path"]).relative_to(CURRENT_DIR)
+        web_url = "/" + str(rel_path).replace("\\", "/")
+        return {
+            "success": True,
+            "audio_url": web_url,
+            "duration": res["duration"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Voice synthesis failed: {str(e)}")
+
+
+@app.post("/api/motion/preview-scene")
+@app.post("/api/preview-scene")
+def preview_motion_scene(req: ScenePreviewRequest):
+    """
+    Renders an instantaneous preview frame for the selected scene
+    and returns a preview WebP image URL.
+    Master render is always evaluated at 1080x1920 to guarantee 100% exact
+    framing, typography, card scale, and margins identical to the final video export.
+    """
+    try:
+        resolved_scene = _resolve_motion_scene_paths(req.scene)
+        # Always render on canonical 1080x1920 canvas to maintain exact framing & proportions
+        img = render_motion_frame(
+            scene=resolved_scene,
+            scene_progress=req.progress if req.progress is not None else 0.5,
+            global_time=req.global_time or 1.2,
+            width=1080,
+            height=1920,
+        )
+
+        # Downscale composited frame for rapid UI transfer if requested
+        req_w = req.width or 540
+        req_h = req.height or 960
+        if req_w and req_h and (req_w != 1080 or req_h != 1920):
+            img = img.resize((req_w, req_h), resample=Image.BILINEAR)
+
+        preview_id = f"preview_{int(time.time() * 1000)}.webp"
+        preview_path = ASSETS_CACHE_DIR / preview_id
+        rgb_img = img.convert("RGB")
+        rgb_img.save(str(preview_path), format="WEBP", quality=86)
+
+        web_url = f"/assets/cache/{preview_id}"
+        return {"success": True, "preview_url": web_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scene preview failed: {str(e)}")
+
+
+@app.post("/api/motion/render-short")
+@app.post("/api/render-short")
+async def start_motion_render_job(req: RenderShortRequest):
+    """Initiates an asynchronous 1080x1920 video render job and returns job ID for SSE progress tracking."""
+    job_id = str(uuid.uuid4())[:8]
+    MOTION_RENDER_JOBS[job_id] = {
+        "status": "queued",
+        "progress": 0.02,
+        "message": "Initializing render pipeline...",
+        "result": None,
+        "error": None,
+    }
+
+    def _execute():
+        def _prog_cb(pct: float, msg: str):
+            if job_id in MOTION_RENDER_JOBS:
+                MOTION_RENDER_JOBS[job_id]["progress"] = round(pct, 3)
+                MOTION_RENDER_JOBS[job_id]["message"] = msg
+                MOTION_RENDER_JOBS[job_id]["status"] = "processing"
+
+        try:
+            # Resolve all file paths for uploaded assets
+            script_copy = dict(req.script_data)
+            script_copy["scenes"] = [_resolve_motion_scene_paths(s) for s in req.script_data.get("scenes", [])]
+
+            # Resolve custom voiceover / audio track
+            c_audio = req.custom_audio_path or script_copy.get("custom_audio_path")
+            if c_audio and isinstance(c_audio, str) and c_audio.startswith("/assets/"):
+                local_audio = CURRENT_DIR / c_audio.lstrip("/")
+                if local_audio.exists():
+                    c_audio = str(local_audio)
+            if c_audio:
+                script_copy["custom_audio_path"] = c_audio
+
+            res = render_motion_explainer_short(
+                script_data=script_copy,
+                voice_id=req.voice_id or "en-US-ChristopherNeural",
+                fps=req.fps or 30,
+                include_sfx=req.include_sfx,
+                include_music=req.include_music,
+                voice_volume=req.voice_volume if req.voice_volume is not None else 1.0,
+                music_volume=req.music_volume if req.music_volume is not None else 0.18,
+                sfx_volume=req.sfx_volume if req.sfx_volume is not None else 0.8,
+                progress_callback=_prog_cb,
+            )
+            out_filename = res["video_filename"]
+            
+            # Record into clip history as motion short
+            try:
+                record_clipped_short(
+                    source_url=f"motion://{req.script_data.get('theme', 'explainer')}/{req.script_data.get('promocode', 'PROMO')}",
+                    output_filename=out_filename,
+                    title=req.script_data.get("name") or req.script_data.get("topic") or "Motion Explainer Short",
+                    channel="Motion Studio",
+                    duration=res.get("duration", 0.0),
+                    preset="motion_2.5d",
+                    ai_title=req.script_data.get("name", ""),
+                )
+            except Exception as _h_err:
+                print(f"NOTICE: Motion short history logging: {_h_err}")
+
+            MOTION_RENDER_JOBS[job_id]["status"] = "completed"
+            MOTION_RENDER_JOBS[job_id]["progress"] = 1.0
+            MOTION_RENDER_JOBS[job_id]["message"] = "Short video exported successfully!"
+            MOTION_RENDER_JOBS[job_id]["result"] = {
+                "video_url": f"/outputs/{out_filename}",
+                "filename": out_filename,
+                "duration": res["duration"],
+                "fps": res["fps"],
+                "resolution": res["resolution"],
+            }
+        except Exception as e:
+            MOTION_RENDER_JOBS[job_id]["status"] = "failed"
+            MOTION_RENDER_JOBS[job_id]["error"] = str(e)
+            MOTION_RENDER_JOBS[job_id]["message"] = f"Render failed: {str(e)}"
+
+    thread = threading.Thread(target=_execute, daemon=True)
+    thread.start()
+
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/motion/render-stream/{job_id}")
+@app.get("/api/render-stream/{job_id}")
+async def stream_motion_render_progress(job_id: str):
+    """Server-Sent Events (SSE) endpoint providing live 60fps/real-time progress feedback."""
+    async def event_generator():
+        while True:
+            job = MOTION_RENDER_JOBS.get(job_id)
+            if not job:
+                yield f"data: {json.dumps({'status': 'not_found', 'progress': 0})}\n\n"
+                break
+
+            data = {
+                "status": job["status"],
+                "progress": job["progress"],
+                "message": job["message"],
+                "result": job.get("result"),
+                "error": job.get("error"),
+            }
+            yield f"data: {json.dumps(data)}\n\n"
+
+            if job["status"] in ("completed", "failed"):
+                break
+            await asyncio.sleep(0.4)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.get("/api/motion/outputs")
+@app.get("/api/outputs")
+async def list_motion_outputs():
+    """Lists all previously rendered shorts with metadata."""
+    videos = []
+    # Search both OUTPUT_DIR and ASSETS_CACHE_DIR / OUTPUTS
+    search_dirs = [OUTPUT_DIR, CURRENT_DIR / "outputs"]
+    seen_names = set()
+    for sdir in search_dirs:
+        if not sdir.exists():
+            continue
+        for f in sdir.glob("*.mp4"):
+            if f.name in seen_names:
+                continue
+            seen_names.add(f.name)
+            try:
+                stat = f.stat()
+                videos.append({
+                    "filename": f.name,
+                    "url": f"/outputs/{f.name}",
+                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime)),
+                })
+            except Exception:
+                pass
+    videos.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"videos": videos}
+
+
+@app.delete("/api/motion/outputs/{filename}")
+@app.delete("/api/outputs/{filename}")
+async def delete_motion_output(filename: str):
+    """Deletes an output video."""
+    target1 = OUTPUT_DIR / filename
+    target2 = CURRENT_DIR / "outputs" / filename
+    deleted = False
+    for t in [target1, target2]:
+        if t.exists() and t.suffix.lower() == ".mp4":
+            t.unlink()
+            deleted = True
+    if deleted:
+        return {"success": True, "deleted": filename}
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 def open_browser_delayed(url: str, delay_sec: float = 1.0):

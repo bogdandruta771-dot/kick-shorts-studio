@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniStream Shorts Studio - Kick & Twitch</title>
+    <title>OmniStudio - AI Video Suite & Explainer Studio</title>
+    <!-- App Icon & Favicon -->
+    <link rel="icon" type="image/png" href="/assets/icon.png">
+    <link rel="shortcut icon" href="/assets/icon.ico">
+    <link rel="apple-touch-icon" href="/assets/icon.png">
     <!-- Google Fonts Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -195,6 +199,31 @@
             </div>
 
             <!-- Wizard Stepper (Steps 1 to 4) -->
+                        <!-- Master Studio Hub Switcher -->
+            <div class="flex items-center bg-brand-surface p-1 rounded-xl border border-brand-border text-xs shadow-inner">
+                <button onclick="switchMasterHubTab('stream_clipper')" id="master-tab-stream" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-indigo-600 shadow-md">
+                    <i data-lucide="scissors" class="w-3.5 h-3.5 text-indigo-200"></i>
+                    <span class="hidden sm:inline">Stream Clipper</span>
+                    <span class="sm:hidden">Clipper</span>
+                </button>
+                <button onclick="switchMasterHubTab('motion_explainer')" id="master-tab-motion" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span class="hidden sm:inline">Motion 2.5D</span>
+                    <span class="sm:hidden">Motion</span>
+                    <span class="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-300">PROMO</span>
+                </button>
+                <button onclick="switchMasterHubTab('clip_history')" id="master-tab-history" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
+                    <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span class="hidden sm:inline">Clip History</span>
+                    <span class="sm:hidden">History</span>
+                    <span id="badgeMasterHistoryCount" class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                </button>
+                <button onclick="switchMasterHubTab('youtube_warmer')" id="master-tab-warmer" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
+                    <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-400"></i>
+                    <span class="hidden md:inline">Warmer</span>
+                </button>
+            </div>
+
             <nav class="flex items-center gap-1 sm:gap-2 bg-brand-bg/90 p-1.5 rounded-full border border-brand-border shadow-inner" id="stepper-nav">
                 <!-- Step 1 Pill -->
                 <button onclick="goToStep(1)" id="step-btn-1" class="step-btn px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all text-white bg-indigo-600 shadow-md shadow-indigo-600/30">
@@ -252,7 +281,7 @@
     </header>
 
     <!-- MAIN STUDIO STAGE CONTAINER -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+    <div id="master-view-stream" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
 
         <!-- ========================================================================= -->
         <!-- STEP 1: INGEST & DISCOVER                                                 -->
@@ -261,10 +290,10 @@
             <div class="text-center space-y-2">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/15 via-indigo-500/15 to-purple-500/15 border border-indigo-500/30 text-[11px] font-semibold text-indigo-300 mb-1">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>KICK & TWITCH VIRAL DISCOVERY ENGINE</span>
+                    <span>KICK, TWITCH & YOUTUBE VIRAL DISCOVERY ENGINE</span>
                 </div>
                 <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white bg-gradient-to-r from-white via-zinc-100 to-indigo-200 bg-clip-text text-transparent">Stream Shorts Studio & Viral Clip Finder</h1>
-                <p class="text-xs sm:text-sm text-zinc-400 max-w-2xl mx-auto leading-relaxed">Search trending clips from top Kick & Twitch streamers, convert to viral 9:16 Shorts in 1 click with Whisper subtitles, or monitor live broadcasts with real-time sentinels.</p>
+                <p class="text-xs sm:text-sm text-zinc-400 max-w-2xl mx-auto leading-relaxed">Search trending clips from top Kick, Twitch & YouTube creators, convert to viral 9:16 Shorts in 1 click with Whisper subtitles, or monitor live broadcasts with real-time sentinels.</p>
             </div>
 
             <!-- Ingestion Method Tabs Container -->
@@ -328,6 +357,9 @@
                                 </button>
                                 <button type="button" onclick="setClipExplorerPlatform('twitch')" id="btn-exp-plat-twitch" class="px-3 py-1 rounded-lg font-medium transition-all text-zinc-400 hover:text-zinc-200">
                                     🟣 Twitch
+                                </button>
+                                <button type="button" onclick="setClipExplorerPlatform('youtube')" id="btn-exp-plat-youtube" class="px-3 py-1 rounded-lg font-medium transition-all text-zinc-400 hover:text-zinc-200">
+                                    🔴 YouTube
                                 </button>
                             </div>
 
@@ -441,10 +473,12 @@
                             <p class="text-xs text-zinc-400 mt-1">Try searching a popular streamer name or switch platform / time filter.</p>
                         </div>
                         <div class="flex flex-wrap justify-center gap-2 pt-2">
-                            <button onclick="quickSearchStreamer('xqc')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">xQc</button>
+                            <button onclick="quickSearchStreamer('cs2')" class="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs text-indigo-300 font-semibold">🔫 CS2</button>
+                            <button onclick="quickSearchStreamer('ohnepixel')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">ohnePixel</button>
                             <button onclick="quickSearchStreamer('tarik')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">Tarik</button>
-                            <button onclick="quickSearchStreamer('kaicenat')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">KaiCenat</button>
+                            <button onclick="quickSearchStreamer('xqc')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">xQc</button>
                             <button onclick="quickSearchStreamer('roshtein')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">Roshtein</button>
+                            <button onclick="quickSearchStreamer('kaicenat')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">KaiCenat</button>
                             <button onclick="quickSearchStreamer('adinross')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300">AdinRoss</button>
                         </div>
                     </div>
@@ -624,22 +658,33 @@
                     </div>
                 </div>
 
-                <!-- Option B: URL Input Form (Kick, Twitch, YouTube, Generic) -->
+                <!-- Option B: URL Input Form (YouTube, Kick, Twitch, Generic) -->
                 <div id="panel-ingest-url" class="hidden space-y-4">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400">Twitch, Kick, or Stream Clip Link</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400">YouTube, Twitch, Kick, or Stream Clip Link</label>
                     <div class="flex gap-2">
                         <div class="relative flex-1">
                             <i data-lucide="video" class="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" id="kick-url-input" placeholder="https://clips.twitch.tv/... or https://kick.com/... or https://twitch.tv/..." class="w-full pl-10 pr-4 py-3 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                            <input type="text" id="kick-url-input" placeholder="https://youtube.com/watch?v=... or https://youtube.com/clip/... or https://clips.twitch.tv/... or https://kick.com/..." class="w-full pl-10 pr-4 py-3 bg-brand-bg rounded-xl border border-brand-border text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
                         </div>
                         <button onclick="inspectKickUrl()" id="btn-inspect-url" class="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all">
                             <span>Inspect</span>
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
                     </div>
+                    <div class="flex items-center gap-3 pt-0.5 text-xs text-zinc-400">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-zinc-500 text-[11px] font-medium">Start:</span>
+                            <input type="text" id="ingest-start-time" placeholder="00:00 (opt)" class="w-24 px-2.5 py-1 bg-brand-bg rounded-lg border border-brand-border text-white text-xs placeholder-zinc-600 focus:border-indigo-500">
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-zinc-500 text-[11px] font-medium">Duration:</span>
+                            <input type="number" id="ingest-duration" placeholder="60s" min="5" max="300" class="w-20 px-2.5 py-1 bg-brand-bg rounded-lg border border-brand-border text-white text-xs placeholder-zinc-600 focus:border-indigo-500">
+                        </div>
+                        <span class="text-[11px] text-zinc-500">(Auto-clips timestamps or full YouTube Shorts automatically)</span>
+                    </div>
                     <p class="text-[11px] text-zinc-500 flex items-center gap-1.5">
                         <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-400"></i>
-                        Supports Twitch clips, Kick clips, and web streams. Extracted safely via yt-dlp format fallbacks.
+                        Supports YouTube (clips, shorts, videos), Twitch clips, Kick clips, and direct streams via yt-dlp.
                     </p>
                 </div>
 
@@ -806,29 +851,40 @@
 
                 <!-- Layout Preset Selector Bar -->
                 <div class="flex flex-wrap items-center gap-2 p-1.5 bg-brand-card rounded-xl border border-brand-border">
-                    <span class="text-[11px] text-zinc-400 font-semibold px-2 flex items-center gap-1">
+                    <button type="button" onclick="autoDetectFacecam()" id="btn-auto-detect-facecam" class="px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold transition-all shadow-md shadow-indigo-600/30 flex items-center gap-1.5 cursor-pointer" title="AI automatically detects streamer webcam placement and configures optimal crops without cutting anything off">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                        <span>Auto-Detect Facecam</span>
+                    </button>
+                    <button type="button" onclick="snapCurrentPlayerFrame()" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border transition-colors flex items-center gap-1 cursor-pointer" title="Refresh cropper snapshot to the current video player timestamp from Step 1">
+                        <i data-lucide="camera" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Sync Frame</span>
+                    </button>
+                    <span class="text-[11px] text-zinc-400 font-semibold px-1 flex items-center gap-1">
                         <i data-lucide="layout-template" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        <span>Crop Preset:</span>
+                        <span>Preset:</span>
                     </span>
                     <select id="presetSelect" onchange="applyPreset(this.value)" class="bg-brand-surface text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-border focus:outline-none focus:border-indigo-500 cursor-pointer">
-                        <optgroup label="🔥 Streamer Reaction (OhnePixel Style)">
-                            <option value="reaction_cam_top">🔥 OhnePixel Reaction (Cam on TOP + Game on BOTTOM)</option>
+                        <optgroup label="📱 Recommended (Zero Cut / Universal)">
+                            <option value="ambient_blur_16_9">✨ Full 16:9 Ambient Blur (Best for Unboxings, Montages, Zero-Cut)</option>
+                        </optgroup>
+                        <optgroup label="🎮 Streamer Facecam Split (Reaction / Gaming)">
+                            <option value="reaction_top_left">🎮 Top-Left Cam + Game Bottom (CS2 / Gaules / FPS)</option>
+                            <option value="reaction_cam_top">👑 Top-Right Cam + Game Bottom (OhnePixel Style)</option>
+                            <option value="reaction_bottom_left">🎯 Bottom-Left Cam + Game Top (Tarik / s1mple)</option>
+                            <option value="gaming_fps">🕹️ Bottom-Right Cam + Game Top (Standard FPS)</option>
                             <option value="reddit_reaction">📱 Reddit Reaction (Top Cam + Content Below)</option>
                         </optgroup>
-                        <optgroup label="🎮 Gaming & Esports (FPS / MOBA / Centered)">
-                            <option value="gaming_fps">🎮 Gaming FPS (Valorant, CS2, Apex - Game Top + Cam)</option>
+                        <optgroup label="⚔️ Esports & Centered">
                             <option value="gaming_moba">⚔️ Gaming MOBA (League, Dota 2 - Minimap Safe)</option>
                             <option value="gaming_centered">🎯 Gaming Centered (HUD Focus)</option>
                         </optgroup>
-                        <optgroup label="💬 Just Chatting & Reaction">
+                        <optgroup label="💬 Just Chatting & Podcasts">
                             <option value="reaction_standard">💬 Standard Reaction (Top Media 60% + Cam 40%)</option>
                             <option value="reaction_interview">👥 Dual Cam / Split Screen (50/50)</option>
-                        </optgroup>
-                        <optgroup label="🎙️ Podcasts & Shows">
                             <option value="podcast_split">🎙️ Podcast Split (Side-by-Side Dual Host)</option>
                         </optgroup>
                         <optgroup label="🎰 Casino & Slots">
-                            <option value="center_slot" selected>🎰 Slot Standard (Big Reel + Cam)</option>
+                            <option value="center_slot">🎰 Slot Standard (Big Reel + Cam)</option>
                             <option value="roulette_table">🎡 Live Roulette / Table</option>
                             <option value="full_reel">📱 Full Width Reels</option>
                         </optgroup>
@@ -838,16 +894,17 @@
                             <option value="cinema_letterbox">🎬 Cinematic 16:9 (Letterbox with Ambient Wings)</option>
                             <option value="full_bleed_9_16">📱 Full 9:16 Vertical Immersion (Direct Center Action)</option>
                         </optgroup>
-                        <optgroup label="📱 Ambient & Fullscreen">
-                            <option value="ambient_blur_16_9">✨ Ambient Blur Background (16:9 in 9:16)</option>
-                        </optgroup>
                     </select>
-                    <button type="button" onclick="toggleCamStackMode()" id="btn-toggle-cam-stack" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-indigo-400 hover:text-white border border-brand-border transition-all flex items-center gap-1.5 font-medium" title="Flip layout between Standard (Game Top / Cam Bottom) and OhnePixel Reaction (Cam Top / Game Bottom)">
+                    <button type="button" onclick="toggleCamStackMode()" id="btn-toggle-cam-stack" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-indigo-400 hover:text-white border border-brand-border transition-all flex items-center gap-1.5 font-medium cursor-pointer" title="Flip layout between Standard (Game Top / Cam Bottom) and Reaction (Cam Top / Game Bottom)">
                         <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        <span id="lbl-cam-stack-mode">⇅ Cam on Top (OhnePixel)</span>
+                        <span id="lbl-cam-stack-mode">⇅ Cam Position</span>
                     </button>
-                    <button type="button" onclick="snapCam('br')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Right</button>
-                    <button type="button" onclick="snapCam('bl')" class="px-2.5 py-1 text-xs rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors">📌 Cam Bottom-Left</button>
+                    <div class="flex items-center gap-1 border-l border-brand-border pl-1.5">
+                        <button type="button" onclick="snapCam('tl')" class="px-2 py-1 text-[11px] rounded-lg bg-brand-surface hover:bg-brand-border text-emerald-400 hover:text-emerald-300 border border-brand-border transition-colors cursor-pointer" title="Snap Camera to Top-Left">TL</button>
+                        <button type="button" onclick="snapCam('tr')" class="px-2 py-1 text-[11px] rounded-lg bg-brand-surface hover:bg-brand-border text-emerald-400 hover:text-emerald-300 border border-brand-border transition-colors cursor-pointer" title="Snap Camera to Top-Right">TR</button>
+                        <button type="button" onclick="snapCam('bl')" class="px-2 py-1 text-[11px] rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors cursor-pointer" title="Snap Camera to Bottom-Left">BL</button>
+                        <button type="button" onclick="snapCam('br')" class="px-2 py-1 text-[11px] rounded-lg bg-brand-surface hover:bg-brand-border text-pink-400 hover:text-pink-300 border border-brand-border transition-colors cursor-pointer" title="Snap Camera to Bottom-Right">BR</button>
+                    </div>
                 </div>
             </div>
 
@@ -2138,7 +2195,483 @@
             </div>
         </section>
 
-    </main>
+    </div>
+
+<div id="master-view-motion" class="hidden flex-1 w-full max-w-[1780px] mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: SCRIPT, SCENE TIMELINE & VOICE STUDIO (Cols 1-7) -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- 1. AI SCRIPT GENERATOR & PRESETS CARD -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                    <div class="flex items-center space-x-2.5">
+                        <i data-lucide="wand-2" class="w-5 h-5 text-brand-cyan"></i>
+                        <h2 class="text-base font-semibold text-white">Motion Presets & Script Generator</h2>
+                    </div>
+                    <span class="text-xs text-gray-400 font-mono">Select Template or Generate</span>
+                </div>
+
+                <!-- Viral Preset Quick Buttons (Displays all available presets) -->
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-400 mb-2">Available Presets (Click to Load):</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5" id="presetsList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Custom Topic Generator Form -->
+                <div class="space-y-3 pt-2 border-t border-brand-border/60">
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-8">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Topic / Hook / Problem</label>
+                            <input type="text" id="inputTopic" placeholder="e.g. TradeIt CS2 skins promotion, Crypto AML risk" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-accent transition-colors font-sans">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Product / App Name</label>
+                            <input type="text" id="inputProductName" placeholder="e.g. TradeIt.gg" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-accent transition-colors">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="text-xs text-gray-400 flex items-center space-x-1">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-brand-green"></i>
+                            <span>Full multi-scene choreography with side-to-side kinetics</span>
+                        </div>
+                        <button id="btnGenerateScript" onclick="generateScript()" class="bg-gradient-to-r from-brand-accent to-indigo-600 hover:from-indigo-500 hover:to-indigo-700 text-white font-medium text-xs px-4 py-2 rounded-xl flex items-center space-x-2 transition-all glow-accent">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span>Generate Script</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. SCENE TIMELINE & MULTI-DIRECTION ITEM COMPOSER -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                    <div class="flex items-center space-x-2.5">
+                        <i data-lucide="layers" class="w-5 h-5 text-brand-accent"></i>
+                        <h2 class="text-base font-semibold text-white">Scene Choreography & Visual Item Composer</h2>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span id="scriptBadge" class="text-xs font-mono bg-brand-accent/20 text-indigo-300 border border-brand-accent/30 px-2.5 py-0.5 rounded-full">Active Preset</span>
+                        <button onclick="addNewScene()" class="text-xs bg-brand-green/20 hover:bg-brand-green/30 border border-brand-green/40 text-brand-green px-2.5 py-1 rounded-lg flex items-center space-x-1 font-medium transition-colors">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>Add Scene</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scene Accordion / Cards Container -->
+                <div id="scenesContainer" class="space-y-4">
+                    <!-- Scenes rendered here by JS with full item choreography controls -->
+                </div>
+
+                <!-- Add Scene Button at Bottom -->
+                <div class="mt-4 pt-2">
+                    <button onclick="addNewScene()" class="w-full py-3 px-4 rounded-xl border border-dashed border-brand-border hover:border-brand-accent/60 bg-brand-surface/40 hover:bg-brand-surface text-brand-cyan hover:text-white font-medium text-xs flex items-center justify-center space-x-2 transition-all">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>+ Add New Scene to Storyboard</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 3. NEURAL VOICE & SOUND ENGINE CARD -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                    <div class="flex items-center space-x-2.5">
+                        <i data-lucide="mic" class="w-5 h-5 text-brand-green"></i>
+                        <h2 class="text-base font-semibold text-white">Neural Voiceover & Audio Engine</h2>
+                    </div>
+                    <span class="text-xs font-mono text-brand-green">Edge-TTS + User Audio + SFX</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-7 space-y-1">
+                        <label class="block text-xs font-medium text-gray-400">Narrator Voice (Reference Short Style)</label>
+                        <select id="voiceSelect" onchange="onVoiceChanged(this.value)" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent">
+                            <optgroup label="Neural TTS (Zero-Key / Studio)">
+                                <option value="en-US-ChristopherNeural" selected>Christopher (Deep Authority / Documentary) [Ref Short]</option>
+                                <option value="en-US-GuyNeural">Guy (Energetic CS2 / Tech Startup)</option>
+                                <option value="en-US-EricNeural">Eric (Deep Warning / Serious)</option>
+                                <option value="en-US-AriaNeural">Aria (Expressive Female)</option>
+                                <option value="en-US-JennyNeural">Jenny (Warm / Approachable)</option>
+                                <option value="en-US-RyanNeural">Ryan (Modern Fast British)</option>
+                                <option value="ru-RU-DmitryNeural">Dmitry (Russian High-Energy Promo)</option>
+                            </optgroup>
+                            <optgroup label="ElevenLabs Studio (With Key)">
+                                <option value="eleven_adam">Adam (ElevenLabs Deep Authority)</option>
+                                <option value="eleven_antoni">Antoni (ElevenLabs Energetic Commercial)</option>
+                                <option value="eleven_rachel">Rachel (ElevenLabs Studio Calm)</option>
+                                <option value="eleven_josh">Josh (ElevenLabs Casual Young)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-5 flex items-end space-x-2">
+                        <button id="btnTestVoice" onclick="testVoicePreview()" class="w-full bg-brand-surface hover:bg-brand-border border border-brand-border text-white text-xs px-3.5 py-2 rounded-xl flex items-center justify-center space-x-2 transition-colors">
+                            <i data-lucide="volume-2" class="w-4 h-4 text-brand-green"></i>
+                            <span>Test Narration Voice</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Voiceover / Audio Track Upload Bar -->
+                <div class="mt-3.5 p-3 rounded-xl bg-brand-surface border border-brand-border space-y-2">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <div class="w-8 h-8 rounded-lg bg-brand-green/20 border border-brand-green/40 flex items-center justify-center text-brand-green flex-shrink-0">
+                                <i data-lucide="file-audio" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-white flex items-center space-x-2">
+                                    <span>Master Audio Track</span>
+                                    <span id="badgeAudioTrackStatus" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">TTS Mode</span>
+                                </div>
+                                <p id="labelAudioTrack" class="text-[11px] text-gray-400">Upload user voice recording, ElevenLabs audio, or use reference track</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-auto justify-end flex-shrink-0">
+                            <button id="btnRefAudio" onclick="useReferenceAdAudio()" title="Use extracted authentic ad voice & beat" class="text-xs bg-brand-surface hover:bg-brand-border border border-brand-border text-gray-300 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors flex items-center space-x-1">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>Ref Ad Audio</span>
+                            </button>
+                            <button id="btnUploadAudio" onclick="document.getElementById('audioTrackUploadInput').click()" class="text-xs bg-brand-surface hover:bg-brand-border border border-brand-border text-gray-300 hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1 font-medium">
+                                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                                <span>Upload Audio</span>
+                            </button>
+                            <button id="btnClearCustomAudio" onclick="clearCustomAudioTrack()" title="Reset to Neural TTS" class="hidden text-xs text-red-400 hover:text-red-300 bg-brand-card p-1.5 rounded-lg border border-brand-border">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <input type="file" id="audioTrackUploadInput" accept=".mp3,.wav,.m4a,.aac" onchange="handleCustomAudioUpload(this)" class="hidden">
+                        </div>
+                    </div>
+                    <!-- Playable Master Audio Preview Element -->
+                    <audio id="masterAudioPlayer" controls class="hidden w-full h-8 mt-2 rounded bg-brand-card border border-brand-border/60"></audio>
+                </div>
+
+                <!-- Multi-Track Audio Volume Mixers -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-3 border-t border-brand-border/60 text-xs">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-gray-400">Voice Volume</span>
+                            <span id="badgeVoiceVol" class="font-mono text-brand-green font-semibold">100%</span>
+                        </div>
+                        <input type="range" id="sliderVoiceVol" min="0" max="1.5" step="0.05" value="1.0" oninput="updateAudioVol('badgeVoiceVol', this.value, true)" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-gray-400">Ducked Synth Music</span>
+                            <span id="badgeMusicVol" class="font-mono text-brand-cyan font-semibold">18%</span>
+                        </div>
+                        <input type="range" id="sliderMusicVol" min="0" max="0.8" step="0.02" value="0.18" oninput="updateAudioVol('badgeMusicVol', this.value, true)" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-gray-400">Synchronized SFX</span>
+                            <span id="badgeSfxVol" class="font-mono text-brand-accent font-semibold">80%</span>
+                        </div>
+                        <input type="range" id="sliderSfxVol" min="0" max="1.2" step="0.05" value="0.80" oninput="updateAudioVol('badgeSfxVol', this.value, true)" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Audio switches -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-3 border-t border-brand-border/60">
+                    <label class="flex items-center space-x-2 cursor-pointer text-xs text-gray-300">
+                        <input type="checkbox" id="chkWhoosh" checked class="rounded bg-brand-surface border-brand-border text-brand-accent focus:ring-0">
+                        <span>Card Whoosh SFX</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer text-xs text-gray-300">
+                        <input type="checkbox" id="chkPaper" checked class="rounded bg-brand-surface border-brand-border text-brand-accent focus:ring-0">
+                        <span>Paper Slide SFX</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer text-xs text-gray-300">
+                        <input type="checkbox" id="chkPop" checked class="rounded bg-brand-surface border-brand-border text-brand-accent focus:ring-0">
+                        <span>Risk Pop SFX</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer text-xs text-gray-300">
+                        <input type="checkbox" id="chkMusic" checked class="rounded bg-brand-surface border-brand-border text-brand-accent focus:ring-0">
+                        <span>Ducked Dark Synth</span>
+                    </label>
+                </div>
+
+                <!-- Live voice audio preview bar -->
+                <div id="voiceAudioPlayerContainer" class="hidden mt-3 pt-3 border-t border-brand-border/60">
+                    <audio id="voiceAudioPlayer" controls class="w-full h-8 rounded-lg bg-brand-surface"></audio>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RIGHT COLUMN: LIVE VERTICAL PREVIEW & EXPORT STUDIO (Cols 8-12) -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- 1. LIVE VERTICAL SMARTPHONE PREVIEW FRAME -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col items-center">
+                <div class="w-full flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="smartphone" class="w-5 h-5 text-brand-cyan"></i>
+                        <h2 class="text-base font-semibold text-white">Live Vertical Shorts Preview</h2>
+                    </div>
+                    <span class="text-xs font-mono text-gray-400">9:16 (1080x1920)</span>
+                </div>
+
+                <!-- Dynamic Scene Quick Switcher Tabs (Populated dynamically) -->
+                <div id="sceneTabsContainer" class="w-full flex items-center justify-start sm:justify-center space-x-1.5 mb-4 bg-brand-surface p-1 rounded-xl border border-brand-border text-xs overflow-x-auto">
+                    <!-- Populated dynamically by renderSceneTabs() -->
+                </div>
+
+                <!-- Phone Device Frame (Exact 9:16 Shorts ratio) -->
+                <div class="phone-bezel relative bg-black overflow-hidden flex items-center justify-center shadow-2xl" style="width: 324px; height: 576px; aspect-ratio: 9/16;">
+                    <!-- Speaker / Dynamic Island -->
+                    <div class="absolute top-3 w-24 h-4 bg-zinc-800 rounded-full z-20 flex items-center justify-center pointer-events-none">
+                        <div class="w-2.5 h-2.5 rounded-full bg-zinc-900 border border-zinc-700 mr-2"></div>
+                        <div class="w-6 h-1 rounded-full bg-zinc-700"></div>
+                    </div>
+
+                    <!-- Single-Frame Canvas/Image View -->
+                    <div id="previewFrameContainer" class="w-full h-full relative flex items-center justify-center">
+                        <img id="previewImage" src="/assets/cache/sample_composite.png" alt="Preview Frame" class="w-full h-full object-contain">
+                        <!-- Sleek Non-Blocking Live Render Pill (Never covers canvas) -->
+                        <div id="previewSpinner" class="hidden absolute top-4 right-4 z-30 bg-brand-card/90 backdrop-blur-md border border-brand-accent/60 px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-xl pointer-events-none transition-all">
+                            <span class="w-2 h-2 rounded-full bg-brand-cyan animate-ping"></span>
+                            <span class="text-[9px] font-mono text-brand-cyan font-bold tracking-wider uppercase">Live 2.5D</span>
+                        </div>
+                    </div>
+
+                    <!-- Rendered Video Player View -->
+                    <div id="previewVideoContainer" class="hidden w-full h-full relative">
+                        <video id="finalVideoPlayer" controls loop playsinline class="w-full h-full object-contain">
+                            <source src="" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+
+                <!-- Interactive Live Timeline Scrubber & Player Controls -->
+                <div class="w-full mt-4 p-3 rounded-xl bg-brand-surface border border-brand-border space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-2 truncate">
+                            <button id="btnPlayScenePreview" onclick="toggleScenePlayback()" title="Play/Pause live animation scrub" class="w-7 h-7 rounded-lg bg-brand-card hover:bg-brand-border border border-brand-border text-brand-green flex items-center justify-center transition-colors flex-shrink-0">
+                                <i id="playIcon" data-lucide="play" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <span id="previewLabel" class="font-medium text-white truncate max-w-[190px]">Scene 1: Preview</span>
+                        </div>
+                        <div class="flex items-center space-x-2 font-mono text-[11px] flex-shrink-0">
+                            <span id="scrubberSpinner" class="hidden"><i data-lucide="loader-2" class="w-3 h-3 text-brand-cyan animate-spin"></i></span>
+                            <span id="scrubberTimeText" class="text-brand-cyan font-bold">50% (2.0s)</span>
+                            <button onclick="refreshCurrentPreview()" title="Re-render frame" class="text-gray-400 hover:text-white">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline Range Slider (0.00 to 1.00) -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] text-gray-500 font-mono">0.0s</span>
+                        <input type="range" id="sceneProgressScrubber" min="0.0" max="1.0" step="0.02" value="0.50" oninput="onScrubberMoved(parseFloat(this.value))" class="flex-1 h-1.5 bg-brand-card rounded-lg appearance-none cursor-pointer">
+                        <span id="sceneDurMaxText" class="text-[10px] text-gray-500 font-mono">4.0s</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. RENDER & EXPORT SHORT CARD -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="film" class="w-5 h-5 text-brand-cyan"></i>
+                        <h2 class="text-base font-semibold text-white">Export & Render Studio</h2>
+                    </div>
+                    <span class="text-xs font-mono text-brand-green">1-Click Full Render</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">FPS Setting</label>
+                        <select id="fpsSelect" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                            <option value="30" selected>30 FPS (Fast Draft / High Speed)</option>
+                            <option value="60">60 FPS (Ultra Smooth Motion)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Target Format</label>
+                        <div class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2 text-xs text-gray-300 font-mono">
+                            1080x1920 MP4
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Big Glowing Action Button -->
+                <button id="btnRenderVideo" onclick="startFullVideoRender()" class="w-full bg-gradient-to-r from-brand-accent via-indigo-600 to-brand-cyan hover:opacity-95 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2.5 transition-all glow-accent">
+                    <i data-lucide="play-circle" class="w-5 h-5"></i>
+                    <span>RENDER 1080x1920 SHORT VIDEO</span>
+                </button>
+
+                <!-- Live Progress Box (Shown during render) -->
+                <div id="renderProgressBox" class="hidden mt-4 p-4 rounded-xl bg-brand-surface border border-brand-border space-y-3">
+                    <div class="flex items-center justify-between text-xs">
+                        <span id="renderStatusText" class="text-gray-300 font-medium">Initializing render pipeline...</span>
+                        <span id="renderPercentText" class="font-mono text-brand-cyan font-bold">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-brand-card rounded-full overflow-hidden">
+                        <div id="renderProgressBar" class="h-full bg-gradient-to-r from-brand-accent to-brand-cyan transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Completed Video Banner -->
+                <div id="renderSuccessBox" class="hidden mt-4 p-4 rounded-xl bg-brand-green/10 border border-brand-green/30 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-brand-green"></i>
+                            <span class="text-sm font-semibold text-white">Short Rendered Successfully!</span>
+                        </div>
+                        <a id="btnDownloadShort" href="#" download class="bg-brand-green text-black font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1 hover:bg-emerald-400 transition-colors">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Download MP4</span>
+                        </a>
+                    </div>
+                    <p id="renderDetailsText" class="text-xs text-gray-300 font-mono">1080x1920 • 30fps • Saved to outputs/</p>
+                </div>
+            </section>
+
+            <!-- 3. PREVIOUS RENDERS GALLERY -->
+            <section class="glass-panel rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-brand-border">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="folder-video" class="w-4 h-4 text-gray-400"></i>
+                        <h3 class="text-xs font-semibold text-gray-300">Generated Shorts Library</h3>
+                    </div>
+                    <button onclick="loadOutputsLibrary()" class="text-[11px] text-brand-cyan hover:underline">Refresh</button>
+                </div>
+                <div id="outputsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <p class="text-xs text-gray-500 italic">No rendered videos yet. Click Render to export your first short!</p>
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+<!-- ========================================================================= -->
+<!-- 📚 MASTER HUB TAB 3: CLIP HISTORY & ANTI-REPEAT DATABASE                  -->
+<!-- ========================================================================= -->
+<div id="master-view-history" class="hidden flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- Top Stats & Header Bar -->
+    <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Clip History & Anti-Repeat Library</h1>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>SHIELD ACTIVE</span>
+                </span>
+            </div>
+            <p class="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                Every stream and video you've processed is indexed below. The system checks this database whenever you explore clips or paste a link to ensure you never accidentally create duplicate shorts.
+            </p>
+        </div>
+
+        <!-- Quick Summary Stats -->
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div class="bg-brand-surface px-3.5 py-2 rounded-xl border border-brand-border text-center min-w-[90px]">
+                <div class="text-[10px] text-zinc-400 uppercase font-mono">Sources</div>
+                <div id="statTotalSources" class="text-base font-bold text-amber-400 font-mono">0</div>
+            </div>
+            <div class="bg-brand-surface px-3.5 py-2 rounded-xl border border-brand-border text-center min-w-[90px]">
+                <div class="text-[10px] text-zinc-400 uppercase font-mono">Shorts</div>
+                <div id="statTotalShorts" class="text-base font-bold text-emerald-400 font-mono">0</div>
+            </div>
+            <button onclick="refreshHistoryTable()" title="Refresh database" class="p-2.5 rounded-xl bg-brand-surface hover:bg-brand-border border border-brand-border text-zinc-300 hover:text-white transition-colors">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+            <button onclick="confirmClearHistory()" title="Clear all history" class="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 transition-colors">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search & Platform Filters Toolbar -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-brand-card p-3 rounded-2xl border border-brand-border">
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-96">
+            <i data-lucide="search" class="w-4 h-4 text-zinc-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="historySearchInput" oninput="debounceHistorySearch()" placeholder="Search clipped stream, channel, title, or URL..." class="w-full bg-brand-surface border border-brand-border rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- Platform Filter Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs pb-1 sm:pb-0">
+            <span class="text-zinc-400 text-xs mr-1 hidden sm:inline">Platform:</span>
+            <button onclick="filterHistoryPlatform('all')" id="hist-plat-all" class="px-3 py-1 rounded-lg font-medium text-white bg-indigo-600 shadow-md">All</button>
+            <button onclick="filterHistoryPlatform('kick')" id="hist-plat-kick" class="px-3 py-1 rounded-lg font-medium text-zinc-400 hover:text-white bg-brand-surface border border-brand-border">Kick</button>
+            <button onclick="filterHistoryPlatform('twitch')" id="hist-plat-twitch" class="px-3 py-1 rounded-lg font-medium text-zinc-400 hover:text-white bg-brand-surface border border-brand-border">Twitch</button>
+            <button onclick="filterHistoryPlatform('youtube')" id="hist-plat-youtube" class="px-3 py-1 rounded-lg font-medium text-zinc-400 hover:text-white bg-brand-surface border border-brand-border">YouTube</button>
+            <button onclick="filterHistoryPlatform('motion')" id="hist-plat-motion" class="px-3 py-1 rounded-lg font-medium text-zinc-400 hover:text-white bg-brand-surface border border-brand-border">Motion 2.5D</button>
+        </div>
+    </div>
+
+    <!-- History Items Container -->
+    <div id="historyListContainer" class="space-y-3">
+        <!-- Loading Skeleton -->
+        <div class="p-8 text-center text-zinc-500 text-xs">
+            <div class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <span>Loading clip history...</span>
+        </div>
+    </div>
+
+    <!-- History Pagination Controls -->
+    <div id="historyPaginationContainer" class="hidden flex items-center justify-between pt-2 text-xs text-zinc-400">
+        <span id="historyPageSummary">Showing page 1</span>
+        <div class="flex items-center gap-2">
+            <button onclick="prevHistoryPage()" id="btnPrevHistoryPage" class="px-3 py-1.5 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-white disabled:opacity-40 disabled:pointer-events-none">Previous</button>
+            <button onclick="nextHistoryPage()" id="btnNextHistoryPage" class="px-3 py-1.5 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-white disabled:opacity-40 disabled:pointer-events-none">Next</button>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- 🔥 MASTER HUB TAB 4: YOUTUBE WARMER & GROWTH HUB                          -->
+<!-- ========================================================================= -->
+<div id="master-view-warmer" class="hidden flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- Header & Status -->
+    <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">VANTA YouTube Warmer & Account Hub</h1>
+                <span id="warmerHubBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Port 8000</span>
+            </div>
+            <p class="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                Automated browser session warming, natural human interaction emulation, channel creation, and anti-shadowban protection for YouTube automation accounts.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="reloadWarmerFrame()" class="px-3.5 py-2 rounded-xl bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Reload Warmer</span>
+            </button>
+            <a href="http://127.0.0.1:8000" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs text-rose-300 hover:text-white flex items-center gap-1.5 transition-colors font-medium">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Open in Tab</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Embedded Warmer Hub Container -->
+    <div class="glass-panel rounded-2xl overflow-hidden border border-brand-border shadow-2xl relative" style="height: 780px;">
+        <iframe id="warmerIframe" src="http://127.0.0.1:8000" class="w-full h-full border-0 bg-brand-bg" onerror="handleWarmerIframeError()"></iframe>
+    </div>
+
+</div>
+
 
     <!-- FOOTER -->
     <footer class="glass-panel border-t border-brand-border py-3 text-center text-xs text-zinc-500">
@@ -2483,11 +3016,44 @@
 
         // Layout Presets Definition (Universal: Gaming, IRL, Podcasts, Casino, Ambient)
         const PRESETS = {
-            reaction_cam_top: {
+            ambient_blur_16_9: {
                 gp: { x: 0, y: 0, w: 1920, h: 1080 },
-                fc: { x: 1300, y: 350, w: 620, h: 730 },
+                fc: { x: 0, y: 0, w: 1920, h: 1080 },
+                stack_mode: 'cinema_centered',
+                split_ratio: 0.50,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: 'transparent',
+                divider_thickness: 0
+            },
+            reaction_top_left: {
+                gp: { x: 480, y: 0, w: 1440, h: 1080 },
+                fc: { x: 0, y: 0, w: 540, h: 400 },
                 stack_mode: 'cam_top',
-                split_ratio: 0.45,
+                split_ratio: 0.44,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: '#ff00b4',
+                divider_thickness: 2
+            },
+            reaction_cam_top: {
+                gp: { x: 0, y: 0, w: 1360, h: 1080 },
+                fc: { x: 1360, y: 0, w: 560, h: 420 },
+                stack_mode: 'cam_top',
+                split_ratio: 0.44,
+                gap_size: 0,
+                cam_fill_mode: 'fill',
+                game_fill_mode: 'fit',
+                divider_color: '#ff00b4',
+                divider_thickness: 2
+            },
+            reaction_bottom_left: {
+                gp: { x: 220, y: 0, w: 1700, h: 900 },
+                fc: { x: 0, y: 680, w: 540, h: 400 },
+                stack_mode: 'standard',
+                split_ratio: 0.55,
                 gap_size: 0,
                 cam_fill_mode: 'fill',
                 game_fill_mode: 'fit',
@@ -2857,6 +3423,12 @@
 
             // Step specific setup
             if (step === 2) {
+                if (fromStep === 1 && appState.trim && appState.trim.start > 1.0) {
+                    snapCurrentPlayerFrame();
+                }
+                syncCamStackButton();
+                syncFramingControlsFromState();
+                syncBoxStylesFromState();
                 setTimeout(updatePhoneCanvas, 50);
             } else if (step === 3) {
                 syncSubtitleControlsFromState();
@@ -3058,7 +3630,7 @@
 
         function setClipExplorerPlatform(plat) {
             clipExplorerState.platform = plat;
-            ['all', 'kick', 'twitch'].forEach(p => {
+            ['all', 'kick', 'twitch', 'youtube'].forEach(p => {
                 const btn = document.getElementById(`btn-exp-plat-${p}`);
                 if (btn) {
                     if (p === plat) {
@@ -3205,6 +3777,7 @@
                 pageItems = all.slice(start, start + size);
             }
 
+            clipExplorerState.currentRenderedClips = pageItems;
             renderClipsGrid(pageItems);
             renderClipsPagination();
         }
@@ -3346,11 +3919,20 @@
 
             container.innerHTML = clips.map((clip, idx) => {
                 const isKick = clip.platform === 'kick';
-                const platBadge = isKick ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-                const platName = isKick ? '🟢 KICK' : '🟣 TWITCH';
+                const isTwitch = clip.platform === 'twitch';
+                const isYouTube = clip.platform === 'youtube';
+                let platBadge = 'bg-red-500/20 text-red-400 border-red-500/30';
+                let platName = '🔴 YOUTUBE';
+                if (isKick) {
+                    platBadge = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                    platName = '🟢 KICK';
+                } else if (isTwitch) {
+                    platBadge = 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+                    platName = '🟣 TWITCH';
+                }
                 const safeTitle = escapeHtml(clip.title || 'Stream Clip');
                 const safeStreamer = escapeHtml(clip.streamer || 'Streamer');
-                const safeCat = escapeHtml(clip.category || (isKick ? 'Kick' : 'Twitch'));
+                const safeCat = escapeHtml(clip.category || (isKick ? 'Kick' : (isTwitch ? 'Twitch' : 'YouTube')));
                 const clipUrl = clip.url || '';
                 const streamUrl = clip.stream_url || '';
                 const clipId = clip.slug || clip.id || '';
@@ -3370,6 +3952,16 @@
                         <img src="${thumb}" alt="${safeTitle}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'320\\' height=\\'180\\' fill=\\'%2311141d\\'%3E%3Crect width=\\'100%25\\' height=\\'100%25\\'/ %3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' fill=\\'%236b7280\\' font-size=\\'14\\' text-anchor=\\'middle\\' dy=\\'.3em\\'%3ENo Preview%3C/text%3E%3C/svg%3E'"/>
                         <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 pointer-events-none"></div>
 
+                        <!-- Anti-Repeat Badge -->
+                        ${clip.is_already_clipped ? `
+                        <div class="absolute bottom-2 left-2 z-20">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-black shadow-lg border border-amber-300 flex items-center gap-1.5 backdrop-blur-md" title="Already clipped ${clip.clip_count} time(s)! Last: ${clip.clipped_date}">
+                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-black"></i>
+                                <span>ALREADY CLIPPED (${clip.clip_count}x)</span>
+                            </span>
+                        </div>
+                        ` : ''}
+
                         <!-- Top Floating Badges -->
                         <div class="absolute top-2 left-2 flex items-center gap-1.5">
                             <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border backdrop-blur-md ${platBadge}">
@@ -3388,7 +3980,7 @@
                         </div>
 
                         <!-- Hover Play Button overlay for Instant Preview -->
-                        <button type="button" onclick="openClipPreview('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${clip.platform}', '${viewTxt}', '${streamUrl.replace(/'/g, "\\'")}', '${clipId}')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-xs cursor-pointer" title="Quick Preview Video">
+                        <button type="button" onclick="openClipPreviewByIndex(${idx})" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-xs cursor-pointer" title="Quick Preview Video">
                             <div class="w-11 h-11 rounded-full bg-white/95 text-black flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
                                 <i data-lucide="play" class="w-5 h-5 fill-black ml-0.5"></i>
                             </div>
@@ -3419,11 +4011,11 @@
 
                         <!-- Actions Bar -->
                         <div class="grid grid-cols-2 gap-2 pt-2 border-t border-brand-border/40">
-                            <button type="button" onclick="triggerOneClickShort('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}', this)" class="py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30 hover:scale-[1.02] transition-all" title="1-Click: Download, 9:16 layout, Whisper subtitles, anti-shadowban layer, and ready for YouTube">
+                            <button type="button" onclick="triggerOneClickShortByIndex(${idx}, this)" class="py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-900/30 hover:scale-[1.02] transition-all" title="1-Click: Download, 9:16 layout, Whisper subtitles, anti-shadowban layer, and ready for YouTube">
                                 <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i>
                                 <span>1-Click Short</span>
                             </button>
-                            <button type="button" onclick="importClipToStudio('${clipUrl}', '${safeTitle.replace(/'/g, "\\'")}', '${safeStreamer.replace(/'/g, "\\'")}', '${safeCat.replace(/'/g, "\\'")}', '${clip.platform}', this)" class="py-2 px-2.5 rounded-xl bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all" title="Load into Studio Framing (Step 2) to manually adjust crop boxes">
+                            <button type="button" onclick="importClipByIndex(${idx}, this)" class="py-2 px-2.5 rounded-xl bg-brand-surface hover:bg-brand-border text-zinc-300 hover:text-white border border-brand-border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all" title="Load into Studio Framing (Step 2) to manually adjust crop boxes">
                                 <i data-lucide="sliders" class="w-3.5 h-3.5 text-indigo-400"></i>
                                 <span>Framing</span>
                             </button>
@@ -3433,6 +4025,28 @@
             }).join('');
 
             lucide.createIcons();
+        }
+
+                // --- SAFE INDEX-BASED CLIP ACTIONS ---
+        function openClipPreviewByIndex(idx) {
+            const list = clipExplorerState.currentRenderedClips || clipExplorerState.clips || [];
+            const clip = list[idx];
+            if (!clip) return;
+            openClipPreview(clip.url, clip.title, clip.streamer, clip.platform, formatViews(clip.views), clip.stream_url, clip.slug || clip.id);
+        }
+
+        function triggerOneClickShortByIndex(idx, btnEl) {
+            const list = clipExplorerState.currentRenderedClips || clipExplorerState.clips || [];
+            const clip = list[idx];
+            if (!clip) return;
+            triggerOneClickShort(clip.url, clip.title, clip.streamer, clip.category, btnEl);
+        }
+
+        function importClipByIndex(idx, btnEl) {
+            const list = clipExplorerState.currentRenderedClips || clipExplorerState.clips || [];
+            const clip = list[idx];
+            if (!clip) return;
+            importClipToStudio(clip.url, clip.title, clip.streamer, clip.category, clip.platform, btnEl);
         }
 
         // --- PREVIEW MODAL HANDLERS ---
@@ -3480,7 +4094,26 @@
                 } catch (_) {}
             }
 
-            if (platform === 'twitch') {
+            if (platform === 'youtube') {
+                if (badgeEl) {
+                    badgeEl.innerText = 'YOUTUBE';
+                    badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/30';
+                }
+                if (videoEl) videoEl.classList.add('hidden');
+                if (iframeEl) {
+                    iframeEl.classList.remove('hidden');
+                    let ytId = clipId || '';
+                    if (url) {
+                        const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|clip\/))([A-Za-z0-9_-]{11})/i);
+                        if (m && m[1]) ytId = m[1];
+                    }
+                    if (ytId) {
+                        iframeEl.src = `https://www.youtube.com/embed/${encodeURIComponent(ytId)}?autoplay=1&enablejsapi=1`;
+                    } else if (url) {
+                        iframeEl.src = url;
+                    }
+                }
+            } else if (platform === 'twitch') {
                 if (badgeEl) {
                     badgeEl.innerText = 'TWITCH';
                     badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500/20 text-purple-400 border border-purple-500/30';
@@ -3616,6 +4249,20 @@
         // --- IMPORT CLIP TO STUDIO (STEP 2 FRAMING) ---
         async function importClipToStudio(clipUrl, title, streamer, category, platform, btnEl) {
             pauseAllMediaPlayers();
+
+            // Anti-repeat duplicate check
+            try {
+                const chk = await fetch('/api/history/check', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url: clipUrl })
+                }).then(r => r.json());
+                if (chk && chk.is_clipped) {
+                    const ok = confirm("ANTI-REPEAT NOTICE:\n\nYou already made a short from this video!\n(Clipped " + (chk.clip_count || 1) + " time(s) - Latest: " + (chk.last_clipped_at || "earlier") + ")\n\nDo you want to proceed and clip it again anyway?");
+                    if (!ok) return;
+                }
+            } catch (e) {}
+
             let originalHtml = '';
             if (btnEl) {
                 originalHtml = btnEl.innerHTML;
@@ -3659,6 +4306,19 @@
         // --- 1-CLICK VIRAL SHORT AUTOMATION ---
         async function triggerOneClickShort(clipUrl, title, streamer, category, btnEl) {
             pauseAllMediaPlayers();
+
+            // Anti-repeat duplicate check
+            try {
+                const chk = await fetch('/api/history/check', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url: clipUrl })
+                }).then(r => r.json());
+                if (chk && chk.is_clipped) {
+                    const ok = confirm("ANTI-REPEAT NOTICE:\n\nYou already made a short from this video!\n(Clipped " + (chk.clip_count || 1) + " time(s) - Latest: " + (chk.last_clipped_at || "earlier") + ")\n\nDo you want to proceed and clip it again anyway?");
+                    if (!ok) return;
+                }
+            } catch (e) {}
             const modal = document.getElementById('modal-oneclick-progress');
             const titleEl = document.getElementById('oneclick-modal-title');
             const subEl = document.getElementById('oneclick-modal-subtitle');
@@ -4449,16 +5109,40 @@
             const urlInput = document.getElementById('kick-url-input');
             const url = urlInput.value.trim();
             if (!url) {
-                showToast('Please paste a Kick clip URL.');
+                showToast('Please paste a YouTube, Kick, or Twitch clip URL.');
                 return;
             }
 
-            setIngestLoading(true, 'Downloading Kick clip stream via yt-dlp...');
+            const startEl = document.getElementById('ingest-start-time');
+            const durEl = document.getElementById('ingest-duration');
+            let startTime = null;
+            let duration = null;
+
+            if (startEl && startEl.value.trim()) {
+                const rawStart = startEl.value.trim();
+                if (rawStart.includes(':')) {
+                    const parts = rawStart.split(':').map(Number);
+                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        startTime = parts[0] * 60 + parts[1];
+                    }
+                } else if (!isNaN(Number(rawStart))) {
+                    startTime = Number(rawStart);
+                }
+            }
+            if (durEl && durEl.value.trim() && !isNaN(Number(durEl.value.trim()))) {
+                duration = Number(durEl.value.trim());
+            }
+
+            setIngestLoading(true, 'Downloading and preparing clip via yt-dlp...');
             try {
+                const payload = { url: url };
+                if (startTime !== null) payload.start_time = startTime;
+                if (duration !== null) payload.duration = duration;
+
                 const res = await fetch('/api/ingest-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Download failed');
@@ -4517,6 +5201,9 @@
 
         // Handle Ingest Success
         function handleIngestSuccess(data, notify = true) {
+            if (data.is_already_clipped) {
+                showToast("ANTI-REPEAT ALERT: You already clipped this video " + (data.clip_count || 1) + " time(s)! (Latest: " + (data.clipped_at || "earlier") + ")", "warning", 8000);
+            }
             appState.activeVideoPath = data.path;
             appState.videoUrl = data.video_url || `/temp_media/${data.filename || (data.path ? data.path.split(/[\\\\/]/).pop() : 'clip.mp4')}`;
             appState.previewBase64 = data.preview_base64;
@@ -4538,6 +5225,27 @@
             appState.crops.origW = data.width || 1920;
             appState.crops.origH = data.height || 1080;
 
+            // Apply AI Facecam / Layout Intelligence if detected
+            if (data.face_layout && data.face_layout.detected) {
+                const fl = data.face_layout;
+                appState.crops.cx = fl.facecam.x;
+                appState.crops.cy = fl.facecam.y;
+                appState.crops.cw = fl.facecam.w;
+                appState.crops.ch = fl.facecam.h;
+                appState.crops.gx = fl.gameplay.x;
+                appState.crops.gy = fl.gameplay.y;
+                appState.crops.gw = fl.gameplay.w;
+                appState.crops.gh = fl.gameplay.h;
+                appState.crops.stack_mode = fl.stack_mode;
+                if (fl.split_ratio) appState.crops.split_ratio = fl.split_ratio;
+                const presetEl = document.getElementById('presetSelect');
+                if (presetEl && fl.preset_name) presetEl.value = fl.preset_name;
+            } else if (data.suggested_preset) {
+                applyPreset(data.suggested_preset);
+                const presetEl = document.getElementById('presetSelect');
+                if (presetEl) presetEl.value = data.suggested_preset;
+            }
+
             // Configure Player & Trim UI in Step 1
             setupCutPlayerAndTrimUI();
 
@@ -4546,6 +5254,8 @@
             if (cropperBg) cropperBg.src = data.preview_base64;
 
             // Sync boxes & Step 2 banner
+            syncCamStackButton();
+            syncFramingControlsFromState();
             syncBoxStylesFromState();
             updateStep2CutRangeBadge();
 
@@ -6140,10 +6850,113 @@
             } else if (corner === 'bl') {
                 appState.crops.cx = 20;
                 appState.crops.cy = Math.max(0, origH - ch - 20);
+            } else if (corner === 'tl') {
+                appState.crops.cx = 20;
+                appState.crops.cy = 20;
+            } else if (corner === 'tr') {
+                appState.crops.cx = Math.max(0, origW - cw - 20);
+                appState.crops.cy = 20;
             }
             syncBoxStylesFromState();
+            updatePhoneCanvas();
             saveSession();
-            showToast('Camera snapped to corner.');
+            showToast('Camera snapped to ' + corner.toUpperCase() + '.');
+        }
+
+        // AI Facecam Auto-Detection
+        async function autoDetectFacecam() {
+            if (!appState.activeVideoPath) {
+                showToast('Please ingest a video in Step 1 first.', 'warning');
+                return;
+            }
+            const btn = document.getElementById('btn-auto-detect-facecam');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="inline-block animate-spin mr-1">⚡</span> Detecting...';
+            }
+
+            try {
+                const player = document.getElementById('cut-preview-player');
+                const ts = player ? (player.currentTime || (appState.trim ? appState.trim.start : 0.0)) : (appState.trim ? appState.trim.start : 0.0);
+                const res = await fetch('/api/auto-detect-facecam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_path: appState.activeVideoPath,
+                        timestamp: ts
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Auto-detection failed');
+
+                if (data.detected) {
+                    appState.crops.cx = data.facecam.x;
+                    appState.crops.cy = data.facecam.y;
+                    appState.crops.cw = data.facecam.w;
+                    appState.crops.ch = data.facecam.h;
+                    appState.crops.gx = data.gameplay.x;
+                    appState.crops.gy = data.gameplay.y;
+                    appState.crops.gw = data.gameplay.w;
+                    appState.crops.gh = data.gameplay.h;
+                    appState.crops.stack_mode = data.stack_mode;
+                    if (data.split_ratio) appState.crops.split_ratio = data.split_ratio;
+
+                    const presetEl = document.getElementById('presetSelect');
+                    if (presetEl && data.preset_name) presetEl.value = data.preset_name;
+
+                    syncCamStackButton();
+                    syncFramingControlsFromState();
+                    syncBoxStylesFromState();
+                    updatePhoneCanvas();
+                    saveSession();
+                    showToast(`✨ Streamer Webcam detected in ${data.corner.replace('_', ' ').toUpperCase()}! Automatically framed.`);
+                } else {
+                    applyPreset('ambient_blur_16_9');
+                    const presetEl = document.getElementById('presetSelect');
+                    if (presetEl) presetEl.value = 'ambient_blur_16_9';
+                    showToast('No streamer webcam detected in this frame. Switched to 16:9 Ambient Blur (Zero Cut).');
+                }
+            } catch (err) {
+                showToast('Auto-detection notice: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        // Sync Cropper Background to Current Video Player Frame
+        async function snapCurrentPlayerFrame() {
+            if (!appState.activeVideoPath) {
+                showToast('Please ingest a video first.');
+                return;
+            }
+            const player = document.getElementById('cut-preview-player');
+            const ts = player ? (player.currentTime || (appState.trim ? appState.trim.start : 0.0)) : (appState.trim ? appState.trim.start : 0.0);
+            showToast(`Syncing frame snapshot at ${ts.toFixed(1)}s...`);
+            try {
+                const res = await fetch('/api/extract-frame-at', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_path: appState.activeVideoPath,
+                        timestamp: ts
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed');
+                appState.previewBase64 = data.preview_base64;
+                const cropperBg = document.getElementById('cropper-bg');
+                if (cropperBg) cropperBg.src = data.preview_base64;
+                updatePhoneCanvas();
+                saveSession();
+                showToast(`Cropper background updated to ${ts.toFixed(1)}s!`);
+            } catch (e) {
+                showToast('Frame snap error: ' + e.message);
+            }
         }
 
         // Subtitle Settings Logic
@@ -8744,5 +9557,317 @@
             }, 1000);
         }
     </script>
+
+    <!-- MOTION EXPLAINER STUDIO CONTROLLER SCRIPT -->
+    <script src="/static/motion_explainer.js"></script>
+
+    <!-- MASTER HUB & CLIP HISTORY CONTROLLER SCRIPT -->
+    <script>
+        // Master Hub Switcher
+        let currentMasterTab = 'stream_clipper';
+
+        function switchMasterHubTab(tabName) {
+            currentMasterTab = tabName;
+            const streamView = document.getElementById('master-view-stream');
+            const motionView = document.getElementById('master-view-motion');
+            const historyView = document.getElementById('master-view-history');
+            const warmerView = document.getElementById('master-view-warmer');
+            const stepperNav = document.getElementById('stepper-nav');
+
+            const btnStream = document.getElementById('master-tab-stream');
+            const btnMotion = document.getElementById('master-tab-motion');
+            const btnHistory = document.getElementById('master-tab-history');
+            const btnWarmer = document.getElementById('master-tab-warmer');
+
+            const activeCls = 'px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-indigo-600 shadow-md';
+            const inactiveCls = 'px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface';
+
+            if (btnStream) btnStream.className = inactiveCls;
+            if (btnMotion) btnMotion.className = inactiveCls;
+            if (btnHistory) btnHistory.className = inactiveCls;
+            if (btnWarmer) btnWarmer.className = inactiveCls;
+
+            if (streamView) streamView.classList.add('hidden');
+            if (motionView) motionView.classList.add('hidden');
+            if (historyView) historyView.classList.add('hidden');
+            if (warmerView) warmerView.classList.add('hidden');
+
+            if (tabName === 'stream_clipper') {
+                if (streamView) streamView.classList.remove('hidden');
+                if (stepperNav) stepperNav.classList.remove('hidden');
+                if (btnStream) btnStream.className = activeCls;
+            } else if (tabName === 'motion_explainer') {
+                if (motionView) motionView.classList.remove('hidden');
+                if (stepperNav) stepperNav.classList.add('hidden');
+                if (btnMotion) btnMotion.className = activeCls;
+                if (typeof loadPresets === 'function' && (!availablePresets || availablePresets.length === 0)) {
+                    loadPresets();
+                }
+            } else if (tabName === 'clip_history') {
+                if (historyView) historyView.classList.remove('hidden');
+                if (stepperNav) stepperNav.classList.add('hidden');
+                if (btnHistory) btnHistory.className = activeCls;
+                loadClipHistory();
+            } else if (tabName === 'youtube_warmer') {
+                if (warmerView) warmerView.classList.remove('hidden');
+                if (stepperNav) stepperNav.classList.add('hidden');
+                if (btnWarmer) btnWarmer.className = activeCls;
+            }
+
+            lucide.createIcons();
+        }
+
+        // Global compatibility aliases
+        window.switchMasterTab = switchMasterHubTab;
+        window.renderHistoryTab = () => (typeof loadClipHistory === 'function' ? loadClipHistory() : null);
+        window.searchHistory = () => (typeof debounceHistorySearch === 'function' ? debounceHistorySearch() : null);
+        window.clearAllHistoryRecords = () => (typeof confirmClearHistory === 'function' ? confirmClearHistory() : null);
+
+        // Clip History Controller
+        let historyState = {
+            search: '',
+            platform: 'all',
+            page: 1,
+            pageSize: 20,
+            records: [],
+            totalCount: 0,
+            totalPages: 1
+        };
+        let historyDebounceTimer = null;
+
+        async function loadClipHistory() {
+            try {
+                const url = `/api/history?search=${encodeURIComponent(historyState.search)}&platform=${historyState.platform}&page=${historyState.page}&page_size=${historyState.pageSize}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                historyState.records = data.records || [];
+                historyState.totalCount = data.total_count || 0;
+                historyState.totalPages = data.total_pages || 1;
+
+                const bMaster = document.getElementById('badgeMasterHistoryCount');
+                const statSources = document.getElementById('statTotalSources');
+                const statShorts = document.getElementById('statTotalShorts');
+                if (bMaster) bMaster.innerText = historyState.totalCount;
+                if (statSources) statSources.innerText = historyState.totalCount;
+
+                let totalShorts = 0;
+                historyState.records.forEach(r => {
+                    const cnt = r.clip_count || (r.outputs ? r.outputs.length : 1);
+                    totalShorts += cnt;
+                });
+                if (statShorts) statShorts.innerText = totalShorts;
+
+                renderHistoryList(historyState.records);
+            } catch (err) {
+                console.error('Failed to load clip history:', err);
+            }
+        }
+
+        function debounceHistorySearch() {
+            clearTimeout(historyDebounceTimer);
+            historyDebounceTimer = setTimeout(() => {
+                const input = document.getElementById('historySearchInput');
+                historyState.search = input ? input.value.trim() : '';
+                historyState.page = 1;
+                loadClipHistory();
+            }, 300);
+        }
+
+        function filterHistoryPlatform(plat) {
+            historyState.platform = plat;
+            historyState.page = 1;
+            ['all', 'kick', 'twitch', 'youtube', 'motion'].forEach(p => {
+                const btn = document.getElementById(`hist-plat-${p}`);
+                if (btn) {
+                    if (p === plat) {
+                        btn.className = 'px-3 py-1 rounded-lg font-medium text-white bg-indigo-600 shadow-md';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg font-medium text-zinc-400 hover:text-white bg-brand-surface border border-brand-border';
+                    }
+                }
+            });
+            loadClipHistory();
+        }
+
+        function renderHistoryList(records) {
+            const container = document.getElementById('historyListContainer');
+            if (!container) return;
+
+            if (!records || records.length === 0) {
+                container.innerHTML = `
+                    <div class="p-12 text-center glass-panel rounded-2xl border border-brand-border space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
+                            <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-base font-semibold text-white">No Clips in History Yet</h3>
+                        <p class="text-xs text-zinc-400 max-w-md mx-auto">
+                            Any clip you process in the Stream Clipper or Motion Studio will be permanently remembered here so you never repeat content.
+                        </p>
+                        <button onclick="switchMasterHubTab('stream_clipper')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition-all inline-flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                            <span>Explore Trending Clips</span>
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = records.map(r => {
+                const isKick = r.platform === 'kick';
+                const isTwitch = r.platform === 'twitch';
+                const isMotion = r.platform === 'motion' || r.platform === 'generic';
+
+                let platBadge = 'bg-zinc-800 text-zinc-300 border-zinc-700';
+                let platName = (r.platform || 'VIDEO').toUpperCase();
+                if (isKick) {
+                    platBadge = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                    platName = '🟢 KICK';
+                } else if (isTwitch) {
+                    platBadge = 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+                    platName = '🟣 TWITCH';
+                } else if (isMotion) {
+                    platBadge = 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+                    platName = '⚡ MOTION 2.5D';
+                }
+
+                const thumb = r.thumbnail_url || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'320\' height=\'180\' fill=\'%2311141d\'%3E%3Crect width=\'100%25\' height=\'100%25\'/ %3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%236b7280\' font-size=\'14\' text-anchor=\'middle\' dy=\'.3em\'%3ENo Preview%3C/text%3E%3C/svg%3E';
+                const outputs = r.outputs || [];
+
+                let outputsHtml = '';
+                if (outputs.length > 0) {
+                    outputsHtml = outputs.map(o => `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-brand-surface/70 border border-brand-border text-xs">
+                            <div class="flex items-center gap-2 truncate pr-2">
+                                <i data-lucide="video" class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0"></i>
+                                <span class="font-mono text-[11px] text-zinc-200 truncate">${o.filename}</span>
+                                ${o.created_at ? `<span class="text-[10px] text-zinc-500">(${o.created_at})</span>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <a href="/outputs/${o.filename}" target="_blank" class="text-indigo-400 hover:underline text-[11px] font-medium flex items-center gap-0.5">
+                                    <i data-lucide="play" class="w-3 h-3"></i><span>Play</span>
+                                </a>
+                                <a href="/outputs/${o.filename}" download class="text-emerald-400 hover:underline text-[11px] font-medium flex items-center gap-0.5">
+                                    <i data-lucide="download" class="w-3 h-3"></i><span>Save</span>
+                                </a>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    outputsHtml = '<p class="text-[11px] text-zinc-500 italic">No output files attached to this record.</p>';
+                }
+
+                const safeTitle = (r.title || 'Untitled Stream Clip').replace(/'/g, "\'");
+                const safeUrl = encodeURIComponent(r.source_url || '');
+
+                return `
+                    <div class="glass-panel p-4 rounded-2xl border border-brand-border hover:border-amber-500/40 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <!-- Left info -->
+                        <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                            <div class="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden bg-black/60 flex-shrink-0 border border-brand-border">
+                                <img src="${thumb}" alt="thumb" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'320\' height=\'180\' fill=\'%2311141d\'%3E%3Crect width=\'100%25\' height=\'100%25\'/ %3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%236b7280\' font-size=\'14\' text-anchor=\'middle\' dy=\'.3em\'%3ENo Preview%3C/text%3E%3C/svg%3E'"/>
+                                <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border backdrop-blur-md ${platBadge}">
+                                    ${platName}
+                                </span>
+                                <span class="absolute bottom-1 right-1 px-1.5 py-0.2 rounded text-[9px] font-mono bg-black/80 text-amber-300 font-bold border border-amber-500/30">
+                                    ${r.clip_count}x clipped
+                                </span>
+                            </div>
+
+                            <div class="space-y-1.5 flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-white truncate hover:text-indigo-300 cursor-pointer" onclick="reclipHistorySource('${safeUrl}')">
+                                        ${escapeHtml(r.title || 'Untitled Stream Clip')}
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-zinc-400 flex items-center gap-2 flex-wrap">
+                                    <span class="font-semibold text-zinc-300">${escapeHtml(r.channel || 'Streamer')}</span>
+                                    <span>•</span>
+                                    <span>First: ${r.first_clipped_at || 'Recently'}</span>
+                                    <span>•</span>
+                                    <span class="text-amber-300">Latest: ${r.last_clipped_at || 'Recently'}</span>
+                                </div>
+                                <div class="mt-2 space-y-1.5">
+                                    <span class="text-[10px] text-zinc-400 font-semibold block uppercase tracking-wider">Generated Shorts:</span>
+                                    ${outputsHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Actions -->
+                        <div class="flex sm:flex-col items-center sm:items-end justify-between w-full md:w-auto gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-brand-border">
+                            <button onclick="reclipHistorySource('${safeUrl}')" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30">
+                                <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                                <span>Clip Again</span>
+                            </button>
+                            <button onclick="deleteHistoryRecord('${r.id}')" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1.5 transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function deleteHistoryRecord(id) {
+            if (!confirm('Remove this video from clip history? (Anti-repeat warning will be reset for this video)')) return;
+            try {
+                await fetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                showToast('Removed from history', 'info');
+                loadClipHistory();
+            } catch (err) {
+                showToast('Failed to delete history record', 'error');
+            }
+        }
+
+        async function confirmClearHistory() {
+            if (!confirm('Are you sure you want to CLEAR ALL clip history? This cannot be undone.')) return;
+            try {
+                await fetch('/api/history/clear', { method: 'POST' });
+                showToast('All clip history cleared', 'info');
+                loadClipHistory();
+            } catch (err) {
+                showToast('Failed to clear history', 'error');
+            }
+        }
+
+        function refreshHistoryTable() {
+            loadClipHistory();
+            showToast('History refreshed', 'info');
+        }
+
+        function reclipHistorySource(encodedUrl) {
+            const url = decodeURIComponent(encodedUrl);
+            switchMasterHubTab('stream_clipper');
+            setIngestMode('url');
+            const input = document.getElementById('input-url-stream');
+            if (input) {
+                input.value = url;
+                ingestStreamUrl();
+            }
+        }
+
+        function reloadWarmerFrame() {
+            const frame = document.getElementById('warmerIframe');
+            if (frame) {
+                frame.src = 'http://127.0.0.1:8000?t=' + Date.now();
+                showToast('Reloading YouTube Warmer...', 'info');
+            }
+        }
+
+        // Fetch history count on startup
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/history?page_size=1')
+                .then(r => r.json())
+                .then(d => {
+                    const b = document.getElementById('badgeMasterHistoryCount');
+                    if (b) b.innerText = d.total_count || 0;
+                }).catch(() => {});
+        });
+    </script>
+
 </body>
 </html>

@@ -50,11 +50,26 @@ CROP_PRESETS: Dict[str, Dict[str, Any]] = {
     },
 
     # --- 💬 Reaction & Just Chatting ---
+    "reaction_top_left": {
+        "label": "🎮 CS2 / FPS: Top-Left Cam + Bottom Gameplay (Gaules / FPS)",
+        "gameplay": {"x": 480, "y": 0, "w": 1440, "h": 1080},
+        "facecam": {"x": 0, "y": 0, "w": 540, "h": 400},
+        "stack_mode": "cam_top",
+        "split_ratio": 0.44,
+    },
     "reaction_cam_top": {
-        "label": "👑 OhnePixel Style: Top Facecam + Bottom Video Reaction",
+        "label": "👑 OhnePixel Style: Top-Right Facecam + Bottom Video Reaction",
         "gameplay": {"x": 0, "y": 0, "w": 1360, "h": 1080},
         "facecam": {"x": 1360, "y": 460, "w": 560, "h": 620},
         "stack_mode": "cam_top",
+        "split_ratio": 0.44,
+    },
+    "reaction_bottom_left": {
+        "label": "🎯 Shooters: Bottom-Left Cam + Top Gameplay (Tarik / s1mple)",
+        "gameplay": {"x": 220, "y": 0, "w": 1700, "h": 900},
+        "facecam": {"x": 0, "y": 680, "w": 540, "h": 400},
+        "stack_mode": "standard",
+        "split_ratio": 0.55,
     },
     "reddit_reaction": {
         "label": "🔥 Reddit Post Reaction (Top Facecam + Bottom Reddit/Gameplay)",
@@ -124,10 +139,10 @@ CROP_PRESETS: Dict[str, Dict[str, Any]] = {
         "stack_mode": "full_screen_9_16",
     },
     "ambient_blur_16_9": {
-        "label": "📱 Full 16:9 Ambient: Center Fit with Blurred Dynamic Fill",
+        "label": "📱 Full 16:9 Ambient: Center Fit with Blurred Dynamic Fill (Zero Cut / Knife Unboxings)",
         "gameplay": {"x": 0, "y": 0, "w": 1920, "h": 1080},
         "facecam": {"x": 0, "y": 0, "w": 1920, "h": 1080},
-        "stack_mode": "standard",
+        "stack_mode": "cinema_centered",
     },
     "custom": {
         "label": "✏️ Custom / Manual Coordinates",

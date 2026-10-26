@@ -1,9 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
-title Kick Casino Shorts Studio Launcher
+title OmniStudio - Master Hub Launcher
 
 echo ============================================================
-echo   🎰 Kick Casino Stream-to-Shorts Automation Studio
+echo   ⚡ OmniStudio - Master Stream Clipper & Motion Explainer
 echo ============================================================
 echo.
 
@@ -28,23 +28,20 @@ if %errorlevel% neq 0 (
 :: 2. Prepend local bin directory for FFmpeg
 set "PATH=%~dp0bin;%PATH%"
 
-:: 3. Run bootstrap environment & dependency verification
-echo [STEP 1/2] Verifying environment & dependencies...
-%PYTHON_EXE% install_dependencies.py
-if %errorlevel% neq 0 (
-    echo [WARNING] Dependency verification returned warnings. Attempting to start...
+:: 3. Launch Standalone Desktop App or Web App
+if "%1"=="--browser" (
+    echo [LAUNCH] Starting OmniStudio in browser mode at http://127.0.0.1:7860...
+    %PYTHON_EXE% app.py
+) else (
+    echo [LAUNCH] Starting OmniStudio Standalone Desktop App...
+    if exist "OmniStudio.exe" (
+        start "" "OmniStudio.exe"
+    ) else (
+        %PYTHON_EXE% desktop_app.py
+    )
 )
-
-:: 4. Launch Studio Web App
-echo.
-echo [STEP 2/2] Launching Kick Shorts Studio UI at http://127.0.0.1:7860...
-echo (Press Ctrl+C in this terminal window to stop the server)
-echo.
-
-%PYTHON_EXE% app.py
 
 if %errorlevel% neq 0 (
     echo.
-    echo [ERROR] Application exited unexpectedly with code %errorlevel%.
-    pause
+    echo [NOTICE] Application closed or exited with code %errorlevel%.
 )

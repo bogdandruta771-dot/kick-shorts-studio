@@ -1,0 +1,38 @@
+<!-- ========================================================================= -->
+<!-- 🔥 MASTER HUB TAB 4: YOUTUBE WARMER & GROWTH HUB                          -->
+<!-- ========================================================================= -->
+<div id="master-view-warmer" class="hidden flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- Header & Status -->
+    <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">VANTA YouTube Warmer & Account Hub</h1>
+                <span id="warmerHubBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Port 8000</span>
+            </div>
+            <p class="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                Automated browser session warming, natural human interaction emulation, channel creation, and anti-shadowban protection for YouTube automation accounts.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="reloadWarmerFrame()" class="px-3.5 py-2 rounded-xl bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Reload Warmer</span>
+            </button>
+            <a href="http://127.0.0.1:8000" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs text-rose-300 hover:text-white flex items-center gap-1.5 transition-colors font-medium">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Open in Tab</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Embedded Warmer Hub Container -->
+    <div class="glass-panel rounded-2xl overflow-hidden border border-brand-border shadow-2xl relative" style="height: 780px;">
+        <iframe id="warmerIframe" src="http://127.0.0.1:8000" class="w-full h-full border-0 bg-brand-bg" onerror="handleWarmerIframeError()"></iframe>
+    </div>
+
+</div>

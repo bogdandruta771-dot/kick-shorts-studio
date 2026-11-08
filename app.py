@@ -65,6 +65,13 @@ from core.motion_explainer.motion_renderer import (
 )
 from core.motion_explainer.sfx_library import ensure_sfx_library
 from core.motion_explainer.tradeit_assets import get_tradeit_default_items
+from core.faceless_engine import (
+    generate_faceless_script,
+    render_faceless_short,
+)
+from core.ai_virality_scorer import score_stream_transcript
+from core.broll_fetcher import search_pexels_videos, search_pixabay_videos
+from core.subtitles import SUBTITLE_PRESETS
 
 from core.config import (
     OUTPUT_DIR,
@@ -2280,6 +2287,192 @@ async def delete_motion_output(filename: str):
     if deleted:
         return {"success": True, "deleted": filename}
     raise HTTPException(status_code=404, detail="File not found")
+
+
+# ============================================================================
+# FUSED ENGINE: FACELESS SHORTS (MoneyPrinterTurbo) & VIRALITY SCORING (SupoClip)
+# ============================================================================
+
+class FacelessScriptRequest(BaseModel):
+    topic: str
+    provider: str = "auto"
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+    include_affiliate: bool = True
+    promo_code: str = "mesto300"
+
+
+class FacelessRenderRequest(BaseModel):
+    script_data: Dict[str, Any]
+    voice_id: str = "en-US-ChristopherNeural"
+    subtitle_preset: str = "submagic_yellow"
+    output_filename: Optional[str] = None
+    pexels_api_key: Optional[str] = None
+    pixabay_api_key: Optional[str] = None
+    bgm_volume: float = 0.14
+
+
+class ViralityScoreRequest(BaseModel):
+    transcript: Any
+    provider: str = "auto"
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+    target_clip_duration: float = 35.0
+
+
+FACELESS_RENDER_JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+@app.get("/api/faceless/voices")
+def get_faceless_voices():
+    """Returns available Edge-TTS and ElevenLabs voices."""
+    return {"voices": get_available_voices()}
+
+
+@app.get("/api/faceless/presets")
+def get_subtitle_presets():
+    """Returns available SupoClip/Submagic/MrBeast animated subtitle presets."""
+    return {"presets": SUBTITLE_PRESETS}
+
+
+@app.post("/api/faceless/generate-script")
+def api_generate_faceless_script(req: FacelessScriptRequest):
+    """Generates a viral 4-beat short-form script using AI or offline fallback."""
+    try:
+        script = generate_faceless_script(
+            topic=req.topic,
+            provider=req.provider,
+            model=req.model,
+            api_key=req.api_key,
+            include_affiliate=req.include_affiliate,
+            promo_code=req.promo_code
+        )
+        return {"success": True, "script": script}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/faceless/render")
+def api_render_faceless_short(req: FacelessRenderRequest):
+    """Asynchronously renders a full faceless short with stock B-roll, voiceover, and bouncing ASS subtitles."""
+    job_id = f"job_faceless_{uuid.uuid4().hex[:8]}"
+    FACELESS_RENDER_JOBS[job_id] = {
+        "status": "queued",
+        "progress": 0.05,
+        "message": "Initializing Faceless Short pipeline...",
+        "result": None,
+        "error": None,
+    }
+
+    def _execute():
+        try:
+            FACELESS_RENDER_JOBS[job_id]["status"] = "processing"
+            FACELESS_RENDER_JOBS[job_id]["progress"] = 0.15
+            FACELESS_RENDER_JOBS[job_id]["message"] = "Synthesizing neural voiceover & aligning words..."
+
+            out_filename = req.output_filename
+            if not out_filename:
+                t_slug = re.sub(r"[^a-zA-Z0-9]", "_", req.script_data.get("title", "short"))[:18]
+                out_filename = f"faceless_{t_slug}_{int(time.time())}.mp4"
+
+            FACELESS_RENDER_JOBS[job_id]["progress"] = 0.40
+            FACELESS_RENDER_JOBS[job_id]["message"] = "Fetching B-Roll stock video & generating dynamic canvas..."
+
+            res = render_faceless_short(
+                script_data=req.script_data,
+                voice_id=req.voice_id,
+                subtitle_preset=req.subtitle_preset,
+                output_filename=out_filename,
+                pexels_api_key=req.pexels_api_key,
+                pixabay_api_key=req.pixabay_api_key,
+                bgm_volume=req.bgm_volume
+            )
+
+            # Record in clip history
+            try:
+                record_clipped_short(
+                    source_url="faceless://moneyprinter",
+                    output_filename=out_filename,
+                    title=res.get("title", "Faceless AI Short"),
+                    channel="Faceless Studio",
+                    duration=res.get("duration", 0.0),
+                    preset="moneyprinter_faceless",
+                    ai_title=res.get("title", ""),
+                )
+            except Exception:
+                pass
+
+            FACELESS_RENDER_JOBS[job_id]["status"] = "completed"
+            FACELESS_RENDER_JOBS[job_id]["progress"] = 1.0
+            FACELESS_RENDER_JOBS[job_id]["message"] = "Faceless Short exported successfully!"
+            FACELESS_RENDER_JOBS[job_id]["result"] = {
+                "video_url": f"/outputs/{out_filename}",
+                "filename": out_filename,
+                "duration": res["duration"],
+                "render_time_seconds": res.get("render_time_seconds", 0),
+            }
+        except Exception as exc:
+            FACELESS_RENDER_JOBS[job_id]["status"] = "failed"
+            FACELESS_RENDER_JOBS[job_id]["error"] = str(exc)
+            FACELESS_RENDER_JOBS[job_id]["message"] = f"Render failed: {str(exc)}"
+
+    thread = threading.Thread(target=_execute, daemon=True)
+    thread.start()
+
+    return {"job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/faceless/render-stream/{job_id}")
+async def stream_faceless_render_progress(job_id: str):
+    """Server-Sent Events (SSE) endpoint providing live progress feedback for faceless video generation."""
+    async def event_generator():
+        while True:
+            job = FACELESS_RENDER_JOBS.get(job_id)
+            if not job:
+                yield f"data: {json.dumps({'status': 'not_found', 'progress': 0})}\n\n"
+                break
+
+            data = {
+                "status": job["status"],
+                "progress": job["progress"],
+                "message": job["message"],
+                "result": job.get("result"),
+                "error": job.get("error"),
+            }
+            yield f"data: {json.dumps(data)}\n\n"
+
+            if job["status"] in ("completed", "failed"):
+                break
+            await asyncio.sleep(0.4)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.post("/api/virality/score")
+def api_score_virality(req: ViralityScoreRequest):
+    """SupoClip-style AI transcript virality scoring and highlight finder."""
+    try:
+        res = score_stream_transcript(
+            transcript_text_or_segments=req.transcript,
+            provider=req.provider,
+            model=req.model,
+            api_key=req.api_key,
+            target_clip_duration=req.target_clip_duration
+        )
+        return res
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/broll/search")
+def api_search_broll(query: str, pexels_key: Optional[str] = None, pixabay_key: Optional[str] = None):
+    """Search stock footage from Pexels and Pixabay."""
+    results = []
+    if pexels_key or os.getenv("PEXELS_API_KEY"):
+        results.extend(search_pexels_videos(query, per_page=4, api_key=pexels_key))
+    if pixabay_key or os.getenv("PIXABAY_API_KEY"):
+        results.extend(search_pixabay_videos(query, per_page=4, api_key=pixabay_key))
+    return {"query": query, "results": results}
 
 
 def open_browser_delayed(url: str, delay_sec: float = 1.0):

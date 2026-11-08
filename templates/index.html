@@ -212,6 +212,12 @@
                     <span class="sm:hidden">Motion</span>
                     <span class="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-300">PROMO</span>
                 </button>
+                <button onclick="switchMasterHubTab('faceless_shorts')" id="master-tab-faceless" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span class="hidden sm:inline">Faceless AI</span>
+                    <span class="sm:hidden">Faceless</span>
+                    <span class="text-[9px] font-mono px-1 rounded bg-cyan-500/20 text-cyan-300">TURBO</span>
+                </button>
                 <button onclick="switchMasterHubTab('clip_history')" id="master-tab-history" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
                     <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i>
                     <span class="hidden sm:inline">Clip History</span>
@@ -777,6 +783,23 @@
                                 Duration: 0.0s
                             </span>
                         </div>
+
+                        <!-- SupoClip AI Virality Highlight Hunter -->
+                        <div class="p-3 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-brand-surface rounded-xl border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div>
+                                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    SupoClip AI Virality Hunter
+                                    <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">OPUS AI</span>
+                                </span>
+                                <p class="text-[11px] text-zinc-400">Scan full video speech to score moments 0-100 and auto-trim the #1 viral climax.</p>
+                            </div>
+                            <button type="button" onclick="triggerSupoClipViralityScore()" id="btn-supoclip-score" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all shrink-0">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>Find Viral Clips</span>
+                            </button>
+                        </div>
+                        <div id="supoclip-virality-results" class="hidden space-y-2"></div>
 
                         <!-- Numeric Pickers and "Set to Current Playhead" Shortcuts -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -2550,6 +2573,183 @@
         </div>
 
     </div>
+
+<!-- ========================================================================= -->
+<!-- 🎬 MASTER HUB TAB: FACELESS SHORTS STUDIO (MoneyPrinterTurbo x SupoClip)  -->
+<!-- ========================================================================= -->
+<div id="master-view-faceless" class="hidden flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- Top Hero Banner -->
+    <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-brand-surface to-brand-card">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-md shadow-cyan-500/20">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">Faceless AI Shorts Studio</h2>
+                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">MONEYPRINTER x SUPOCLIP</span>
+                    </div>
+                    <p class="text-xs text-zinc-400">Prompt-to-video automation with stock B-roll, neural speech, audio ducking, and glowing bouncing subtitles.</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-zinc-400 font-mono">Affiliate Engine:</span>
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center gap-1.5">
+                <i data-lucide="badge-percent" class="w-3.5 h-3.5"></i> TradeIt [mesto300]
+            </span>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Studio Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Topic, Script & Voice Settings (7 Cols) -->
+        <div class="lg:col-span-7 space-y-5">
+
+            <!-- 1. Topic & Prompt Box -->
+            <div class="glass-panel rounded-2xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4 text-cyan-400"></i>
+                        1. Topic & Script Prompt
+                    </span>
+                    <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                        <input type="checkbox" id="faceless-include-affiliate" checked class="rounded border-brand-border bg-brand-bg text-cyan-500 focus:ring-0">
+                        <span>Include TradeIt Sponsor Outro</span>
+                    </label>
+                </div>
+
+                <!-- Quick Inspiration Chips -->
+                <div class="flex flex-wrap gap-1.5 text-xs">
+                    <button type="button" onclick="setFacelessTopic('The $1.5M CS2 Knife That Vanished 🗡️')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-zinc-300 text-[11px] transition-all">🗡️ $1.5M Blue Gem Knife</button>
+                    <button type="button" onclick="setFacelessTopic('Why CS2 Cases Are So Addictive 📦')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-zinc-300 text-[11px] transition-all">📦 Case Opening Psychology</button>
+                    <button type="button" onclick="setFacelessTopic('The Most Expensive Mistakes in Esports History 🎮')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-zinc-300 text-[11px] transition-all">🎮 Esports Huge Mistakes</button>
+                    <button type="button" onclick="setFacelessTopic('Top 3 CS2 Skins That Made Players Millionaires 💰')" class="px-2.5 py-1 rounded-lg bg-brand-surface hover:bg-brand-border border border-brand-border text-zinc-300 text-[11px] transition-all">💰 Millionaire Skins</button>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="faceless-topic-input" placeholder="e.g. Crazy CS2 skin investment that went 100x..." value="The $1.5M CS2 Knife That Vanished 🗡️" class="flex-1 bg-brand-bg border border-brand-border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none">
+                    <button type="button" onclick="generateFacelessScriptUI()" id="btn-faceless-gen-script" class="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-600/20 transition-all shrink-0">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>Generate Script</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Script Editor & Visual Keyword Inspector -->
+            <div id="faceless-editor-wrapper" class="glass-panel rounded-2xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center gap-2">
+                        <i data-lucide="edit-3" class="w-4 h-4 text-indigo-400"></i>
+                        2. 4-Beat Viral Retention Structure
+                    </span>
+                    <span class="text-[10px] font-mono text-zinc-400">Editable Sentences & B-Roll Queries</span>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-mono text-zinc-400">Short Title / Headline</label>
+                    <input type="text" id="faceless-script-title" value="The $1.5M CS2 Knife That Vanished 🗡️" class="w-full bg-brand-bg border border-brand-border rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-cyan-500 focus:outline-none">
+                </div>
+                <div id="faceless-segments-container" class="space-y-3">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- 3. Voice & Subtitle Presets -->
+            <div class="glass-panel rounded-2xl p-5 space-y-4">
+                <span class="text-xs font-bold text-white flex items-center gap-2">
+                    <i data-lucide="mic" class="w-4 h-4 text-emerald-400"></i>
+                    3. Neural Voice & Subtitle Aesthetic
+                </span>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-mono text-zinc-400">Neural Voiceover (Edge-TTS / ElevenLabs)</label>
+                        <select id="faceless-voice-select" class="w-full bg-brand-bg border border-brand-border rounded-xl px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none">
+                            <option value="en-US-ChristopherNeural">Christopher (Authoritative / Documentary) [Free]</option>
+                            <option value="en-US-GuyNeural">Guy (Energetic / Modern) [Free]</option>
+                            <option value="en-US-JennyNeural">Jenny (Friendly / Clear) [Free]</option>
+                            <option value="en-US-AriaNeural">Aria (Polished / Corporate) [Free]</option>
+                            <option value="eleven_liam">Liam (ElevenLabs Viral Creator)</option>
+                            <option value="eleven_adam">Adam (ElevenLabs Deep Audio)</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-mono text-zinc-400">Stock Footage Keys (Optional)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="password" id="faceless-pexels-key" placeholder="Pexels Key" class="bg-brand-bg border border-brand-border rounded-xl px-2.5 py-2 text-xs text-white placeholder-zinc-600 focus:border-cyan-500 focus:outline-none">
+                            <input type="password" id="faceless-pixabay-key" placeholder="Pixabay Key" class="bg-brand-bg border border-brand-border rounded-xl px-2.5 py-2 text-xs text-white placeholder-zinc-600 focus:border-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-brand-border/60">
+                    <label class="block text-[11px] font-mono text-zinc-400">Animated Karaoke Subtitle Style (SupoClip / Opus / Submagic)</label>
+                    <div id="faceless-subtitle-presets" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button type="button" onclick="startFacelessShortRender()" id="btn-faceless-render-short" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xl shadow-cyan-600/25 transition-all">
+                <i data-lucide="clapperboard" class="w-5 h-5"></i>
+                <span>Render Faceless Short (1080x1920 60fps)</span>
+            </button>
+
+            <!-- Progress Bar -->
+            <div id="faceless-progress-box" class="hidden glass-panel rounded-2xl p-4 space-y-2 border border-cyan-500/40">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="faceless-progress-msg" class="text-cyan-300 font-mono">0% - Initializing render...</span>
+                    <i data-lucide="loader" class="w-4 h-4 text-cyan-400 animate-spin"></i>
+                </div>
+                <div class="w-full bg-brand-bg rounded-full h-2.5 overflow-hidden border border-brand-border">
+                    <div id="faceless-progress-bar" class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-2.5 rounded-full transition-all duration-300" style="width: 5%"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Live 9:16 Video Preview & Export (5 Cols) -->
+        <div class="lg:col-span-5 space-y-5">
+            <div class="glass-panel rounded-2xl p-5 space-y-4 sticky top-6">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center gap-2">
+                        <i data-lucide="play-circle" class="w-4 h-4 text-cyan-400"></i>
+                        Master Video Player (9:16)
+                    </span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-surface text-zinc-400 border border-brand-border">1080x1920</span>
+                </div>
+
+                <!-- Video Viewport -->
+                <div class="relative w-full aspect-[9/16] max-h-[640px] mx-auto bg-black rounded-2xl overflow-hidden border border-brand-border flex items-center justify-center shadow-2xl">
+                    <video id="faceless-video-player" controls playsinline class="w-full h-full object-contain">
+                        <source src="/outputs/test_faceless_run.mp4" type="video/mp4">
+                    </video>
+                </div>
+
+                <!-- Download & Actions -->
+                <div id="faceless-preview-wrapper" class="space-y-2.5 pt-2 border-t border-brand-border">
+                    <div class="grid grid-cols-2 gap-2">
+                        <a id="faceless-download-btn" href="/outputs/test_faceless_run.mp4" download="faceless_short.mp4" class="py-2.5 px-3 rounded-xl bg-brand-surface hover:bg-brand-border border border-brand-border text-center text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all">
+                            <i data-lucide="download" class="w-4 h-4 text-cyan-400"></i>
+                            <span>Download MP4</span>
+                        </a>
+                        <button type="button" onclick="switchMasterHubTab('youtube_warmer')" class="py-2.5 px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-center text-xs font-semibold text-rose-300 flex items-center justify-center gap-1.5 transition-all">
+                            <i data-lucide="youtube" class="w-4 h-4 text-rose-400"></i>
+                            <span>Auto-Upload</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
 
 <!-- ========================================================================= -->
 <!-- 📚 MASTER HUB TAB 3: CLIP HISTORY & ANTI-REPEAT DATABASE                  -->
@@ -9561,6 +9761,9 @@
     <!-- MOTION EXPLAINER STUDIO CONTROLLER SCRIPT -->
     <script src="/static/motion_explainer.js"></script>
 
+    <!-- FACELESS AI SHORTS & SUPOCLIP VIRALITY CONTROLLER SCRIPT -->
+    <script src="/static/faceless_studio.js"></script>
+
     <!-- MASTER HUB & CLIP HISTORY CONTROLLER SCRIPT -->
     <script>
         // Master Hub Switcher
@@ -9570,12 +9773,14 @@
             currentMasterTab = tabName;
             const streamView = document.getElementById('master-view-stream');
             const motionView = document.getElementById('master-view-motion');
+            const facelessView = document.getElementById('master-view-faceless');
             const historyView = document.getElementById('master-view-history');
             const warmerView = document.getElementById('master-view-warmer');
             const stepperNav = document.getElementById('stepper-nav');
 
             const btnStream = document.getElementById('master-tab-stream');
             const btnMotion = document.getElementById('master-tab-motion');
+            const btnFaceless = document.getElementById('master-tab-faceless');
             const btnHistory = document.getElementById('master-tab-history');
             const btnWarmer = document.getElementById('master-tab-warmer');
 
@@ -9584,11 +9789,13 @@
 
             if (btnStream) btnStream.className = inactiveCls;
             if (btnMotion) btnMotion.className = inactiveCls;
+            if (btnFaceless) btnFaceless.className = inactiveCls;
             if (btnHistory) btnHistory.className = inactiveCls;
             if (btnWarmer) btnWarmer.className = inactiveCls;
 
             if (streamView) streamView.classList.add('hidden');
             if (motionView) motionView.classList.add('hidden');
+            if (facelessView) facelessView.classList.add('hidden');
             if (historyView) historyView.classList.add('hidden');
             if (warmerView) warmerView.classList.add('hidden');
 
@@ -9602,6 +9809,13 @@
                 if (btnMotion) btnMotion.className = activeCls;
                 if (typeof loadPresets === 'function' && (!availablePresets || availablePresets.length === 0)) {
                     loadPresets();
+                }
+            } else if (tabName === 'faceless_shorts') {
+                if (facelessView) facelessView.classList.remove('hidden');
+                if (stepperNav) stepperNav.classList.add('hidden');
+                if (btnFaceless) btnFaceless.className = activeCls;
+                if (typeof initFacelessStudio === 'function') {
+                    initFacelessStudio();
                 }
             } else if (tabName === 'clip_history') {
                 if (historyView) historyView.classList.remove('hidden');

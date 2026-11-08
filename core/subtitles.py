@@ -97,6 +97,55 @@ SUBTITLE_SANITIZER_RULES: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"\bbet\b", re.IGNORECASE), "entry"),
 ]
 
+# Viral Animated Subtitle Styles (SupoClip / OpusClip / Submagic / MrBeast)
+SUBTITLE_PRESETS: Dict[str, Dict[str, Any]] = {
+    "submagic_yellow": {
+        "name": "Submagic Viral Yellow",
+        "primary": "#FFFFFF",
+        "highlight": "#FFE600",
+        "outline": "#000000",
+        "scale_pop": 120,
+        "glow": True,
+        "description": "Electric yellow popping highlight with black outline and subtle neon glow.",
+    },
+    "mrbeast_green": {
+        "name": "MrBeast Bold Green",
+        "primary": "#FFFFFF",
+        "highlight": "#00FF55",
+        "outline": "#000000",
+        "scale_pop": 124,
+        "glow": False,
+        "description": "High-impact punchy green active word pop with heavy black drop shadow.",
+    },
+    "cyber_cyan": {
+        "name": "Cyberpunk Diamond Cyan",
+        "primary": "#FFFFFF",
+        "highlight": "#00DCFF",
+        "outline": "#090A0F",
+        "scale_pop": 118,
+        "glow": True,
+        "description": "Vibrant cyan gamer aesthetic with high-contrast borders.",
+    },
+    "tradeit_gold": {
+        "name": "TradeIt Metallic Gold",
+        "primary": "#FFFFFF",
+        "highlight": "#FFD700",
+        "outline": "#11141D",
+        "scale_pop": 120,
+        "glow": True,
+        "description": "Luxurious gold highlight calibrated for CS2 skin unboxing and finance shorts.",
+    },
+    "hyper_magenta": {
+        "name": "Hyperpop Neon Magenta",
+        "primary": "#FFFFFF",
+        "highlight": "#FF00B4",
+        "outline": "#000000",
+        "scale_pop": 120,
+        "glow": True,
+        "description": "Electric magenta neon pop for viral hype clips.",
+    },
+}
+
 
 def sanitize_subtitle_text(text: str) -> str:
     """
@@ -240,13 +289,26 @@ class SubtitleEngine:
         shadow_depth: int = DEFAULT_SHADOW_DEPTH,
         y_position: int = DEFAULT_SUBTITLE_Y_OFFSET,
         words_per_burst: int = 3,
+        preset: Optional[str] = None,
     ) -> Optional[Path]:
         """
         Generates an ASS subtitle script featuring word-by-word pop highlight karaoke styling.
+        Supports SupoClip/Submagic/MrBeast viral presets ('submagic_yellow', 'mrbeast_green', etc.).
         If words is empty, returns None cleanly (No-speech fallback).
         """
         if not words:
             return None
+
+        scale_pop = 118
+        add_glow = False
+
+        if preset and preset in SUBTITLE_PRESETS:
+            p = SUBTITLE_PRESETS[preset]
+            primary_color_hex = p.get("primary", primary_color_hex)
+            highlight_color_hex = p.get("highlight", highlight_color_hex)
+            outline_color_hex = p.get("outline", outline_color_hex)
+            scale_pop = p.get("scale_pop", 120)
+            add_glow = p.get("glow", False)
 
         primary_ass = hex_to_ass_color(primary_color_hex)
         highlight_ass = hex_to_ass_color(highlight_color_hex)
@@ -311,10 +373,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 for idx, w in enumerate(burst):
                     word_text = sanitize_subtitle_text(w["word"])
                     if idx == active_idx:
-                        # Pop styling: highlight color + scale pulse, then return to primary color and 100% scale
-                        tokens.append(f"{{\\c{highlight_ass}\\fscx114\\fscy114}}{word_text}{{\\c{primary_ass}\\fscx100\\fscy100}}")
+                        # Pop styling: highlight color + scale pulse + optional glow, then return to primary
+                        glow_tag = "\\blur2" if add_glow else ""
+                        tokens.append(f"{{\\c{highlight_ass}\\fscx{scale_pop}\\fscy{scale_pop}{glow_tag}}}{word_text}{{\\c{primary_ass}\\fscx100\\fscy100\\blur0}}")
                     else:
-                        tokens.append(f"{{\\c{primary_ass}\\fscx100\\fscy100}}{word_text}")
+                        tokens.append(f"{{\\c{primary_ass}\\fscx100\\fscy100\\blur0}}{word_text}")
 
                 line_body = " ".join(tokens)
                 # Clamp Y to valid screen coordinates (middle-center alignment)

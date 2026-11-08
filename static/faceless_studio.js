@@ -423,3 +423,115 @@ function applyViralTrim(startTime, endTime, viralTitle) {
 
     alert(`Applied viral highlight trim: ${startTime}s to ${endTime}s!`);
 }
+
+/**
+ * 24/7 Autopilot Automation Factory
+ */
+async function triggerAutopilotRunOnce() {
+    const btn = document.getElementById("btn-autopilot-run-once");
+    const topicInput = document.getElementById("faceless-topic-input");
+    const autoUploadCheck = document.getElementById("autopilot-auto-upload-check");
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin inline mr-1"></i> Running A-to-Z Factory...`;
+        lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch("/api/autopilot/run-once", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                topic: topicInput ? topicInput.value.trim() : null,
+                auto_upload: autoUploadCheck ? autoUploadCheck.checked : false
+            })
+        });
+        const data = await res.json();
+        if (data.job_id) {
+            trackFacelessProgress(data.job_id);
+            pollAutopilotStatus();
+        } else {
+            alert("Failed to start autopilot run: " + (data.detail || "Unknown error"));
+        }
+    } catch (e) {
+        alert("Autopilot error: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 inline mr-1 text-emerald-400"></i> Run A-to-Z Autopilot Now`;
+            lucide.createIcons();
+        }
+    }
+}
+
+async function toggleAutopilotDaemon() {
+    const statusBtn = document.getElementById("btn-toggle-autopilot");
+    const intervalInput = document.getElementById("autopilot-interval-input");
+    const autoUploadCheck = document.getElementById("autopilot-auto-upload-check");
+
+    try {
+        const curRes = await fetch("/api/autopilot/status");
+        const cur = await curRes.json();
+
+        if (cur.is_running) {
+            // Stop it
+            await fetch("/api/autopilot/stop", { method: "POST" });
+        } else {
+            // Start it
+            await fetch("/api/autopilot/start", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    interval_minutes: parseInt(intervalInput?.value || "180"),
+                    daily_quota: 4,
+                    auto_upload: autoUploadCheck?.checked || false,
+                    voice_id: "en-US-ChristopherNeural"
+                })
+            });
+        }
+        await pollAutopilotStatus();
+    } catch (e) {
+        alert("Autopilot toggle error: " + e.message);
+    }
+}
+
+async function pollAutopilotStatus() {
+    try {
+        const res = await fetch("/api/autopilot/status");
+        const data = await res.json();
+        
+        const badge = document.getElementById("autopilot-status-badge");
+        const toggleBtn = document.getElementById("btn-toggle-autopilot");
+        const logBox = document.getElementById("autopilot-logs-container");
+
+        if (badge) {
+            if (data.is_running) {
+                badge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse";
+                badge.textContent = "24/7 ACTIVE";
+            } else {
+                badge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-zinc-800 text-zinc-400 border border-zinc-700";
+                badge.textContent = "STANDBY";
+            }
+        }
+
+        if (toggleBtn) {
+            if (data.is_running) {
+                toggleBtn.className = "px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-xs font-bold text-rose-300 flex items-center gap-1.5 transition-all";
+                toggleBtn.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5"></i> Stop 24/7 Factory`;
+            } else {
+                toggleBtn.className = "px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-xs font-bold text-emerald-300 flex items-center gap-1.5 transition-all";
+                toggleBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> Start 24/7 Factory`;
+            }
+            lucide.createIcons();
+        }
+
+        if (logBox && data.logs) {
+            logBox.innerHTML = data.logs.slice(-5).map(l => 
+                `<div class="text-[10px] font-mono text-zinc-400"><span class="text-zinc-500">[${l.timestamp}]</span> ${l.message}</div>`
+            ).join("");
+        }
+    } catch (e) {
+        console.warn("Autopilot status poll error:", e);
+    }
+}

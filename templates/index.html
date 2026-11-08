@@ -2603,6 +2603,40 @@
         </div>
     </div>
 
+    <!-- 🚀 24/7 Autopilot Automation Factory Card -->
+    <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/25 via-purple-950/20 to-brand-surface shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    🚀 24/7 Autopilot Factory (A to Z Hands-Free Automation)
+                </span>
+                <span id="autopilot-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-zinc-800 text-zinc-400 border border-zinc-700">STANDBY</span>
+            </div>
+            <p class="text-xs text-zinc-300">Autonomously generates trending topics, writes scripts, fetches stock B-roll, burns karaoke subtitles, and uploads directly to YouTube on a recurring schedule.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer bg-brand-bg px-2.5 py-1.5 rounded-lg border border-brand-border">
+                <input type="checkbox" id="autopilot-auto-upload-check" class="rounded border-brand-border bg-brand-surface text-cyan-500 focus:ring-0">
+                <span>Auto-Upload YouTube</span>
+            </label>
+            <div class="flex items-center gap-1.5 bg-brand-bg px-2.5 py-1.5 rounded-lg border border-brand-border text-xs">
+                <span class="text-[10px] text-zinc-400 uppercase font-mono">Every:</span>
+                <input type="number" id="autopilot-interval-input" value="180" min="10" step="10" class="w-12 bg-transparent text-white font-mono text-center focus:outline-none">
+                <span class="text-[10px] text-zinc-400 font-mono">min</span>
+            </div>
+            <button type="button" onclick="triggerAutopilotRunOnce()" id="btn-autopilot-run-once" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition-all">
+                <i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Run A-to-Z Autopilot Now</span>
+            </button>
+            <button type="button" onclick="toggleAutopilotDaemon()" id="btn-toggle-autopilot" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>Start 24/7 Factory</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Main 2-Column Studio Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 

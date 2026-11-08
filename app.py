@@ -72,6 +72,7 @@ from core.faceless_engine import (
 from core.ai_virality_scorer import score_stream_transcript
 from core.broll_fetcher import search_pexels_videos, search_pixabay_videos
 from core.subtitles import SUBTITLE_PRESETS
+from core.autopilot import autopilot
 
 from core.config import (
     OUTPUT_DIR,
@@ -2473,6 +2474,86 @@ def api_search_broll(query: str, pexels_key: Optional[str] = None, pixabay_key: 
     if pixabay_key or os.getenv("PIXABAY_API_KEY"):
         results.extend(search_pixabay_videos(query, per_page=4, api_key=pixabay_key))
     return {"query": query, "results": results}
+
+
+# ============================================================================
+# 🚀 24/7 AUTOPILOT FACTORY (A TO Z AUTOMATION)
+# ============================================================================
+
+class AutopilotStartRequest(BaseModel):
+    interval_minutes: int = 180
+    daily_quota: int = 4
+    auto_upload: bool = False
+    voice_id: str = "en-US-ChristopherNeural"
+    subtitle_preset: str = "submagic_yellow"
+
+
+class AutopilotRunOnceRequest(BaseModel):
+    topic: Optional[str] = None
+    auto_upload: bool = False
+
+
+@app.get("/api/autopilot/status")
+def api_get_autopilot_status():
+    """Returns live 24/7 Autopilot status, queue, and logs."""
+    return autopilot.get_status()
+
+
+@app.post("/api/autopilot/start")
+def api_start_autopilot(req: AutopilotStartRequest):
+    """Activates the 24/7 background autopilot daemon."""
+    return autopilot.start(
+        interval_minutes=req.interval_minutes,
+        daily_quota=req.daily_quota,
+        auto_upload=req.auto_upload,
+        voice_id=req.voice_id,
+        subtitle_preset=req.subtitle_preset
+    )
+
+
+@app.post("/api/autopilot/stop")
+def api_stop_autopilot():
+    """Stops the 24/7 background autopilot daemon."""
+    return autopilot.stop()
+
+
+@app.post("/api/autopilot/run-once")
+def api_run_autopilot_once(req: AutopilotRunOnceRequest):
+    """Triggers an immediate A-to-Z production cycle in a background worker."""
+    job_id = f"job_auto_{uuid.uuid4().hex[:8]}"
+    FACELESS_RENDER_JOBS[job_id] = {
+        "status": "queued",
+        "progress": 0.05,
+        "message": "Starting A-to-Z Autopilot cycle...",
+        "result": None,
+        "error": None,
+    }
+
+    def _execute():
+        def _prog(pct, msg):
+            FACELESS_RENDER_JOBS[job_id]["progress"] = pct
+            FACELESS_RENDER_JOBS[job_id]["message"] = msg
+
+        try:
+            FACELESS_RENDER_JOBS[job_id]["status"] = "processing"
+            res = autopilot.run_single_faceless_cycle(
+                topic=req.topic,
+                auto_upload=req.auto_upload,
+                progress_cb=_prog
+            )
+            FACELESS_RENDER_JOBS[job_id]["status"] = "completed"
+            FACELESS_RENDER_JOBS[job_id]["progress"] = 1.0
+            FACELESS_RENDER_JOBS[job_id]["message"] = "Autopilot cycle complete!"
+            FACELESS_RENDER_JOBS[job_id]["result"] = res
+        except Exception as exc:
+            FACELESS_RENDER_JOBS[job_id]["status"] = "failed"
+            FACELESS_RENDER_JOBS[job_id]["error"] = str(exc)
+            FACELESS_RENDER_JOBS[job_id]["message"] = f"Autopilot failed: {str(exc)}"
+
+    thread = threading.Thread(target=_execute, daemon=True)
+    thread.start()
+
+    return {"job_id": job_id, "status": "queued"}
 
 
 def open_browser_delayed(url: str, delay_sec: float = 1.0):

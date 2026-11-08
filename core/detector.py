@@ -9,6 +9,7 @@ Components:
 import json
 import re
 import time
+import random
 import threading
 import urllib.request
 import urllib.error
@@ -34,6 +35,7 @@ from core.config import (
     TWITCH_IRC_WS_URL,
     DEFAULT_TIMEOUT,
 )
+from core.video_ingest import fetch_twitch_channel_clips
 
 
 def sanitize_channel_slug(raw: str) -> str:

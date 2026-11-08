@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 from core.broll_fetcher import get_or_fetch_broll, extract_broll_keywords
+from core.utils import escape_ffmpeg_filter_path
 from core.motion_explainer.voice_engine import (
     synthesize_speech,
     probe_audio_duration,
@@ -319,7 +320,7 @@ def render_faceless_short(
     final_output = OUTPUTS_DIR / out_name
 
     # Escape subtitle path for ffmpeg subtitles filter
-    ass_escaped = str(ass_path).replace("\\", "/").replace(":", "\\:")
+    ass_escaped = escape_ffmpeg_filter_path(str(ass_path))
 
     cmd_final = [
         "ffmpeg", "-y",

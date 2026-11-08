@@ -8,6 +8,7 @@ Programmatically renders photorealistic visual layers inspired by high-convertin
 5. Warning / Sanction Security Badges
 """
 import os
+import re
 import math
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple

@@ -2,17 +2,30 @@
 import time
 import requests
 from pathlib import Path
+from fastapi.testclient import TestClient
+from app import app
 
 BASE_URL = "http://127.0.0.1:7860"
+
+def get_client():
+    try:
+        res = requests.get(f"{BASE_URL}/", timeout=0.5)
+        if res.status_code == 200:
+            return requests
+    except Exception:
+        pass
+    return TestClient(app, base_url=BASE_URL)
 
 def run_e2e_api_test():
     print("=" * 65)
     print("  TESTING MULTI-STEP STUDIO UI & DUAL-SENTINEL DETECTOR API")
     print("=" * 65)
 
+    client = get_client()
+
     # 1. Test Home page
     print("[1/6] Testing GET / (Studio HTML UI & Stepper Wizard)...")
-    res_home = requests.get(f"{BASE_URL}/")
+    res_home = client.get(f"{BASE_URL}/")
     assert res_home.status_code == 200, f"Expected 200, got {res_home.status_code}"
     assert "OmniStream" in res_home.text or "KickStudio" in res_home.text, "Page missing studio branding"
     assert "canvas-9-16" in res_home.text, "Page missing 9:16 canvas"
@@ -28,7 +41,7 @@ def run_e2e_api_test():
     # 2. Test Sentinel Watchdog API Endpoints
     print("[2/6] Testing Sentinel Watchdog API (start / status / stop)...")
     # Start watchdog
-    res_start = requests.post(f"{BASE_URL}/api/detector/start", json={
+    res_start = client.post(f"{BASE_URL}/api/detector/start", json={
         "channel_slug": "xqc",
         "min_amount": 100.0,
         "min_multiplier": 50.0,
@@ -39,7 +52,7 @@ def run_e2e_api_test():
 
     # Check status
     time.sleep(1.0)
-    res_status = requests.get(f"{BASE_URL}/api/detector/status")
+    res_status = client.get(f"{BASE_URL}/api/detector/status")
     assert res_status.status_code == 200, f"Failed status check: {res_status.text}"
     status_data = res_status.json()
     assert status_data["is_active"] is True, "Watchdog should be active"
@@ -47,7 +60,7 @@ def run_e2e_api_test():
     print(f"      [OK] Watchdog status active: channel={status_data['channel_slug']}, WS connected={status_data['ws_connected']}, velocity={status_data['chat_velocity']} msg/s")
 
     # Stop watchdog
-    res_stop = requests.post(f"{BASE_URL}/api/detector/stop")
+    res_stop = client.post(f"{BASE_URL}/api/detector/stop")
     assert res_stop.status_code == 200, f"Failed stop watchdog: {res_stop.text}"
     print("      [OK] Watchdog stopped gracefully.")
 
@@ -69,7 +82,7 @@ def run_e2e_api_test():
         run_command_safe(cmd, timeout=30)
 
     with open(test_video, "rb") as f:
-        res_ingest = requests.post(f"{BASE_URL}/api/ingest-file", files={"file": ("quick_test.mp4", f, "video/mp4")})
+        res_ingest = client.post(f"{BASE_URL}/api/ingest-file", files={"file": ("quick_test.mp4", f.read(), "video/mp4")})
 
     assert res_ingest.status_code == 200, f"Ingest failed: {res_ingest.text}"
     meta = res_ingest.json()
@@ -80,7 +93,7 @@ def run_e2e_api_test():
 
     # 4. Test Extract Frame at scrubbing timestamp (Step 1 Snap Frame)
     print("[4/8] Testing POST /api/extract-frame-at (Scrub Frame Snap)...")
-    res_snap = requests.post(f"{BASE_URL}/api/extract-frame-at", json={
+    res_snap = client.post(f"{BASE_URL}/api/extract-frame-at", json={
         "video_path": meta["path"],
         "timestamp": 2.5
     })
@@ -112,7 +125,7 @@ def run_e2e_api_test():
         "outro_path": None
     }
 
-    res_export = requests.post(f"{BASE_URL}/api/start-export", json=payload)
+    res_export = client.post(f"{BASE_URL}/api/start-export", json=payload)
     assert res_export.status_code == 200, f"Start export failed: {res_export.text}"
     job_id = res_export.json()["job_id"]
     print(f"      [OK] Export job started with trim: job_id={job_id}")
@@ -125,7 +138,7 @@ def run_e2e_api_test():
     final_status = None
 
     while time.time() - start_t < max_wait:
-        res_job_status = requests.get(f"{BASE_URL}/api/export-status/{job_id}")
+        res_job_status = client.get(f"{BASE_URL}/api/export-status/{job_id}")
         assert res_job_status.status_code == 200, f"Failed status check: {res_job_status.text}"
         status = res_job_status.json()
 
@@ -154,32 +167,32 @@ def run_e2e_api_test():
 
     # 7. Test Video Playback Endpoint
     print("[7/8] Testing GET /outputs/{filename} (Playback Endpoint)...")
-    res_video = requests.get(f"{BASE_URL}{final_status['output_url']}", headers={"Range": "bytes=0-1024"})
+    res_video = client.get(f"{BASE_URL}{final_status['output_url']}", headers={"Range": "bytes=0-1024"})
     assert res_video.status_code in [200, 206], f"Failed video stream: {res_video.status_code}"
     assert "video/mp4" in res_video.headers.get("Content-Type", ""), "Invalid Content-Type"
     print("      [OK] Output video stream validated!")
 
     # 8. Test 'Process Next Clip' Reset Flow & Clean Ingest of Clip #2
     print("[8/8] Testing 'Process Next Clip' flow (reset session & process clip #2)...")
-    res_reset = requests.post(f"{BASE_URL}/api/reset-session")
+    res_reset = client.post(f"{BASE_URL}/api/reset-session")
     assert res_reset.status_code == 200, f"Reset session failed: {res_reset.text}"
     
     # Active session must now report has_clip == False
-    res_sess = requests.get(f"{BASE_URL}/api/active-session")
+    res_sess = client.get(f"{BASE_URL}/api/active-session")
     assert res_sess.status_code == 200
     assert res_sess.json().get("has_clip") is False, "Active session should be empty after reset"
     print("      [OK] Session cleared cleanly! No stale clips resurrected.")
 
     # Re-ingest fresh clip for Clip #2
     with open(test_video, "rb") as f:
-        res_ingest2 = requests.post(f"{BASE_URL}/api/ingest-file", files={"file": ("second_clip.mp4", f, "video/mp4")})
+        res_ingest2 = client.post(f"{BASE_URL}/api/ingest-file", files={"file": ("second_clip.mp4", f.read(), "video/mp4")})
     assert res_ingest2.status_code == 200, f"Second ingest failed: {res_ingest2.text}"
     meta2 = res_ingest2.json()
     assert meta2["filename"] == "second_clip.mp4", "Second clip filename mismatch"
     print(f"      [OK] Second clip ingested cleanly: {meta2['filename']}")
 
     # Quick test outro removal endpoint
-    res_rem_outro = requests.post(f"{BASE_URL}/api/remove-outro")
+    res_rem_outro = client.post(f"{BASE_URL}/api/remove-outro")
     assert res_rem_outro.status_code == 200, f"Remove outro failed: {res_rem_outro.text}"
     print("      [OK] Outro lifecycle endpoint verified!")
 

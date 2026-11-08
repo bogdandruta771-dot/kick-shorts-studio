@@ -10,6 +10,7 @@ Runs with pure FFmpeg + NumPy in ~0.2-0.5s with zero GPU or heavy VLM requiremen
 """
 
 import math
+import json
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple

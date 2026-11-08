@@ -13,6 +13,7 @@ import json
 from typing import Dict, Any, List, Optional
 import requests
 from dotenv import load_dotenv
+from core.motion_explainer.tradeit_assets import get_tradeit_default_items
 
 load_dotenv()
 

@@ -183,6 +183,8 @@ class VideoProcessor:
         src_w = meta["width"]
         src_h = meta["height"]
 
+        crops = crops or {}
+
         if crops and not gameplay_crop:
             gameplay_crop = {
                 "x": int(float(crops.get("gx", crops.get("gameplay", {}).get("x", 0)))),

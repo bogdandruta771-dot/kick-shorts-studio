@@ -32,7 +32,9 @@ env/
 env.bak/
 venv.bak/
 
-# --- Environment & Sensitive Credentials ---
+# --- YouTube Warmer & Local Accounts ---
+youtube-warmer/
+
 .env
 .env.local
 .env.*.local

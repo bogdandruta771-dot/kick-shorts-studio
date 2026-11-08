@@ -188,7 +188,7 @@ def synthesize_elevenlabs(
         words = text.split()
         words_timed = []
         if words and duration > 0:
-            dur_per_word = duration / len(words)
+            dur_per_word = duration / max(1, len(words))
             cur_t = 0.0
             for w in words:
                 words_timed.append({

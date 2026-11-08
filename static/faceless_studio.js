@@ -91,7 +91,6 @@ function setFacelessTopic(topicText) {
 async function generateFacelessScriptUI() {
     const topicInput = document.getElementById("faceless-topic-input");
     const genBtn = document.getElementById("btn-faceless-gen-script");
-    const scriptBox = document.getElementById("faceless-script-editor");
     const affiliateCheckbox = document.getElementById("faceless-include-affiliate");
     
     const topic = topicInput ? topicInput.value.trim() : "";
@@ -413,14 +412,24 @@ function renderViralityResultsUI(data) {
 
 function applyViralTrim(startTime, endTime, viralTitle) {
     // Set trim inputs in Step 2 / Step 3 if available
-    const trimStartInput = document.getElementById("trim-start-sec");
-    const trimEndInput = document.getElementById("trim-end-sec");
-    const titleInput = document.getElementById("ai-title-input");
+    const trimStartInput = document.getElementById("trim-start-input");
+    const trimEndInput = document.getElementById("trim-end-input");
+    const titleInput = document.getElementById("yt-upload-title");
 
-    if (trimStartInput) trimStartInput.value = startTime;
-    if (trimEndInput) trimEndInput.value = endTime;
-    if (titleInput && viralTitle) titleInput.value = viralTitle;
+    if (trimStartInput) {
+        trimStartInput.value = startTime;
+        if (typeof onTrimInputsChanged === "function") onTrimInputsChanged();
+    }
+    if (trimEndInput) {
+        trimEndInput.value = endTime;
+        if (typeof onTrimInputsChanged === "function") onTrimInputsChanged();
+    }
+    if (titleInput && viralTitle) {
+        titleInput.value = viralTitle;
+        if (typeof updateYtTitleCount === "function") updateYtTitleCount();
+    }
 
+    if (typeof seekPlayerTo === "function") seekPlayerTo(startTime);
     alert(`Applied viral highlight trim: ${startTime}s to ${endTime}s!`);
 }
 

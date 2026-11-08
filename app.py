@@ -9,10 +9,14 @@ import uuid
 import threading
 import subprocess
 import webbrowser
+import re
+import urllib.request
+import urllib.parse
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -106,7 +110,23 @@ from core.video_ingest import (
 from core.video_processor import VideoProcessor
 from core.detector import UniversalWatchdogManager, KickWatchdogManager, WinExtractor, sanitize_channel_slug
 
-app = FastAPI(title="OmniStream Shorts Studio - Kick & Twitch", version="2.5.0")
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
+    """Configures asyncio exception handler to silence client disconnects during video scrubbing."""
+    try:
+        loop = asyncio.get_running_loop()
+        def _exc_handler(loop, context):
+            exc = context.get("exception")
+            if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+                return
+            loop.default_exception_handler(context)
+        loop.set_exception_handler(_exc_handler)
+    except Exception:
+        pass
+    yield
+
+
+app = FastAPI(title="OmniStream Shorts Studio - Kick & Twitch", version="2.5.0", lifespan=lifespan)
 processor = VideoProcessor()
 watchdog = UniversalWatchdogManager()
 
@@ -317,22 +337,6 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
-
-
-@app.on_event("startup")
-async def app_startup_event():
-    """Configures asyncio exception handler to silence client disconnects during video scrubbing."""
-    try:
-        import asyncio
-        loop = asyncio.get_running_loop()
-        def _exc_handler(loop, context):
-            exc = context.get("exception")
-            if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
-                return
-            loop.default_exception_handler(context)
-        loop.set_exception_handler(_exc_handler)
-    except Exception:
-        pass
 
 
 @app.get("/", response_class=HTMLResponse)

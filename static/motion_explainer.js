@@ -20,10 +20,10 @@
                 const res = await fetch('/api/status');
                 const data = await res.json();
                 if (data.encoder) {
-                    const pill = document.getElementById('encoderPill');
-                    const text = document.getElementById('encoderText');
-                    pill.classList.remove('hidden');
-                    text.innerText = `${data.encoder.toUpperCase()} Ready`;
+                    const pill = document.getElementById('encoderPill') || document.getElementById('header-encoder-badge');
+                    const text = document.getElementById('encoderText') || document.getElementById('header-encoder-text');
+                    if (pill) pill.classList.remove('hidden');
+                    if (text) text.innerText = ${data.encoder.toUpperCase()} Ready;
                 }
             } catch (err) {
                 console.warn('Status check notice:', err);

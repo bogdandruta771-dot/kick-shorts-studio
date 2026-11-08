@@ -26,7 +26,6 @@ def test_encoder_detection():
     assert encoder["name"] in ("h264_amf", "h264_nvenc", "h264_qsv", "libx264"), f"Unexpected encoder: {encoder['name']}"
     assert "-pix_fmt" in encoder["args"] and "yuv420p" in encoder["args"], "pix_fmt yuv420p must be forced"
     print("PASS: Encoder detection verified successfully.\n")
-    return encoder
 
 
 def test_subtitle_sanitizer():

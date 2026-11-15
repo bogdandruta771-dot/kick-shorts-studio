@@ -224,10 +224,6 @@
                     <span class="sm:hidden">History</span>
                     <span id="badgeMasterHistoryCount" class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
                 </button>
-                <button onclick="switchMasterHubTab('youtube_warmer')" id="master-tab-warmer" class="px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface">
-                    <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-400"></i>
-                    <span class="hidden md:inline">Warmer</span>
-                </button>
             </div>
 
             <nav class="flex items-center gap-1 sm:gap-2 bg-brand-bg/90 p-1.5 rounded-full border border-brand-border shadow-inner" id="stepper-nav">
@@ -2781,7 +2777,7 @@
                             <i data-lucide="download" class="w-4 h-4 text-cyan-400"></i>
                             <span>Download MP4</span>
                         </a>
-                        <button type="button" onclick="switchMasterHubTab('youtube_warmer')" class="py-2.5 px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-center text-xs font-semibold text-rose-300 flex items-center justify-center gap-1.5 transition-all">
+                        <button type="button" onclick="switchMasterHubTab('stream_clipper'); goToStep(4);" class="py-2.5 px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-center text-xs font-semibold text-rose-300 flex items-center justify-center gap-1.5 transition-all">
                             <svg class="w-4 h-4 fill-current text-rose-400 shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                             <span>Auto-Upload</span>
                         </button>
@@ -2876,39 +2872,7 @@
 </div>
 
 
-<!-- ========================================================================= -->
-<!-- 🔥 MASTER HUB TAB 4: YOUTUBE WARMER & GROWTH HUB                          -->
-<!-- ========================================================================= -->
-<div id="master-view-warmer" class="hidden flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-
-    <!-- Header & Status -->
-    <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2 mb-1.5">
-                <div class="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                    <i data-lucide="flame" class="w-4 h-4"></i>
-                </div>
-                <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">VANTA YouTube Warmer & Account Hub</h1>
-                <span id="warmerHubBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Port 8000</span>
-            </div>
-            <p class="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-                Automated browser session warming, natural human interaction emulation, channel creation, and anti-shadowban protection for YouTube automation accounts.
-            </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <button onclick="reloadWarmerFrame()" class="px-3.5 py-2 rounded-xl bg-brand-surface hover:bg-brand-border border border-brand-border text-xs text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Reload Warmer</span>
-            </button>
-            <a href="http://127.0.0.1:8000" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs text-rose-300 hover:text-white flex items-center gap-1.5 transition-colors font-medium">
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                <span>Open in Tab</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- Embedded Warmer Hub Container -->
+<!-- Embedded Warmer Hub Container -->
     <div class="glass-panel rounded-2xl overflow-hidden border border-brand-border shadow-2xl relative" style="height: 780px;">
         <iframe id="warmerIframe" src="http://127.0.0.1:8000" class="w-full h-full border-0 bg-brand-bg" onerror="handleWarmerIframeError()"></iframe>
     </div>
@@ -9825,14 +9789,12 @@
             const motionView = document.getElementById('master-view-motion');
             const facelessView = document.getElementById('master-view-faceless');
             const historyView = document.getElementById('master-view-history');
-            const warmerView = document.getElementById('master-view-warmer');
             const stepperNav = document.getElementById('stepper-nav');
 
             const btnStream = document.getElementById('master-tab-stream');
             const btnMotion = document.getElementById('master-tab-motion');
             const btnFaceless = document.getElementById('master-tab-faceless');
             const btnHistory = document.getElementById('master-tab-history');
-            const btnWarmer = document.getElementById('master-tab-warmer');
 
             const activeCls = 'px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-indigo-600 shadow-md';
             const inactiveCls = 'px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all text-zinc-400 hover:text-white hover:bg-brand-surface';
@@ -9841,13 +9803,11 @@
             if (btnMotion) btnMotion.className = inactiveCls;
             if (btnFaceless) btnFaceless.className = inactiveCls;
             if (btnHistory) btnHistory.className = inactiveCls;
-            if (btnWarmer) btnWarmer.className = inactiveCls;
 
             if (streamView) streamView.classList.add('hidden');
             if (motionView) motionView.classList.add('hidden');
             if (facelessView) facelessView.classList.add('hidden');
             if (historyView) historyView.classList.add('hidden');
-            if (warmerView) warmerView.classList.add('hidden');
 
             if (tabName === 'stream_clipper') {
                 if (streamView) streamView.classList.remove('hidden');
@@ -9872,11 +9832,7 @@
                 if (stepperNav) stepperNav.classList.add('hidden');
                 if (btnHistory) btnHistory.className = activeCls;
                 loadClipHistory();
-            } else if (tabName === 'youtube_warmer') {
-                if (warmerView) warmerView.classList.remove('hidden');
-                if (stepperNav) stepperNav.classList.add('hidden');
-                if (btnWarmer) btnWarmer.className = activeCls;
-            }
+
 
             lucide.createIcons();
         }
@@ -10111,14 +10067,6 @@
             if (input) {
                 input.value = url;
                 if (typeof inspectKickUrl === 'function') inspectKickUrl();
-            }
-        }
-
-        function reloadWarmerFrame() {
-            const frame = document.getElementById('warmerIframe');
-            if (frame) {
-                frame.src = 'http://127.0.0.1:8000?t=' + Date.now();
-                showToast('Reloading YouTube Warmer...', 'info');
             }
         }
 
